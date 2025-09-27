@@ -39,7 +39,7 @@ export function Navbar({ user }: { user: any }) {
   };
 
   const handleHardRefreshHome = () => {
-    window.location.href = "/";
+    window.location.href = "/"; //route
   };
 
   return (
