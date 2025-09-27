@@ -12,7 +12,7 @@ export default async function Home() {
   return (
     <>
       
-      <main className="container mt-5 py-10 bg-white">
+      <main className="w-full bg-[#f3f1f8] py-20">
         <ExhibitionForm />
       </main>
     </>

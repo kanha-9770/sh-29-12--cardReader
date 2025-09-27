@@ -26,10 +26,10 @@
 
 
 import type { Metadata } from 'next'
-import './globals.css'
-import { Footer } from '@/components/footer'
+import './globals.css'  
 import { ClientNavbarWrapper } from '@/components/client-navbar-wrapper'
 import { getSession } from '@/lib/auth'
+import { ClientFooterWrapper } from '@/components/client-footer-wrapper'
 
 export const metadata: Metadata = {
   title: 'Nessco Card Reader',
@@ -50,7 +50,7 @@ export default async function RootLayout({
       <body>
         <ClientNavbarWrapper user={user} />
         {children}
-        <Footer />
+        <ClientFooterWrapper user={user} />
       </body>
     </html>
   )

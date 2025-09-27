@@ -51,7 +51,8 @@ export function ExhibitionForm() {
     cardBackPhoto: "",
     leadStatus: searchParams.get("leadStatus") || "",
     dealStatus: searchParams.get("dealStatus") || "",
-    meetingAfterExhibition: searchParams.get("meetingAfterExhibition")?.toLowerCase() === "true" ||
+    meetingAfterExhibition:
+      searchParams.get("meetingAfterExhibition")?.toLowerCase() === "true" ||
       false,
     industryCategories: searchParams.get("industryCategories") || "",
     description: "",
@@ -61,7 +62,7 @@ export function ExhibitionForm() {
     extractionStatus: "PENDING",
     zohoStatus: "PENDING",
     userId: undefined,
-    user: undefined
+    user: undefined,
   };
 
   const [formData, setFormData] = useState<FormData>(initialFormData);
@@ -146,8 +147,6 @@ export function ExhibitionForm() {
       }));
     }
   }, [searchParams]);
-
-
 
   const openCamera = (type: "front" | "back") => {
     addConsoleLog(`[Camera] Opening camera for ${type} image.`); // CONSOLE LOG
@@ -303,7 +302,9 @@ export function ExhibitionForm() {
       addConsoleLog("No file selected.");
       return;
     }
-    addConsoleLog(`[Image Upload] Selected ${type} image: ${file.name}, size: ${file.size} bytes`); // CONSOLE LOG
+    addConsoleLog(
+      `[Image Upload] Selected ${type} image: ${file.name}, size: ${file.size} bytes`
+    ); // CONSOLE LOG
 
     addConsoleLog(
       `[Image Upload - handleImageChange] File received: ${file.name}, size: ${file.size}, type: ${file.type}`
@@ -326,7 +327,9 @@ export function ExhibitionForm() {
 
   const uploadImage = async (file: File, type: "front" | "back") => {
     // Log the file size right before the upload
-    addConsoleLog(`[Image Upload] About to upload ${type} image: ${file.name}, size: ${file.size} bytes`);
+    addConsoleLog(
+      `[Image Upload] About to upload ${type} image: ${file.name}, size: ${file.size} bytes`
+    );
     addConsoleLog(`[Image Upload] Uploading ${type} image: ${file.name}`); // CONSOLE LOG
     const formData = new FormData();
     formData.append("image", file);
@@ -368,10 +371,10 @@ export function ExhibitionForm() {
           }));
           toast({
             title: "Success",
-            description: `${type === "front" ? "Front" : "Back"
-              } image uploaded successfully`,
+            description: `${
+              type === "front" ? "Front" : "Back"
+            } image uploaded successfully`,
           });
-
         } else {
           console.error(
             `[Image Upload] Failed to upload ${type} image. Server returned status: ${xhr.status}`
@@ -406,9 +409,7 @@ export function ExhibitionForm() {
       xhr.onabort = () => {
         // Log the abort event
         addConsoleLog(`[Image Upload] XHR onabort`);
-        console.error(
-          `[Image Upload] Upload was aborted.`
-        ); // CONSOLE LOG
+        console.error(`[Image Upload] Upload was aborted.`); // CONSOLE LOG
         toast({
           title: "Error",
           description: `Failed to upload ${type} image. Upload was aborted.`,
@@ -427,7 +428,8 @@ export function ExhibitionForm() {
         variant: "destructive",
       });
       addConsoleLog(
-        `[Image Upload] Error uploading ${type} image: ${error instanceof Error ? error.message : "Unknown error"
+        `[Image Upload] Error uploading ${type} image: ${
+          error instanceof Error ? error.message : "Unknown error"
         }`
       );
       const progressSetter =
@@ -537,13 +539,13 @@ export function ExhibitionForm() {
 
   return (
     <>
-      <Card className="w-full max-w-4xl mx-auto bg-white shadow-lg rounded-lg overflow-hidden">
-        <CardHeader className="bg-gray-50 border-b border-gray-200 p-6">
+      <Card className="w-full max-w-4xl mx-auto p-8 shadow-[8px_8px_16px_#d1d9e6,-8px_-8px_16px_#ffffff] bg-white rounded-lg overflow-hidden">
+        <CardHeader className="bg-gray-50 border-b  border-gray-200 p-6">
           <CardTitle className="text-2xl font-semibold text-gray-800">
             Exhibition Form
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-6">
+        <CardContent className="p-6 ">
           <form onSubmit={handleSubmit} className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
@@ -559,7 +561,7 @@ export function ExhibitionForm() {
                   onChange={(e) =>
                     setFormData({ ...formData, cardNo: e.target.value })
                   }
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full p-2 border border-gray-300 shadow-inner shadow-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-400 rounded-md focus:border-transparent"
                 />
                 {errors.cardNo && (
                   <p className="text-sm text-red-500 mt-1">{errors.cardNo}</p>
@@ -578,7 +580,7 @@ export function ExhibitionForm() {
                     setFormData({ ...formData, salesPerson: value })
                   }
                 >
-                  <SelectTrigger className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                  <SelectTrigger className="w-full p-2 border border-gray-300 rounded-md *:focus:border-transparent shadow-inner shadow-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-400">
                     <SelectValue placeholder="Select sales person" />
                   </SelectTrigger>
                   <SelectContent>
@@ -607,7 +609,7 @@ export function ExhibitionForm() {
                   onChange={(e) =>
                     setFormData({ ...formData, date: e.target.value })
                   }
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full p-2 border border-gray-300 rounded-md shadow-inner shadow-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent"
                 />
               </div>
               <div className="space-y-2">
@@ -623,7 +625,7 @@ export function ExhibitionForm() {
                   onChange={(e) =>
                     setFormData({ ...formData, country: e.target.value })
                   }
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full p-2 border border-gray-300 rounded-md shadow-inner shadow-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent"
                 />
               </div>
             </div>
@@ -854,8 +856,8 @@ export function ExhibitionForm() {
                       onCheckedChange={(checked) => {
                         const currentCategories = formData.industryCategories
                           ? formData.industryCategories
-                            .split(",")
-                            .filter(Boolean)
+                              .split(",")
+                              .filter(Boolean)
                           : [];
                         const updatedCategories = checked
                           ? [...currentCategories, category]

@@ -39,7 +39,7 @@ export function Navbar({ user }: { user: any }) {
   };
 
   const handleHardRefreshHome = () => {
-    window.location.href = "/"; //route
+    window.location.href = "/";
   };
 
   return (
@@ -55,15 +55,6 @@ export function Navbar({ user }: { user: any }) {
               CardSync
             </span>
           </Link>
-          <Button
-            variant="outline"
-            onClick={handleGoBack}
-            className="bg-[#483d73] hover:bg-[#3d3260] text-white hover:text-white"
-            size="sm"
-          >
-            <PlusCircle className="h-3 w-3 mr-1 sm:h-4 sm:w-4 sm:mr-2" />
-            <span>New Form</span>
-          </Button>
         </div>
 
         {/* Desktop Navigation */}
@@ -104,7 +95,7 @@ export function Navbar({ user }: { user: any }) {
             variant="outline"
             onClick={handleLogout}
             size="sm"
-            className="border-gray-500 text-red-500 hover:bg-gray-700 transition-all"
+            className="bg-[#483d73] hover:bg-[#3d3260] text-white hover:text-white transition-all"
           >
             Logout
           </Button>
