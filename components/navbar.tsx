@@ -7,7 +7,18 @@ import { useToast } from "@/components/ui/use-toast";
 import { useState } from "react";
 import { Menu, X, RotateCw, PlusCircle } from "lucide-react";
 
-export function Navbar({ user }: { user: any }) {
+// Define the User interface to match the expected JWT payload
+interface User {
+  id: number;
+  email: string;
+  isAdmin: boolean;
+}
+
+interface NavbarProps {
+  user: User | null;
+}
+
+export function Navbar({ user }: NavbarProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
@@ -28,18 +39,6 @@ export function Navbar({ user }: { user: any }) {
         variant: "destructive",
       });
     }
-  };
-
-  const handleGoBack = () => {
-    if (window.history.length > 1) {
-      window.history.back();
-    } else {
-      router.push("/");
-    }
-  };
-
-  const handleHardRefreshHome = () => {
-    window.location.href = "/";
   };
 
   return (
@@ -79,26 +78,29 @@ export function Navbar({ user }: { user: any }) {
           </Link>
           <Link
             href="/pricing"
-            className="text-back text-sm font-medium hover:text-white transition-all px-3 py-1.5 rounded hover:bg-[#3d3260]"
+            className="text-black text-sm font-medium hover:text-white transition-all px-3 py-1.5 rounded hover:bg-[#3d3260]"
           >
             Pricing
           </Link>
-          <Button
-            className="bg-[#483d73] hover:bg-[#3d3260] text-white"
-            asChild
-          >
-            <Link href="/login" onClick={() => setIsOpen(false)}>
-              Sign In
-            </Link>
-          </Button> 
-          <Button
-            variant="outline"
-            onClick={handleLogout}
-            size="sm"
-            className="bg-[#483d73] hover:bg-[#3d3260] text-white hover:text-white transition-all"
-          >
-            Logout
-          </Button>
+          {user ? (
+            <Button
+              variant="outline"
+              onClick={handleLogout}
+              size="sm"
+              className="bg-[#483d73] hover:bg-[#3d3260] text-white hover:text-white transition-all"
+            >
+              Logout
+            </Button>
+          ) : (
+            <Button
+              className="bg-[#483d73] hover:bg-[#3d3260] text-white"
+              asChild
+            >
+              <Link href="/login" onClick={() => setIsOpen(false)}>
+                Sign In
+              </Link>
+            </Button>
+          )}
         </div>
 
         {/* Mobile Menu Button */}
@@ -115,27 +117,59 @@ export function Navbar({ user }: { user: any }) {
       {isOpen && (
         <div className="sm:hidden bg-gray-900 text-white w-full py-3 px-4 flex flex-col space-y-3 shadow-lg transition-all border-t border-gray-700">
           <Link
+            href="/"
+            className="text-sm font-medium hover:text-gray-300 transition-all py-2 px-3 rounded hover:bg-gray-800 w-full text-center"
+            onClick={() => setIsOpen(false)}
+          >
+            Home
+          </Link>
+          <Link
             href="/admin"
             className="text-sm font-medium hover:text-gray-300 transition-all py-2 px-3 rounded hover:bg-gray-800 w-full text-center"
             onClick={() => setIsOpen(false)}
           >
             Admin Dashboard
           </Link>
-          <Button
-            variant="outline"
-            onClick={() => {
-              handleLogout();
-              setIsOpen(false);
-            }}
-            className="border-gray-500 text-red-500 hover:bg-gray-700 transition-all w-full"
-            size="sm"
+          <Link
+            href="/form"
+            className="text-sm font-medium hover:text-gray-300 transition-all py-2 px-3 rounded hover:bg-gray-800 w-full text-center"
+            onClick={() => setIsOpen(false)}
           >
-            Logout
-          </Button>
+            Form
+          </Link>
+          <Link
+            href="/pricing"
+            className="text-sm font-medium hover:text-gray-300 transition-all py-2 px-3 rounded hover:bg-gray-800 w-full text-center"
+            onClick={() => setIsOpen(false)}
+          >
+            Pricing
+          </Link>
+          {user ? (
+            <Button
+              variant="outline"
+              onClick={() => {
+                handleLogout();
+                setIsOpen(false);
+              }}
+              className="border-gray-500 text-red-500 hover:bg-gray-700 transition-all w-full"
+              size="sm"
+            >
+              Logout
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              asChild
+              className="border-gray-500 text-white hover:bg-gray-700 transition-all w-full"
+              size="sm"
+            >
+              <Link href="/login" onClick={() => setIsOpen(false)}>
+                Sign In
+              </Link>
+            </Button>
+          )}
         </div>
       )}
     </nav>
   );
 }
-
-

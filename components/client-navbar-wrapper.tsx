@@ -1,12 +1,22 @@
-"use client"
+// components/ClientNavbarWrapper.tsx
+"use client";
 
-import { usePathname } from 'next/navigation'
-import { Navbar } from '@/components/navbar'
+import { usePathname } from "next/navigation";
+import { Navbar } from "@/components/navbar";
 
-export function ClientNavbarWrapper({ user }: { user: any }) {
-  const pathname = usePathname()
-  const hideNavbar = pathname === '/login'
-  console.log('ClientNavbarWrapper user:', user) // Debug log
+interface User {
+  id: number;
+  email: string;
+  isAdmin: boolean;
+}
 
-  return !hideNavbar ? <Navbar user={user} /> : null
+interface ClientNavbarWrapperProps {
+  user: User | null; // Allow user to be null
+}
+
+export function ClientNavbarWrapper({ user }: ClientNavbarWrapperProps) {
+  const pathname = usePathname();
+  const hideNavbar = pathname === "/login" || pathname === "/signup"; // To hide the navbar in login page
+  console.log("ClientNavbarWrapper user:", user); // Debug log
+  return !hideNavbar ? <Navbar user={user} /> : null;
 }

@@ -11,8 +11,7 @@ export default async function Home() {
 
   return (
     <>
-      
-      <main className="w-full bg-[#f3f1f8] py-20">
+      <main className="w-full">
         <ExhibitionForm />
       </main>
     </>

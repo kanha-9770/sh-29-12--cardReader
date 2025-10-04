@@ -1,30 +1,3 @@
-// import type { Metadata } from 'next'
-// import './globals.css'
-// import { Footer } from '@/components/footer'
-// import { ClientNavbarWrapper } from '@/components/client-navbar-wrapper'
-
-// export const metadata: Metadata = {
-//   title: 'Nessco Card Reader',
-//   description: 'Created with nessco by akash',
-// }
-
-// export default function RootLayout({
-//   children,
-// }: Readonly<{
-//   children: React.ReactNode
-// }>) {
-//   return (
-//     <html lang="en">
-//       <body>
-//         <ClientNavbarWrapper user={undefined} />
-//         {children}
-//         <Footer />
-//       </body>
-//     </html>
-//   )
-// }
-
-
 import type { Metadata } from 'next'
 import './globals.css'  
 import { ClientNavbarWrapper } from '@/components/client-navbar-wrapper'
@@ -36,21 +9,27 @@ export const metadata: Metadata = {
   description: 'Created with nessco by akash',
 }
 
+interface User {
+  id: number;
+  email: string;
+  isAdmin: boolean;
+}
+
 export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
   const session = await getSession()
-  const user = session?.user || null
-  console.log('RootLayout user:', user) // Debug log
+ const user: User | null = session;
+  console.log('RootLayout user:', session) // Debug log
 
   return (
     <html lang="en">
       <body>
-        <ClientNavbarWrapper user={user} />
+        <ClientNavbarWrapper user={session} />
         {children}
-        <ClientFooterWrapper user={user} />
+        <ClientFooterWrapper user={session} />
       </body>
     </html>
   )
