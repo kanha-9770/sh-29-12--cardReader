@@ -37,7 +37,7 @@ model Form {
   createdAt              DateTime      @default(now())
   updatedAt              DateTime      @updatedAt
   extractedData          ExtractedData?
-  mergedData             MergedData?
+  mergedData             MergedData?   
   status                 String        @default("PENDING")
   extractionStatus       String        @default("PENDING")
   zohoStatus             String        @default("PENDING")
@@ -60,3 +60,12 @@ model ExtractedData {
   updatedAt       DateTime @updatedAt
   status          String   @default("PENDING")
 } 
+
+model MergedData {
+  id         String   @id @default(cuid())
+  formId     String   @unique
+  form       Form     @relation(fields: [formId], references: [id])
+  mergedInfo String?  @db.Text
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
