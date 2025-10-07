@@ -186,9 +186,9 @@ export function UserDashboard() {
                             <DialogHeader>
                               <DialogTitle>Business Card Details - {form.cardNo}</DialogTitle>
                             </DialogHeader>
-                            <div className="flex-grow overflow-y-auto">
+                            <div className="flex-grow ">
                               <Tabs defaultValue="merged" className="w-full">
-                                <TabsList className="grid w-full grid-cols-4 sticky top-0 bg-background z-10">
+                                <TabsList className="grid w-full grid-cols-4  sticky top-0 bg-background z-10">
                                   <TabsTrigger value="merged">Merged Data</TabsTrigger>
                                   <TabsTrigger value="extracted">Extracted Data</TabsTrigger>
                                   <TabsTrigger value="form">Form Data</TabsTrigger>

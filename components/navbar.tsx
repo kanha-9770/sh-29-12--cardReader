@@ -106,7 +106,7 @@ export function Navbar({ user }: NavbarProps) {
         {/* Mobile Menu Button */}
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="sm:hidden text-white focus:outline-none transition-all ml-auto"
+          className="sm:hidden text-black focus:outline-none transition-all ml-auto"
           aria-label={isOpen ? "Close menu" : "Open menu"}
         >
           {isOpen ? <X size={24} /> : <Menu size={24} />}
