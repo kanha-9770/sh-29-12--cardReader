@@ -63,10 +63,29 @@ model ExtractedData {
 } 
 
 model MergedData {
-  id         String   @id @default(cuid())
-  formId     String   @unique
-  form       Form     @relation(fields: [formId], references: [id])
-  mergedInfo String?  @db.Text
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id                     String   @id @default(cuid())
+  formId                 String   @unique
+  form                   Form     @relation(fields: [formId], references: [id])
+  cardNo                 String
+  salesPerson            String
+  date                   DateTime
+  country                String
+  cardFrontPhoto         String
+  cardBackPhoto          String?
+  leadStatus             String
+  dealStatus             String
+  meetingAfterExhibition Boolean
+  industryCategories     String
+  description            String   @db.Text @default("") // Default to empty string
+  name                   String?
+  companyName            String?
+  website                String?
+  email                  String?
+  address                String?
+  contactNumbers         String?
+  state                  String?
+  extractedCountry       String?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  status                 String   @default("PENDING")
 }
