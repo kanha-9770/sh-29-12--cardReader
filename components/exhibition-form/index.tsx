@@ -1,58 +1,65 @@
-"use client";
+"use client"
 
-import type React from "react";
-import { useState, useCallback, useEffect, useRef } from "react";
-import { Button } from "@/components/ui/button";
+import type React from "react"
+import { useState, useCallback, useEffect, useRef } from "react"
+import { Button } from "@/components/ui/button"
 import {
   Card,
   CardContent,
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+} from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Checkbox } from "@/components/ui/checkbox";
-import { useToast } from "@/hooks/use-toast";
-import { useRouter, useSearchParams } from "next/navigation";
-import Image from "next/image";
-import { Upload, X, Camera, RefreshCw } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
+} from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
+import { Checkbox } from "@/components/ui/checkbox"
+import { useToast } from "@/hooks/use-toast"
+import Image from "next/image"
+import { Upload, X, Camera, RefreshCw } from "lucide-react"
+import { Progress } from "@/components/ui/progress"
 import {
   salesPersons,
   leadStatuses,
   dealStatuses,
   industryCategories,
   type FormData,
-} from "@/types/form";
-import { PopupModal } from "@/components/popup-modal";
+} from "@/types/form"
+import { PopupModal } from "@/components/popup-modal"
+import { useRouter, useSearchParams } from "next/navigation"
 
-export function ExhibitionForm() {
-  const searchParams = useSearchParams();
+interface ExhibitionFormProps {
+  initialData?: Partial<FormData>
+  onSubmit?: (data: FormData) => Promise<void>
+  isEdit?: boolean
+  formId?: string
+}
 
-  // Initialize form data with URL parameters
-  const initialFormData: FormData = {
-    cardNo: searchParams.get("cardNo") || "",
-    salesPerson: searchParams.get("salesPerson") || "",
+export function ExhibitionForm({ initialData = {}, onSubmit, isEdit = false, formId }: ExhibitionFormProps) {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const { toast } = useToast()
+
+  const defaultFormData: FormData = {
+    cardNo: searchParams?.get("cardNo") || "",
+    salesPerson: searchParams?.get("salesPerson") || "",
     date: new Date().toISOString().split("T")[0],
-    country: searchParams.get("exhibition") || "LABEL EXPO SPAIN 2025",
+    country: searchParams?.get("exhibition") || "LABEL EXPO SPAIN 2025",
     cardFrontPhoto: "",
     cardBackPhoto: "",
-    leadStatus: searchParams.get("leadStatus") || "",
-    dealStatus: searchParams.get("dealStatus") || "",
+    leadStatus: searchParams?.get("leadStatus") || "",
+    dealStatus: searchParams?.get("dealStatus") || "",
     meetingAfterExhibition:
-      searchParams.get("meetingAfterExhibition")?.toLowerCase() === "true" ||
-      false,
-    industryCategories: searchParams.get("industryCategories") || "",
+      searchParams?.get("meetingAfterExhibition")?.toLowerCase() === "true" || false,
+    industryCategories: searchParams?.get("industryCategories") || "",
     description: "",
     extractedData: null,
     mergedData: null,
@@ -61,367 +68,413 @@ export function ExhibitionForm() {
     zohoStatus: "PENDING",
     userId: undefined,
     user: undefined,
-  };
+  }
 
-  const [formData, setFormData] = useState<FormData>(initialFormData);
-  const [frontImagePreview, setFrontImagePreview] = useState<string | null>(null);
-  const [backImagePreview, setBackImagePreview] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showBackImageModal, setShowBackImageModal] = useState(false);
-  const [frontUploadProgress, setFrontUploadProgress] = useState(0);
-  const [backUploadProgress, setBackUploadProgress] = useState(0);
-  const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [isCameraOpen, setIsCameraOpen] = useState(false);
-  const [currentImageType, setCurrentImageType] = useState<"front" | "back" | null>(null);
-  const [facingMode, setFacingMode] = useState<"user" | "environment">("environment");
-  const { toast } = useToast();
-  const router = useRouter();
-  const [consoleData, setConsoleData] = useState<string[]>([]);
-  const [showConsole, setShowConsole] = useState(false);
+  const [formData, setFormData] = useState<FormData>({ ...defaultFormData, ...initialData })
+  const [frontImagePreview, setFrontImagePreview] = useState<string | null>(initialData?.cardFrontPhoto || null)
+  const [backImagePreview, setBackImagePreview] = useState<string | null>(initialData?.cardBackPhoto || null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showBackImageModal, setShowBackImageModal] = useState(false)
+  const [frontUploadProgress, setFrontUploadProgress] = useState(0)
+  const [backUploadProgress, setBackUploadProgress] = useState(0)
+  const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({})
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const [isCameraOpen, setIsCameraOpen] = useState(false)
+  const [currentImageType, setCurrentImageType] = useState<"front" | "back" | null>(null)
+  const [facingMode, setFacingMode] = useState<"user" | "environment">("environment")
+  const [consoleData, setConsoleData] = useState<string[]>([])
+  const [showConsole, setShowConsole] = useState(false)
 
-  const addConsoleLog = (message: string) => {
-    setConsoleData((prev) => [...prev, message]);
-  };
+  const addConsoleLog = useCallback((message: string) => {
+    setConsoleData((prev) => [...prev, message])
+  }, [])
 
   useEffect(() => {
-    const formUpdates: Partial<FormData> = {};
-    const getParam = (key: string): string => {
-      const value = searchParams.get(key);
-      return value ? decodeURIComponent(value.replace(/\+/g, " ")) : "";
-    };
+    if (!isEdit) {
+      const formUpdates: Partial<FormData> = {}
+      const getParam = (key: string): string => {
+        const value = searchParams?.get(key)
+        return value ? decodeURIComponent(value.replace(/\+/g, " ")) : ""
+      }
 
-    const salesPerson = getParam("salesPerson");
-    if (salesPerson && salesPersons.includes(salesPerson)) {
-      formUpdates.salesPerson = salesPerson;
+      const salesPerson = getParam("salesPerson")
+      if (salesPerson && salesPersons.includes(salesPerson)) {
+        formUpdates.salesPerson = salesPerson
+      }
+
+      const leadStatus = getParam("leadStatus")
+      if (leadStatus && leadStatuses.includes(leadStatus)) {
+        formUpdates.leadStatus = leadStatus
+      }
+
+      const dealStatus = getParam("dealStatus")
+      if (dealStatus && dealStatuses.includes(dealStatus)) {
+        formUpdates.dealStatus = dealStatus
+      }
+
+      const categoriesParam = getParam("industryCategories")
+      if (categoriesParam) {
+        const categories = categoriesParam.split(",").map((cat) => cat.trim())
+        const validCategories = categories.filter((cat) => industryCategories.includes(cat))
+        formUpdates.industryCategories = validCategories.join(",")
+      }
+
+      if (Object.keys(formUpdates).length > 0) {
+        setFormData((prev) => ({ ...prev, ...formUpdates }))
+      }
     }
+  }, [searchParams, isEdit])
 
-    const leadStatus = getParam("leadStatus");
-    if (leadStatus && leadStatuses.includes(leadStatus)) {
-      formUpdates.leadStatus = leadStatus;
+  useEffect(() => {
+    if (initialData?.cardFrontPhoto) {
+      setFrontImagePreview(initialData.cardFrontPhoto)
     }
-
-    const dealStatus = getParam("dealStatus");
-    if (dealStatus && dealStatuses.includes(dealStatus)) {
-      formUpdates.dealStatus = dealStatus;
+    if (initialData?.cardBackPhoto) {
+      setBackImagePreview(initialData.cardBackPhoto)
     }
-
-    const categoriesParam = getParam("industryCategories");
-    if (categoriesParam) {
-      const categories = categoriesParam.split(",").map((cat) => cat.trim());
-      const validCategories = categories.filter((cat) => industryCategories.includes(cat));
-      formUpdates.industryCategories = validCategories.join(",");
+    if (initialData?.date && initialData.date.includes("T")) {
+      setFormData((prev) => ({ ...prev, date: initialData.date?.split("T")[0] || "" }))
     }
+  }, [initialData])
 
-    if (Object.keys(formUpdates).length > 0) {
-      setFormData((prev) => ({ ...prev, ...formUpdates }));
-    }
-  }, [searchParams]);
-
-  const openCamera = (type: "front" | "back") => {
-    addConsoleLog(`[Camera] Opening camera for ${type} image.`);
-    setCurrentImageType(type);
-    setIsCameraOpen(true);
-    startCameraStream();
-  };
+  const openCamera = useCallback((type: "front" | "back") => {
+    addConsoleLog(`[Camera] Opening camera for ${type} image.`)
+    setCurrentImageType(type)
+    setIsCameraOpen(true)
+    startCameraStream()
+  }, [addConsoleLog])
 
   const startCameraStream = async () => {
-    addConsoleLog("[Camera] Starting camera stream.");
+    addConsoleLog("[Camera] Starting camera stream.")
     try {
       if (videoRef.current) {
-        stopCameraStream();
+        stopCameraStream()
         const constraints = {
           video: {
             facingMode: facingMode,
             width: { ideal: 1280 },
             height: { ideal: 720 },
           },
-        };
-        addConsoleLog(`[Camera] Requesting user media with constraints: ${JSON.stringify(constraints)}`);
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
-        videoRef.current.srcObject = stream;
+        }
+        addConsoleLog(`[Camera] Requesting user media with constraints: ${JSON.stringify(constraints)}`)
+        const stream = await navigator.mediaDevices.getUserMedia(constraints)
+        videoRef.current.srcObject = stream
         await videoRef.current.play().catch((err) => {
-          console.error("Error playing video:", err);
-        });
-        addConsoleLog("[Camera] Camera stream started successfully.");
+          console.error("Error playing video:", err)
+          addConsoleLog(`[Camera] Error playing video: ${err}`)
+        })
+        addConsoleLog("[Camera] Camera stream started successfully.")
       }
     } catch (err) {
-      console.error("Error accessing camera:", err);
+      console.error("Error accessing camera:", err)
       toast({
         title: "Camera Error",
         description: "Failed to access camera. Please check your permissions or try a different browser.",
         variant: "destructive",
-      });
-      setIsCameraOpen(false);
+      })
+      addConsoleLog(`[Camera] Error accessing camera: ${err}`)
+      setIsCameraOpen(false)
     }
-  };
+  }
 
   const toggleCamera = () => {
-    addConsoleLog("[Camera] Toggling camera facing mode.");
-    setFacingMode(facingMode === "user" ? "environment" : "user");
-  };
+    addConsoleLog("[Camera] Toggling camera facing mode.")
+    setFacingMode(facingMode === "user" ? "environment" : "user")
+  }
 
   useEffect(() => {
     if (isCameraOpen) {
-      startCameraStream();
+      startCameraStream()
     }
     return () => {
       if (isCameraOpen) {
-        stopCameraStream();
+        stopCameraStream()
       }
-    };
-  }, [facingMode, isCameraOpen]);
+    }
+  }, [facingMode, isCameraOpen])
 
   const captureImage = () => {
-    addConsoleLog("[Camera] Capturing image from camera.");
+    addConsoleLog("[Camera] Capturing image from camera.")
     if (videoRef.current && canvasRef.current && videoRef.current.videoWidth > 0) {
-      const video = videoRef.current;
-      const canvas = canvasRef.current;
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      const context = canvas.getContext("2d");
+      const video = videoRef.current
+      const canvas = canvasRef.current
+      canvas.width = video.videoWidth
+      canvas.height = video.videoHeight
+      const context = canvas.getContext("2d")
       if (context) {
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        context.drawImage(video, 0, 0, canvas.width, canvas.height)
         canvas.toBlob(
           (blob) => {
             if (blob) {
-              addConsoleLog(`[Camera] Blob created: ${blob.size} bytes`);
-              const file = new File([blob], `${currentImageType}_image.jpg`, { type: "image/jpeg" });
-              addConsoleLog(`[Camera] File created from Blob: ${file.size} bytes, type: ${file.type}`);
-              handleImageChange({ target: { files: [file] } } as any, currentImageType as "front" | "back");
+              addConsoleLog(`[Camera] Blob created: ${blob.size} bytes`)
+              const file = new File([blob], `${currentImageType}_image.jpg`, { type: "image/jpeg" })
+              addConsoleLog(`[Camera] File created from Blob: ${file.size} bytes, type: ${file.type}`)
+              handleImageChange({ target: { files: [file] } } as any, currentImageType as "front" | "back")
             } else {
               toast({
                 title: "Error",
                 description: "Could not create image blob.",
                 variant: "destructive",
-              });
-              addConsoleLog("[Camera] Could not create image blob.");
+              })
+              addConsoleLog("[Camera] Could not create image blob.")
             }
           },
           "image/jpeg",
           0.9
-        );
+        )
       }
-      closeCamera();
+      closeCamera()
     } else {
       toast({
         title: "Camera Error",
         description: "Could not capture image. Please try again.",
         variant: "destructive",
-      });
-      addConsoleLog("[Camera] Could not capture image.");
+      })
+      addConsoleLog("[Camera] Could not capture image.")
     }
-  };
+  }
 
   const stopCameraStream = () => {
-    addConsoleLog("[Camera] Stopping camera stream.");
+    addConsoleLog("[Camera] Stopping camera stream.")
     if (videoRef.current && videoRef.current.srcObject) {
-      const stream = videoRef.current.srcObject as MediaStream;
-      const tracks = stream.getTracks();
-      tracks.forEach((track) => track.stop());
-      videoRef.current.srcObject = null;
+      const stream = videoRef.current.srcObject as MediaStream
+      const tracks = stream.getTracks()
+      tracks.forEach((track) => track.stop())
+      videoRef.current.srcObject = null
     }
-  };
+  }
 
   const closeCamera = () => {
-    addConsoleLog("[Camera] Closing camera.");
-    setIsCameraOpen(false);
-    stopCameraStream();
-  };
+    addConsoleLog("[Camera] Closing camera.")
+    setIsCameraOpen(false)
+    stopCameraStream()
+  }
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>, type: "front" | "back") => {
-    const file = e.target.files?.[0];
+    const file = e.target.files?.[0]
     if (!file) {
-      console.warn("No file selected.");
-      addConsoleLog("No file selected.");
-      return;
+      console.warn("No file selected.")
+      addConsoleLog("No file selected.")
+      return
     }
-    addConsoleLog(`[Image Upload] Selected ${type} image: ${file.name}, size: ${file.size} bytes`);
-    const reader = new FileReader();
+    addConsoleLog(`[Image Upload] Selected ${type} image: ${file.name}, size: ${file.size} bytes`)
+    const reader = new FileReader()
     reader.onload = (e) => {
       if (type === "front") {
-        setFrontImagePreview(e.target?.result as string);
-        addConsoleLog("[Image Upload] Set front image preview.");
+        setFrontImagePreview(e.target?.result as string)
+        addConsoleLog("[Image Upload] Set front image preview.")
       } else {
-        setBackImagePreview(e.target?.result as string);
-        addConsoleLog("[Image Upload] Set back image preview.");
+        setBackImagePreview(e.target?.result as string)
+        addConsoleLog("[Image Upload] Set back image preview.")
       }
-    };
-    reader.readAsDataURL(file);
-    await uploadImage(file, type);
-    e.target.value = "";
-  };
+    }
+    reader.readAsDataURL(file)
+    await uploadImage(file, type)
+    e.target.value = ""
+  }
 
   const uploadImage = async (file: File, type: "front" | "back") => {
-    addConsoleLog(`[Image Upload] About to upload ${type} image: ${file.name}, size: ${file.size} bytes`);
-    const formData = new FormData();
-    formData.append("image", file);
-    formData.append("type", type);
+    addConsoleLog(`[Image Upload] About to upload ${type} image: ${file.name}, size: ${file.size} bytes`)
+    const formData = new FormData()
+    formData.append("image", file)
+    formData.append("type", type)
     try {
-      const progressSetter = type === "front" ? setFrontUploadProgress : setBackUploadProgress;
-      progressSetter(0);
-      addConsoleLog(`[Image Upload] Uploading ${type} image started.`);
-      const xhr = new XMLHttpRequest();
-      xhr.open("POST", "/api/upload-image", true);
+      const progressSetter = type === "front" ? setFrontUploadProgress : setBackUploadProgress
+      progressSetter(0)
+      addConsoleLog(`[Image Upload] Uploading ${type} image started.`)
+      const xhr = new XMLHttpRequest()
+      xhr.open("POST", "/api/upload-image", true)
       xhr.upload.onprogress = (event) => {
         if (event.lengthComputable) {
-          const percentComplete = (event.loaded / event.total) * 100;
-          progressSetter(percentComplete);
-          addConsoleLog(`[Image Upload] ${type} image upload progress: ${percentComplete.toFixed(2)}%`);
+          const percentComplete = (event.loaded / event.total) * 100
+          progressSetter(percentComplete)
+          addConsoleLog(`[Image Upload] ${type} image upload progress: ${percentComplete.toFixed(2)}%`)
         }
-      };
+      }
       xhr.onload = () => {
-        addConsoleLog(`[Image Upload] XHR onload - Status: ${xhr.status}`);
+        addConsoleLog(`[Image Upload] XHR onload - Status: ${xhr.status}`)
         if (xhr.status === 200) {
-          const { imageUrl } = JSON.parse(xhr.responseText);
-          addConsoleLog(`[Image Upload] ${type} image uploaded successfully. Image URL: ${imageUrl}`);
+          const { imageUrl } = JSON.parse(xhr.responseText)
+          addConsoleLog(`[Image Upload] ${type} image uploaded successfully. Image URL: ${imageUrl}`)
           setFormData((prev) => ({
             ...prev,
             [type === "front" ? "cardFrontPhoto" : "cardBackPhoto"]: imageUrl,
-          }));
+          }))
           toast({
             title: "Success",
             description: `${type === "front" ? "Front" : "Back"} image uploaded successfully`,
-          });
+          })
         } else {
-          console.error(`[Image Upload] Failed to upload ${type} image. Server returned status: ${xhr.status}`);
+          console.error(`[Image Upload] Failed to upload ${type} image. Server returned status: ${xhr.status}`)
           toast({
             title: "Error",
             description: `Failed to upload ${type} image. Server returned status: ${xhr.status}`,
             variant: "destructive",
-          });
-          addConsoleLog(`[Image Upload] Failed to upload ${type} image. Server returned status: ${xhr.status}`);
+          })
+          addConsoleLog(`[Image Upload] Failed to upload ${type} image. Server returned status: ${xhr.status}`)
         }
-        progressSetter(0);
-        addConsoleLog(`[Image Upload] Uploading ${type} image Ended.`);
-      };
+        progressSetter(0)
+        addConsoleLog(`[Image Upload] Uploading ${type} image Ended.`)
+      }
       xhr.onerror = () => {
-        addConsoleLog(`[Image Upload] XHR onerror`);
-        console.error(`[Image Upload] Failed to upload ${type} image. Network error.`);
+        addConsoleLog(`[Image Upload] XHR onerror`)
+        console.error(`[Image Upload] Failed to upload ${type} image. Network error.`)
         toast({
           title: "Error",
           description: `Failed to upload ${type} image. Network error.`,
           variant: "destructive",
-        });
-        progressSetter(0);
-        addConsoleLog(`[Image Upload] Uploading ${type} image Ended.`);
-      };
+        })
+        progressSetter(0)
+        addConsoleLog(`[Image Upload] Uploading ${type} image Ended.`)
+      }
       xhr.onabort = () => {
-        addConsoleLog(`[Image Upload] XHR onabort`);
-        console.error(`[Image Upload] Upload was aborted.`);
+        addConsoleLog(`[Image Upload] XHR onabort`)
+        console.error(`[Image Upload] Upload was aborted.`)
         toast({
           title: "Error",
           description: `Failed to upload ${type} image. Upload was aborted.`,
           variant: "destructive",
-        });
-        progressSetter(0);
-        addConsoleLog(`[Image Upload] Uploading ${type} image Ended.`);
-      };
-      xhr.send(formData);
+        })
+        progressSetter(0)
+        addConsoleLog(`[Image Upload] Uploading ${type} image Ended.`)
+      }
+      xhr.send(formData)
     } catch (error) {
-      console.error(`Error uploading ${type} image:`, error);
+      console.error(`Error uploading ${type} image:`, error)
       toast({
         title: "Error",
         description: `Failed to upload ${type} image. An unexpected error occurred.`,
         variant: "destructive",
-      });
-      addConsoleLog(`[Image Upload] Error uploading ${type} image: ${error instanceof Error ? error.message : "Unknown error"}`);
-      const progressSetter = type === "front" ? setFrontUploadProgress : setBackUploadProgress;
-      progressSetter(0);
-      addConsoleLog(`[Image Upload] Uploading ${type} image Ended.`);
+      })
+      addConsoleLog(`[Image Upload] Error uploading ${type} image: ${error instanceof Error ? error.message : "Unknown error"}`)
+      const progressSetter = type === "front" ? setFrontUploadProgress : setBackUploadProgress
+      progressSetter(0)
+      addConsoleLog(`[Image Upload] Uploading ${type} image Ended.`)
     }
-  };
+  }
 
   const handleRemoveImage = (type: "front" | "back") => {
-    addConsoleLog(`[Image Remove] Removing ${type} image.`);
+    addConsoleLog(`[Image Remove] Removing ${type} image.`)
     if (type === "front") {
-      setFrontImagePreview(null);
-      setFormData((prev) => ({ ...prev, cardFrontPhoto: "" }));
+      setFrontImagePreview(null)
+      setFormData((prev) => ({ ...prev, cardFrontPhoto: "" }))
     } else {
-      setBackImagePreview(null);
-      setFormData((prev) => ({ ...prev, cardBackPhoto: "" }));
+      setBackImagePreview(null)
+      setFormData((prev) => ({ ...prev, cardBackPhoto: "" }))
     }
-  };
+  }
 
   const handleBackImageModalConfirm = () => {
-    setShowBackImageModal(false);
-    const backImageInput = document.getElementById("cardBack") as HTMLInputElement;
-    backImageInput.click();
-  };
+    setShowBackImageModal(false)
+    const backImageInput = document.getElementById("cardBack") as HTMLInputElement
+    backImageInput.click()
+  }
 
   const handleBackImageModalClose = () => {
-    setShowBackImageModal(false);
-  };
+    setShowBackImageModal(false)
+  }
 
-  const validateForm = (): boolean => {
-    const newErrors: Partial<Record<keyof FormData, string>> = {};
-    if (!formData.cardNo) newErrors.cardNo = "Card number is required";
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+  const validateForm = useCallback((): boolean => {
+    const newErrors: Partial<Record<keyof FormData, string>> = {}
+    if (!formData.cardNo) newErrors.cardNo = "Card number is required"
+    if (!formData.salesPerson) newErrors.salesPerson = "Sales person is required"
+    if (!formData.date) newErrors.date = "Date is required"
+    setErrors(newErrors)
+    addConsoleLog(`[Validation] Errors: ${JSON.stringify(newErrors)}`)
+    return Object.keys(newErrors).length === 0
+  }, [formData, addConsoleLog])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (isSubmitting) return;
+  const defaultOnSubmit = async (submissionData: FormData) => {
+    addConsoleLog(`[Submit] Submitting form (create mode): ${JSON.stringify(submissionData)}`)
+    const res = await fetch("/api/submit-form", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(submissionData),
+    })
+    if (!res.ok) {
+      const errorData = await res.json()
+      addConsoleLog(`[Submit] Error: ${JSON.stringify(errorData)}`)
+      throw new Error(errorData.error || "Failed to submit form")
+    }
+    const responseData = await res.json()
+    addConsoleLog(`[Submit] Success: ${JSON.stringify(responseData)}`)
+    toast({
+      title: "Success",
+      description: "Form submitted successfully.",
+    })
+    router.push(`/submission/${responseData.formId}`)
+  }
+
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (isSubmitting) {
+      addConsoleLog("[Submit] Submission blocked: already submitting")
+      return
+    }
     if (!validateForm()) {
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields.",
         variant: "destructive",
-      });
-      return;
+      })
+      return
     }
-    setIsSubmitting(true);
+    setIsSubmitting(true)
     try {
       const submissionData = {
         ...formData,
         date: new Date(formData.date).toISOString(),
-      };
+        ...(isEdit && formId ? { id: formId } : {}), // Include formId in edit mode
+      }
       if (!submissionData.cardBackPhoto) {
-        delete submissionData.cardBackPhoto;
+        delete submissionData.cardBackPhoto
       }
-      const res = await fetch("/api/submit-form", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(submissionData),
-      });
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || "Failed to submit form");
+      addConsoleLog(`[Submit] Submitting form data: ${JSON.stringify(submissionData)}`)
+      if (onSubmit && isEdit) {
+        await onSubmit(submissionData)
+      } else {
+        await defaultOnSubmit(submissionData)
       }
-      const responseData = await res.json();
       toast({
         title: "Success",
-        description: "Form submitted successfully.",
-      });
-      router.push(`/submission/${responseData.formId}`);
+        description: `Form ${isEdit ? "updated" : "submitted"} successfully.`,
+      })
+      if (!isEdit) {
+        setFormData(defaultFormData)
+        setFrontImagePreview(null)
+        setBackImagePreview(null)
+      }
     } catch (error) {
-      console.error("Error submitting form:", error);
+      console.error(`Error ${isEdit ? "updating" : "submitting"} form:`, error)
+      addConsoleLog(`[Submit] Error: ${error instanceof Error ? error.message : "Unknown error"}`)
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to submit form. Please try again.",
+        description: error instanceof Error ? error.message : `Failed to ${isEdit ? "update" : "submit"} form. Please try again.`,
         variant: "destructive",
-      });
+      })
     } finally {
-      setIsSubmitting(false);
+      setIsSubmitting(false)
+      addConsoleLog("[Submit] Submission completed")
     }
-  };
+  }, [formData, isSubmitting, isEdit, formId, onSubmit, defaultOnSubmit, validateForm, addConsoleLog, toast, router])
 
-  const isSubmitDisabled = !formData.cardNo || isSubmitting;
+  const isSubmitDisabled = !formData.cardNo || !formData.salesPerson || !formData.date || isSubmitting
 
   const toggleConsole = () => {
-    setShowConsole((prev) => !prev);
-  };
+    setShowConsole((prev) => !prev)
+  }
+
+  const wrapperClass = isEdit ? "" : "min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-12"
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-12">
+    <div className={wrapperClass}>
       <Card className="w-full max-w-4xl mx-auto shadow-lg bg-white rounded-xl overflow-hidden border border-gray-200">
         <CardHeader className="bg-gray-100 border-b border-blue-100 p-6">
           <CardTitle className="text-3xl font-bold text-gray-900">
-            Exhibition Form
+            {isEdit ? "Edit" : "Exhibition"} Form
           </CardTitle>
         </CardHeader>
         <CardContent className="p-8">
@@ -461,6 +514,9 @@ export function ExhibitionForm() {
                     ))}
                   </SelectContent>
                 </Select>
+                {errors.salesPerson && (
+                  <p className="text-sm text-red-600 mt-1">{errors.salesPerson}</p>
+                )}
               </div>
             </div>
 
@@ -476,6 +532,9 @@ export function ExhibitionForm() {
                   onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                   className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-[#b5acda] focus:border-transparent transition-all duration-300"
                 />
+                {errors.date && (
+                  <p className="text-sm text-red-600 mt-1">{errors.date}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="country" className="text-sm font-semibold text-gray-800">
@@ -691,14 +750,14 @@ export function ExhibitionForm() {
                       onCheckedChange={(checked) => {
                         const currentCategories = formData.industryCategories
                           ? formData.industryCategories.split(",").filter(Boolean)
-                          : [];
+                          : []
                         const updatedCategories = checked
                           ? [...currentCategories, category]
-                          : currentCategories.filter((c) => c !== category);
+                          : currentCategories.filter((c) => c !== category)
                         setFormData({
                           ...formData,
                           industryCategories: updatedCategories.join(","),
-                        });
+                        })
                       }}
                       className="border-gray-300 data-[state=checked]:bg-[#483d73] data-[state=checked]:border-[#483d73]"
                     />
@@ -714,11 +773,11 @@ export function ExhibitionForm() {
         <CardFooter className="bg-gray-100 border-t border-blue-100 p-6">
           <Button
             type="submit"
-            className="w-full bg-[#483d73] text-white py-3 px-6 rounded-lg font-semibold hover:bg-[#5a5570] transition-all duration-300 disabled:bg-gray-400 disabled:cursor-not-allowed"
             onClick={handleSubmit}
+            className="w-full bg-[#483d73] text-white py-3 px-6 rounded-lg font-semibold hover:bg-[#5a5570] transition-all duration-300 disabled:bg-gray-400 disabled:cursor-not-allowed"
             disabled={isSubmitDisabled}
           >
-            {isSubmitting ? "Submitting..." : "Submit Form"}
+            {isSubmitting ? "Submitting..." : isEdit ? "Save Changes" : "Submit Form"}
           </Button>
         </CardFooter>
       </Card>
@@ -786,5 +845,5 @@ export function ExhibitionForm() {
         </div>
       )}
     </div>
-  );
+  )
 }

@@ -6,9 +6,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-  directUrl =env("DIRECT_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -47,7 +47,7 @@ model Form {
 model ExtractedData {
   id              String   @id @default(cuid())
   formId          String   @unique
-  form            Form     @relation(fields: [formId], references: [id])
+  form            Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
   name            String?
   companyName     String?
   website         String?
@@ -65,7 +65,7 @@ model ExtractedData {
 model MergedData {
   id                     String   @id @default(cuid())
   formId                 String   @unique
-  form                   Form     @relation(fields: [formId], references: [id])
+  form                   Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
   cardNo                 String
   salesPerson            String
   date                   DateTime
