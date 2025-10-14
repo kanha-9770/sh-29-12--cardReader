@@ -69,16 +69,13 @@ async function processFormInBackground(form: any) {
   try {
     console.log(`Starting background processing for form ID: ${form.id}`);
 
-    // Step 1: Extract data from image using Gemini API
+    // Step 1: Extract data from image
     let extractedData;
     try {
-      console.log(`Extracting data for form ID: ${form.id}`);
-      extractedData = await extractCardDetails(
-        form.cardFrontPhoto,
-        form.cardBackPhoto || null
-      );
-      console.log(`Data extracted for form ID: ${form.id}`, extractedData);
+      extractedData = await extractCardDetails(form.cardFrontPhoto, form.cardBackPhoto || null);
+      console.log(`Extracted data:`, extractedData);
 
+      // Save only extracted data to DB
       await prisma.extractedData.upsert({
         where: { formId: form.id },
         update: extractedData,
@@ -89,8 +86,8 @@ async function processFormInBackground(form: any) {
         where: { id: form.id },
         data: { extractionStatus: "COMPLETED" },
       });
-    } catch (error) {
-      console.error(`Error extracting data for form ID ${form.id}:`, error);
+    } catch (err) {
+      console.error("Error extracting data:", err);
       await prisma.form.update({
         where: { id: form.id },
         data: { extractionStatus: "ERROR" },
@@ -104,12 +101,11 @@ async function processFormInBackground(form: any) {
         contactNumbers: null,
         state: null,
         country: null,
-        description: null, // Optional in ExtractedData
+        description: null,
       };
     }
 
-    // Step 2: Merge form data and extracted data
-    console.log(`Merging data for form ID: ${form.id}`);
+    // Step 2: Merge form + extracted data (in memory only)
     const mergedDescription = form.description
       ? `${form.description}\nImg Desc: ${extractedData.description || ''}`
       : (extractedData.description ? `Img Desc: ${extractedData.description}` : '');
@@ -137,56 +133,47 @@ async function processFormInBackground(form: any) {
       status: "COMPLETED",
     };
 
-    await prisma.mergedData.upsert({
-      where: { formId: form.id },
-      update: mergedData,
-      create: {
-        ...mergedData,
-        form: { connect: { id: form.id } },
-      },
-    });
+    console.log("Merged data (in memory):", mergedData);
+
+    // Do NOT save merged data to DB
+    
+    // await prisma.mergedData.upsert({ 
+    // where: { formId: form.id }, 
+    // update: mergedData, 
+    // create: { 
+    // ...mergedData, 
+    // form: { connect: { id: form.id } }, 
+    // }, 
+    // });
 
     await prisma.form.update({
       where: { id: form.id },
       data: { status: "MERGED" },
     });
 
-    console.log(`Data merged for form ID: ${form.id}`);
-
     // Step 3: Submit to Zoho
     try {
-      console.log(`Submitting to Zoho for form ID: ${form.id}`);
       await prisma.form.update({
         where: { id: form.id },
         data: { zohoStatus: "PROCESSING" },
       });
 
       const zohoResponse = await submitToZoho(mergedData);
-      if ("error" in zohoResponse) {
-        throw new Error(`Zoho API Error: ${zohoResponse.error}`);
-      }
+      if ("error" in zohoResponse) throw new Error(`Zoho API Error: ${zohoResponse.error}`);
 
       await prisma.form.update({
         where: { id: form.id },
         data: { status: "COMPLETED", zohoStatus: "COMPLETED" },
       });
-      console.log(`Zoho submission successful for form ID: ${form.id}`);
+      console.log("Zoho submission successful");
 
       // Step 4: Submit to Google Sheets
-      console.log(`Submitting to Google Sheets for form ID: ${form.id}`);
-      const sheetSubmissionSuccess = await appendToGoogleSheet(
-        form,
-        extractedData,
-        mergedData
-      );
+      const sheetSuccess = await appendToGoogleSheet(form, extractedData, mergedData);
+      if (sheetSuccess) console.log("Google Sheets submission successful");
+      else console.error("Google Sheets submission failed");
 
-      if (sheetSubmissionSuccess) {
-        console.log(`Google Sheets submission successful for form ID: ${form.id}`);
-      } else {
-        console.error(`Google Sheets submission failed for form ID: ${form.id}`);
-      }
-    } catch (error) {
-      console.error(`Error updating Zoho or Google Sheets for form ID ${form.id}:`, error);
+    } catch (err) {
+      console.error("Zoho / Google Sheets error:", err);
       await prisma.form.update({
         where: { id: form.id },
         data: { status: "ERROR", zohoStatus: "ERROR" },
@@ -195,7 +182,7 @@ async function processFormInBackground(form: any) {
 
     console.log(`Background processing completed for form ID: ${form.id}`);
   } catch (error) {
-    console.error(`Error in background processing for form ID ${form.id}:`, error);
+    console.error(`Background processing error for form ID ${form.id}:`, error);
     if (error instanceof Error) {
       console.error("Error message:", error.message);
       console.error("Error stack:", error.stack);

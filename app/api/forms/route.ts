@@ -78,11 +78,11 @@ export async function POST(req: Request) {
     console.log("Attempting to save merged data to MySQL:", mergedData)
 
     // Save to MySQL
-    const form = await prisma.form.create({
-      data: mergedData,
-    })
+    // const form = await prisma.form.create({
+    //   data: mergedData,
+    // })
 
-    console.log("Successfully saved to MySQL with ID:", form.id)
+    // console.log("Successfully saved to MySQL with ID:", form.id)
 
     // Submit to Zoho
     console.log("Attempting to submit to Zoho...")
@@ -91,7 +91,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
-      mysqlData: form,
+      // mysqlData: form,
       zohoResponse,
       message: "Data successfully saved to MySQL and submitted to Zoho.",
     })
