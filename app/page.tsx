@@ -11,6 +11,7 @@ import {
   CheckCircle,
 } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 
 export default function Home() {
   return (
@@ -35,12 +36,14 @@ export default function Home() {
                 value both style and substance.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                <Link href="/pricing">
                 <Button
                   size="lg"
                   className="bg-[#483d73] hover:bg-[#5a5570] text-white px-8"
                 >
                   Order Now
                 </Button>
+                </Link>
                 <Button
                   size="lg"
                   variant="outline"
@@ -325,12 +328,14 @@ export default function Home() {
                     </li>
                   ))}
                 </ul>
+                <Link href="/form">
                 <Button
                   size="lg"
                   className="bg-[#483d73] hover:bg-[#5a5570] text-white w-full md:w-auto"
                 >
                   Get Your CardSync Now
                 </Button>
+                </Link>
               </div>
               <div className="md:w-1/2 bg-[#f3f1f8] flex items-center justify-center">
                 <Image
