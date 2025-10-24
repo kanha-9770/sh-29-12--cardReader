@@ -93,6 +93,14 @@ export function Footer() {
                   Admin Dashboard
                 </Link>
               </li>
+              <li>
+                <Link
+                  href="/feature"
+                  className="text-[#5a5570] hover:text-[#483d73] transition-colors"
+                >
+                  Features
+                </Link>
+              </li>
             </ul>
           </div>
 
