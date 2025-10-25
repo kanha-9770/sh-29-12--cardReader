@@ -65,16 +65,22 @@ export function Navbar({ user }: NavbarProps) {
             Home
           </Link>
           <Link
-            href="/admin"
+            href="/dashboard"
             className="text-black text-sm font-medium hover:text-white transition-all px-3 py-1.5 rounded hover:bg-[#3d3260]"
           >
-            Admin Dashboard
+            Dashboard
           </Link>
           <Link
             href="/form"
             className="text-black text-sm font-medium hover:text-white transition-all px-3 py-1.5 rounded hover:bg-[#3d3260]"
           >
             Form
+          </Link>
+          <Link
+            href="/feature"
+            className="text-black text-sm font-medium hover:text-white transition-all px-3 py-1.5 rounded hover:bg-[#3d3260]"
+          >
+            Feature
           </Link>
           <Link
             href="/pricing"
@@ -124,11 +130,11 @@ export function Navbar({ user }: NavbarProps) {
             Home
           </Link>
           <Link
-            href="/admin"
+            href="/dashboard"
             className="text-sm font-medium hover:text-gray-300 transition-all py-2 px-3 rounded hover:bg-gray-800 w-full text-center"
             onClick={() => setIsOpen(false)}
           >
-            Admin Dashboard
+            Dashboard
           </Link>
           <Link
             href="/form"
@@ -136,6 +142,12 @@ export function Navbar({ user }: NavbarProps) {
             onClick={() => setIsOpen(false)}
           >
             Form
+          </Link>
+            <Link
+            href="/feature"
+            className="text-black text-sm font-medium hover:text-white transition-all px-3 py-1.5 rounded hover:bg-[#3d3260]"
+          >
+            Feature
           </Link>
           <Link
             href="/pricing"

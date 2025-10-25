@@ -1,32 +1,38 @@
-// import { getSession } from "@/lib/auth"
-// import { ExhibitionForm } from "@/components/exhibition-form"
 // import { redirect } from "next/navigation"
+// import { getSession } from "@/lib/auth"
+// import { AdminDashboard } from "@/components/admin/dashboard"
+// import { UserDashboard } from "@/components/admin/user-dashboard"
+// import { Navbar } from "@/components/navbar"
 
-// export default async function Home() {
+// export default async function DashboardPage() {
 //   const session = await getSession()
 
 //   if (!session) {
-//     redirect("/login")  // login
+//     redirect("/login")
 //   }
 
 //   return (
 //     <>
-//       <main className="w-full">
-//         <ExhibitionForm />
+
+//       <main className="container mx-auto lg:mt-16 py-6">
+
+//         {session.isAdmin ? <AdminDashboard /> : <UserDashboard />}
 //       </main>
 //     </>
 //   )
 // }
 
-import { getSession } from "@/lib/auth"
-import { ExhibitionForm } from "@/components/exhibition-form"
-import { redirect } from "next/navigation"
 
-export default async function Home() {
+import { redirect } from "next/navigation"
+import { getSession } from "@/lib/auth"
+import { AdminDashboard } from "@/components/admin/dashboard"
+import { UserDashboard } from "@/components/admin/user-dashboard"
+
+export default async function DashboardPage() {
   const session = await getSession()
 
   if (!session) {
-    redirect("/login")  // login
+    redirect("/login")
   }
 
   return (
@@ -79,9 +85,9 @@ export default async function Home() {
           animation: bounceIn 0.6s ease-out forwards;
         }
       `}</style>
-      <main className="w-full fade-in-up">
+      <main className="container mx-auto lg:mt-16 py-6 fade-in-up">
         <div className="fade-in-up">
-          <ExhibitionForm />
+          {session.isAdmin ? <AdminDashboard /> : <UserDashboard />}
         </div>
       </main>
     </>
