@@ -1,18 +1,23 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Users, Plus, X, Trash2, Building2 } from "lucide-react";
+import { Users, Plus, X, Trash2, Building2, Loader2, Shield } from "lucide-react";
+
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 export default function UserPage() {
+  const router = useRouter();
   const [organizationId, setOrganizationId] = useState<string>("");
   const [organizationCreated, setOrganizationCreated] = useState<boolean>(false);
   const [showForm, setShowForm] = useState(false);
   const [users, setUsers] = useState<
-    { id: number; name: string; email: string; organizationId: string }[]
+    { id: string; name: string; email: string; organizationId: string; isAdmin?: boolean; createdAt?: string }[]
   >([]);
   const [formData, setFormData] = useState({
     name: "",
@@ -21,68 +26,181 @@ export default function UserPage() {
     confirmPassword: "",
   });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
 
-  // ✅ Fetch organization ID from the logged-in user’s JWT (from cookie)
   useEffect(() => {
-    async function fetchOrganization() {
+    async function fetchData() {
       try {
+        setLoading(true);
+        setError(null);
+
         const res = await fetch("/api/auth/me", { cache: "no-store" });
         if (!res.ok) throw new Error("Failed to fetch user data");
         const data = await res.json();
 
-        // email = organization ID (as per your login logic)
         if (data?.user?.email) {
-          const orgId = data.user.email;
-          setOrganizationId(orgId);
+          const orgIdString = data.user.email;
+          setOrganizationId(orgIdString);
           setOrganizationCreated(true);
-          console.log("✅ Organization ID:", orgId);
+
+          if (!data.user.isAdmin) {
+            router.push('/unauthorized');
+            return;
+          }
+          setIsAdmin(true);
+
+          await fetchUsers();
         } else {
-          console.warn("⚠️ No email found in token payload");
+          throw new Error("No email found in user data");
         }
-      } catch (err) {
-        console.error("❌ Error fetching organization:", err);
+      } catch (err: any) {
+        console.error("Error fetching data:", err);
+        setError(err.message);
       } finally {
         setLoading(false);
       }
     }
 
-    fetchOrganization();
-  }, []);
+    fetchData();
+  }, [router]);
+
+  async function fetchUsers() {
+    try {
+      const res = await fetch("/api/users");
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || "Failed to fetch users");
+      }
+      const data = await res.json();
+
+      setUsers(
+        data.users.map((u: any) => ({
+          ...u,
+          organizationId,
+        }))
+      );
+    } catch (err: any) {
+      console.error("Error fetching users:", err);
+      toast.error("Failed to fetch users.");
+      setError(err.message);
+    }
+  }
 
   const handleAddUser = () => setShowForm(true);
   const handleCloseForm = () => setShowForm(false);
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.name || !formData.email || !formData.password) {
-      alert("Please fill out all fields.");
+    const name = formData.name.trim();
+    const email = formData.email.trim().toLowerCase();
+    if (!name || !email || !formData.password) {
+      toast.warning("Please fill out all fields.");
       return;
     }
     if (formData.password !== formData.confirmPassword) {
-      alert("Passwords do not match!");
+      toast.error("Passwords do not match!");
+      return;
+    }
+    if (formData.password.length < 8) {
+      toast.warning("Password must be at least 8 characters.");
       return;
     }
 
-    const newUser = {
-      id: Date.now(),
-      name: formData.name,
-      email: formData.email,
-      organizationId,
-    };
+    setIsCreating(true);
+    try {
+      await toast.promise(
+        fetch("/api/users", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, email, password: formData.password }),
+        }).then(async (res) => {
+          if (!res.ok) {
+            const errData = await res.json();
+            throw new Error(errData.error || "Failed to create user");
+          }
+          return res.json();
+        }),
+        {
+          pending: "Creating user...",
+          success: "User created successfully!",
+          error: "Error creating user.",
+        }
+      );
 
-    setUsers([...users, newUser]);
-    setFormData({ name: "", email: "", password: "", confirmPassword: "" });
-    setShowForm(false);
+      await fetchUsers();
+      setFormData({ name: "", email: "", password: "", confirmPassword: "" });
+      setShowForm(false);
+    } catch (err: any) {
+      console.error("Error creating user:", err);
+      toast.error(err.message);
+    } finally {
+      setIsCreating(false);
+    }
   };
 
-  const handleDeleteUser = (id: number) => {
-    setUsers((prev) => prev.filter((user) => user.id !== id));
-  };
+ const handleDeleteUser = (id: string) => {
+  toast(
+    ({ closeToast }) => (
+      <div className="flex flex-col gap-3">
+        <p className="font-medium">Are you sure you want to delete this user?</p>
+        <div className="flex justify-end gap-2">
+          <button
+            onClick={closeToast}
+            className="px-3 py-1 rounded bg-gray-300 text-gray-800 text-sm"
+          >
+            No
+          </button>
+          <button
+            onClick={async () => {
+              closeToast();
+
+              toast.promise(
+                (async () => {
+                  const res = await fetch("/api/users", {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ userId: id }),
+                  });
+
+                  if (!res.ok) {
+                    const errData = await res.json();
+                    throw new Error(errData.error || "Failed to delete user");
+                  }
+                  await fetchUsers();
+                })(),
+                {
+                  pending: "Deleting user...",
+                  success: "User deleted!",
+                  error: "Failed to delete user",
+                }
+              );
+            }}
+            className="px-3 py-1 rounded bg-red-600 text-white text-sm"
+          >
+            Yes
+          </button>
+        </div>
+      </div>
+    ),
+    {
+      closeOnClick: false,
+      autoClose: false,
+    }
+  );
+};
+
+
+  const sortedUsers = [...users].sort((a, b) => {
+    if (a.isAdmin && !b.isAdmin) return -1;
+    if (!a.isAdmin && b.isAdmin) return 1;
+    return a.name.localeCompare(b.name);
+  });
 
   if (loading) {
     return (
@@ -92,9 +210,27 @@ export default function UserPage() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-[#f3f1f8]">
+        <Card className="bg-white shadow-lg border-none">
+          <CardContent className="pt-6">
+            <p className="text-red-500 text-center">Error: {error}</p>
+            <Button onClick={() => window.location.reload()} className="mt-4 mx-auto block">
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#f3f1f8] py-16">
+      <ToastContainer position="top-right" theme="colored" />
+
       <div className="container mx-auto px-4">
+
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -125,9 +261,9 @@ export default function UserPage() {
             <Building2 className="text-[#483d73] h-5 w-5" />
             <div>
               <p className="text-[#2d2a4a] text-sm font-semibold">
-                Organization Created
+                Organization ID
               </p>
-              <p className="text-[#5a5570] text-sm">{organizationId}</p>
+              <p className="text-[#5a5570] text-sm font-mono">{organizationId}</p>
             </div>
           </motion.div>
         )}
@@ -139,7 +275,7 @@ export default function UserPage() {
           </CardHeader>
           <CardContent>
             <AnimatePresence>
-              {users.length === 0 ? (
+              {sortedUsers.length === 0 ? (
                 <motion.p
                   key="empty"
                   initial={{ opacity: 0 }}
@@ -151,7 +287,7 @@ export default function UserPage() {
                 </motion.p>
               ) : (
                 <ul className="divide-y divide-[#e5e2f0]">
-                  {users.map((user) => (
+                  {sortedUsers.map((user) => (
                     <motion.li
                       key={user.id}
                       layout
@@ -159,24 +295,44 @@ export default function UserPage() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 20 }}
                       transition={{ duration: 0.2 }}
-                      className="flex items-center justify-between py-3 px-2"
+                      className="flex items-center justify-between py-4 px-2"
                     >
-                      <div>
-                        <p className="text-[#2d2a4a] font-medium">{user.name}</p>
-                        <p className="text-sm text-[#5a5570]">{user.email}</p>
-                        <p className="text-xs text-[#8a86a3]">
-                          Org ID: {user.organizationId}
-                        </p>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-[#2d2a4a] font-medium">{user.name}</p>
+
+                          {user.isAdmin && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                              <Shield className="h-3 w-3" />
+                              Admin
+                            </span>
+                          )}
+
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-mono bg-gray-100 text-gray-600">
+                            ID: {user.organizationId}
+                          </span>
+                        </div>
+
+                        <p className="text-sm text-[#5a5570] mt-1">{user.email}</p>
                       </div>
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => handleDeleteUser(user.id)}
-                        className="text-red-500 hover:text-red-700 p-2 rounded-full transition"
-                        title="Delete user"
-                      >
-                        <Trash2 className="h-5 w-5" />
-                      </motion.button>
+
+                      {!user.isAdmin ? (
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={() => handleDeleteUser(user.id)}
+                          className="text-red-500 hover:text-red-700 p-2 rounded-full transition"
+                          title="Delete user"
+                        >
+                          <Trash2 className="h-5 w-5" />
+                        </motion.button>
+                      ) : (
+                        <div className="p-2">
+                          <span className="text-gray-400 text-xs" title="Admins cannot be deleted">
+                            —
+                          </span>
+                        </div>
+                      )}
                     </motion.li>
                   ))}
                 </ul>
@@ -208,6 +364,7 @@ export default function UserPage() {
                   <button
                     onClick={handleCloseForm}
                     className="text-[#5a5570] hover:text-[#2d2a4a]"
+                    disabled={isCreating}
                   >
                     <X className="h-5 w-5" />
                   </button>
@@ -220,7 +377,7 @@ export default function UserPage() {
                     <Input
                       value={organizationId}
                       readOnly
-                      className="bg-gray-100 cursor-not-allowed"
+                      className="bg-gray-100 cursor-not-allowed font-mono"
                     />
                   </div>
                   <div>
@@ -233,6 +390,7 @@ export default function UserPage() {
                       onChange={handleChange}
                       placeholder="Enter name"
                       required
+                      disabled={isCreating}
                     />
                   </div>
                   <div>
@@ -246,6 +404,7 @@ export default function UserPage() {
                       onChange={handleChange}
                       placeholder="Enter email"
                       required
+                      disabled={isCreating}
                     />
                   </div>
                   <div>
@@ -259,6 +418,7 @@ export default function UserPage() {
                       onChange={handleChange}
                       placeholder="Enter password"
                       required
+                      disabled={isCreating}
                     />
                   </div>
                   <div>
@@ -272,15 +432,24 @@ export default function UserPage() {
                       onChange={handleChange}
                       placeholder="Confirm password"
                       required
+                      disabled={isCreating}
                     />
                   </div>
 
                   <motion.div whileTap={{ scale: 0.97 }}>
                     <Button
                       type="submit"
+                      disabled={isCreating}
                       className="w-full bg-[#483d73] hover:bg-[#5a5570] text-white"
                     >
-                      Create User
+                      {isCreating ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Creating User...
+                        </>
+                      ) : (
+                        "Create User"
+                      )}
                     </Button>
                   </motion.div>
                 </form>

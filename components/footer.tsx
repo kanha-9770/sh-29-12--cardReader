@@ -90,7 +90,15 @@ export function Footer() {
                   href="/admin"
                   className="text-[#5a5570] hover:text-[#483d73] transition-colors"
                 >
-                  Admin Dashboard
+                  Dashboard
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/user"
+                  className="text-[#5a5570] hover:text-[#483d73] transition-colors"
+                >
+                  User Management
                 </Link>
               </li>
               <li>

@@ -98,7 +98,7 @@ export default function FeaturesPage() {
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8 }}
-        className="relative py-12 text-center px-4 z-10"
+        className="relative py-5 text-center px-4 z-10"
       >
         <div className="flex flex-col lg:flex-row items-center justify-center gap-12 max-w-6xl mx-auto">
           <div className="flex-1 text-center lg:text-left">

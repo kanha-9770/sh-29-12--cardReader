@@ -88,6 +88,12 @@ export function Navbar({ user }: NavbarProps) {
           >
             Pricing
           </Link>
+          <Link
+            href="/user"
+            className="text-black text-sm font-medium hover:text-white transition-all px-3 py-1.5 rounded hover:bg-[#3d3260]"
+          >
+            User Management
+          </Link>
           {user ? (
             <Button
               variant="outline"

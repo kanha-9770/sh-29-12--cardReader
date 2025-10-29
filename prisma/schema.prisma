@@ -13,17 +13,16 @@ datasource db {
 
 model User {
   id             String        @id @default(cuid())
-  name           String
+  name           String?
   email          String        @unique
   password       String
   isAdmin        Boolean       @default(false)
-  organizationId Int
+  organizationId Int?
   organization   Organization? @relation("OrganizationUsers", fields: [organizationId], references: [id])
   isDeleted      Boolean       @default(false)
   createdAt      DateTime      @default(now())
   Form           Form[]
 }
-
 
 model Form {
   id                     String         @id @default(cuid())
@@ -103,4 +102,3 @@ model Organization {
   createdAt      DateTime @default(now())
   users          User[]   @relation("OrganizationUsers")
 }
-

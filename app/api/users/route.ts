@@ -1,357 +1,216 @@
-// // import { NextResponse } from "next/server";
-// // import { prisma } from "@/lib/prisma";
-// // import { hash } from "bcryptjs";
-// // import { getUserFromToken } from "@/lib/auth"; // helper to decode JWT cookie
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { hashPassword, getSession } from "@/lib/auth";
 
-// // // POST → Create a new user
-// // export async function POST(req: Request) {
-// //   try {
-// //     const currentUser = await getUserFromToken();
+/**
+ * POST → Create a new user (Admin creates user inside their organization)
+ */
+export async function POST(req: Request) {
+  try {
+    const session = await getSession();
+    if (!session || !session.email) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-// //     if (!currentUser || !currentUser.email) {
-// //       return NextResponse.json(
-// //         { error: "Unauthorized - please login first" },
-// //         { status: 401 }
-// //       );
-// //     }
+    const body = await req.json();
+    const name = body?.name?.trim();
+    const email = body?.email?.trim().toLowerCase();
+    const password = body?.password;
 
-// //     const organizationId = currentUser.email; // use login email as org ID
-// //     const { name, email, password } = await req.json();
+    // Validate
+    if (!name || !email || !password) {
+      return NextResponse.json(
+        { error: "Name, email & password are required" },
+        { status: 400 }
+      );
+    }
 
-// //     if (!name || !email || !password) {
-// //       return NextResponse.json(
-// //         { error: "Missing name, email, or password" },
-// //         { status: 400 }
-// //       );
-// //     }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return NextResponse.json({ error: "Invalid email format" }, { status: 400 });
+    }
 
-// //     // Check if user already exists
-// //     const existingUser = await prisma.user.findUnique({ where: { email } });
-// //     if (existingUser) {
-// //       return NextResponse.json(
-// //         { error: "User with this email already exists" },
-// //         { status: 400 }
-// //       );
-// //     }
+    if (password.length < 8) {
+      return NextResponse.json(
+        { error: "Password must be at least 8 characters long" },
+        { status: 400 }
+      );
+    }
 
-// //     // Hash password
-// //     const hashedPassword = await hash(password, 10);
+    // Check if email exists (including deleted)
+    const existing = await prisma.user.findUnique({ where: { email } });
+    if (existing) {
+      if (existing.isDeleted) {
+        return NextResponse.json(
+          { error: "User exists but is deleted — restore instead", userId: existing.id },
+          { status: 409 }
+        );
+      }
+      return NextResponse.json({ error: "Email already registered" }, { status: 409 });
+    }
 
-// //     // Create new user in DB
-// //     const newUser = await prisma.user.create({
-// //       data: {
-// //         name,
-// //         email,
-// //         password: hashedPassword,
-// //         organizationId, // link to org (using email as org ID)
-// //       },
-// //     });
+    // Fetch admin org
+    const admin = await prisma.user.findUnique({
+      where: { email: session.email },
+      select: { organizationId: true },
+    });
 
-// //     console.log("✅ User created:", newUser);
+    if (!admin?.organizationId) {
+      return NextResponse.json(
+        { error: "Admin does not belong to an organization" },
+        { status: 500 }
+      );
+    }
 
-// //     return NextResponse.json(
-// //       { message: "User created successfully", user: newUser },
-// //       { status: 201 }
-// //     );
-// //   } catch (error: any) {
-// //     console.error("❌ Error creating user:", error);
-// //     return NextResponse.json(
-// //       { error: "Internal Server Error", details: error.message },
-// //       { status: 500 }
-// //     );
-// //   }
-// // }
+    const hashed = await hashPassword(password);
 
-// // // GET → Fetch all users belonging to the same organization
-// // export async function GET() {
-// //   try {
-// //     const currentUser = await getUserFromToken();
+    const newUser = await prisma.user.create({
+      data: {
+        name,
+        email,
+        password: hashed,
+        organizationId: admin.organizationId,
+        isAdmin: false,
+      },
+    });
 
-// //     if (!currentUser || !currentUser.email) {
-// //       return NextResponse.json(
-// //         { error: "Unauthorized - please login first" },
-// //         { status: 401 }
-// //       );
-// //     }
+    return NextResponse.json(
+      { message: "User created successfully", user: { id: newUser.id, name, email } },
+      { status: 201 }
+    );
+  } catch (err: any) {
+    console.error("❌ Error creating user:", err);
+    return NextResponse.json({ error: "Internal server error", details: err.message }, { status: 500 });
+  }
+}
 
-// //     const organizationId = currentUser.email;
+/**
+ * GET → Fetch all active users of admin's organization
+ */
+export async function GET() {
+  try {
+    const session = await getSession();
+    if (!session || !session.email) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-// //     const users = await prisma.user.findMany({
-// //       where: { organizationId },
-// //       select: { id: true, name: true, email: true, organizationId: true },
-// //       orderBy: { createdAt: "desc" },
-// //     });
+    // Fetch admin with more fields
+    let admin = await prisma.user.findUnique({
+      where: { email: session.email },
+      select: { id: true, organizationId: true, isAdmin: true, name: true },
+    });
 
-// //     return NextResponse.json({ users });
-// //   } catch (error: any) {
-// //     console.error("❌ Error fetching users:", error);
-// //     return NextResponse.json(
-// //       { error: "Internal Server Error", details: error.message },
-// //       { status: 500 }
-// //     );
-// //   }
-// // }
+    if (!admin) {
+      return NextResponse.json({ error: "Admin user not found" }, { status: 404 });
+    }
 
-// // /app/api/users/route.ts
-// import { NextResponse } from "next/server";
-// import { prisma } from "@/lib/prisma";
-// import { hashPassword, getSession } from "@/lib/auth";
+    // Auto-create org if missing (only for admins)
+    if (!admin.organizationId) {
+      if (!admin.isAdmin) {
+        return NextResponse.json(
+          { error: "Only admins can manage organizations" },
+          { status: 403 }
+        );
+      }
 
-// /**
-//  * POST -> Create a new user (Admin creates)
-//  * - Requires admin session
-//  * - Validates email/password/name
-//  * - Prevents duplicate email even if soft-deleted (B4)
-//  * - Hashes password and stores user with organizationId from admin's organization
-//  */
-// export async function POST(req: Request) {
-//   try {
-//     const session = await getSession();
-//     if (!session || !session.email) {
-//       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-//     }
+      // Create the organization
+      const newOrg = await prisma.organization.create({
+        data: {
+          organizationId: session.email, // Use email as unique string ID
+          name: admin.name ? `Organization for ${admin.name}` : `Organization for ${session.email}`,
+          createdBy: session.email,
+        },
+      });
 
-//     const body = await req.json();
-//     const name = body?.name?.trim();
-//     const email = body?.email?.trim().toLowerCase();
-//     const password = body?.password;
+      console.log(`🔍 Created org for ${session.email}: ID ${newOrg.id}`);
 
-//     // Basic validation
-//     if (!name || !email || !password) {
-//       return NextResponse.json(
-//         { error: "Name, email and password are required" },
-//         { status: 400 }
-//       );
-//     }
+      // Link it to the admin user
+      admin = await prisma.user.update({
+        where: { id: admin.id },
+        data: { organizationId: newOrg.id },
+        select: { organizationId: true },
+      });
 
-//     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-//     if (!emailRegex.test(email)) {
-//       return NextResponse.json({ error: "Invalid email format" }, { status: 400 });
-//     }
+      console.log(`🔍 Linked org ${newOrg.id} to admin ${admin.id}`);
+    }
 
-//     if (password.length < 8) {
-//       return NextResponse.json(
-//         { error: "Password must be at least 8 characters long" },
-//         { status: 400 }
-//       );
-//     }
+    const users = await prisma.user.findMany({
+      where: { organizationId: admin.organizationId, isDeleted: false },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, name: true, email: true, isAdmin: true, createdAt: true },
+    });
 
-//     // Prevent creating duplicate email even if soft-deleted
-//     const existing = await prisma.user.findUnique({ where: { email } });
-//     if (existing) {
-//       // If already soft-deleted, instruct to restore instead of recreate
-//       if (existing.isDeleted) {
-//         return NextResponse.json(
-//           { error: "A user with this email exists but is deleted. Please restore the user instead of creating a new one." },
-//           { status: 409 }
-//         );
-//       }
+    return NextResponse.json({ users }, { status: 200 });
+  } catch (err: any) {
+    console.error("❌ Error fetching users:", err);
+    return NextResponse.json({ error: "Internal server error", details: err.message }, { status: 500 });
+  }
+}
 
-//       return NextResponse.json({ error: "Email already registered" }, { status: 409 });
-//     }
+/**
+ * PATCH → Soft Delete a User
+ */
+export async function PATCH(req: Request) {
+  try {
+    const session = await getSession();
+    if (!session || !session.email) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-//     // Hash password
-//     const hashed = await hashPassword(password);
+    const { userId } = await req.json();
+    if (!userId) {
+      return NextResponse.json({ error: "userId is required" }, { status: 400 });
+    }
 
-//     // Fetch admin's organizationId
-//     const adminOrg = await prisma.user.findUnique({
-//       where: { email: session.email },
-//       select: { organizationId: true },
-//     });
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-//     if (!adminOrg?.organizationId) {
-//       return NextResponse.json(
-//         { error: "Admin's organization not found. Please ensure the admin has an associated organization." },
-//         { status: 500 }
-//       );
-//     }
+    if (user.isDeleted) {
+      return NextResponse.json({ error: "User already deleted" }, { status: 400 });
+    }
 
-//     const organizationId = adminOrg.organizationId;
+    await prisma.user.update({
+      where: { id: userId },
+      data: { isDeleted: true },
+    });
 
-//     const newUser = await prisma.user.create({
-//       data: {
-//         name,
-//         email,
-//         password: hashed,
-//         organizationId,
-//         isAdmin: false,
-//         isDeleted: false,
-//       },
-//     });
+    return NextResponse.json({ message: "User deleted" }, { status: 200 });
+  } catch (err: any) {
+    console.error("❌ Error deleting user:", err);
+    return NextResponse.json({ error: "Internal server error", details: err.message }, { status: 500 });
+  }
+}
 
-//     // Do not set any cookie/token for admin (Option A behavior)
-//     return NextResponse.json(
-//       {
-//         message: "User created successfully",
-//         user: { id: newUser.id, name: newUser.name, email: newUser.email, createdAt: newUser.createdAt },
-//       },
-//       { status: 201 }
-//     );
-//   } catch (err: any) {
-//     console.error("Error in POST /api/users:", err);
-//     return NextResponse.json({ error: "Internal server error", details: err.message }, { status: 500 });
-//   }
-// }
+/**
+ * PUT → Restore a soft deleted user
+ */
+export async function PUT(req: Request) {
+  try {
+    const session = await getSession();
+    if (!session || !session.email) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-// /**
-//  * GET -> Fetch active users (isDeleted = false)
-//  * - Requires session
-//  * - Returns users ordered by createdAt desc
-//  */
-// export async function GET() {
-//   try {
-//     const session = await getSession();
-//     if (!session || !session.email) {
-//       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-//     }
+    const { userId } = await req.json();
+    if (!userId) {
+      return NextResponse.json({ error: "userId is required" }, { status: 400 });
+    }
 
-//     // Fetch admin's organizationId
-//     const adminOrg = await prisma.user.findUnique({
-//       where: { email: session.email },
-//       select: { organizationId: true },
-//     });
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-//     if (!adminOrg?.organizationId) {
-//       return NextResponse.json(
-//         { error: "Organization not found. Please ensure the admin has an associated organization." },
-//         { status: 404 }
-//       );
-//     }
+    if (!user.isDeleted) {
+      return NextResponse.json({ error: "User is not deleted" }, { status: 400 });
+    }
 
-//     const organizationId = adminOrg.organizationId;
+    await prisma.user.update({
+      where: { id: userId },
+      data: { isDeleted: false },
+    });
 
-//     const users = await prisma.user.findMany({
-//       where: {
-//         organizationId,
-//         isDeleted: false,
-//       },
-//       select: {
-//         id: true,
-//         name: true,
-//         email: true,
-//         organizationId: true,
-//         isAdmin: true,
-//         createdAt: true,
-//       },
-//       orderBy: { createdAt: "desc" },
-//     });
-
-//     return NextResponse.json({ users }, { status: 200 });
-//   } catch (err: any) {
-//     console.error("Error in GET /api/users:", err);
-//     return NextResponse.json({ error: "Internal server error", details: err.message }, { status: 500 });
-//   }
-// }
-
-// /**
-//  * PATCH -> Soft delete a user (isDeleted = true)
-//  * Body: { userId: string }
-//  * - Requires session
-//  */
-// export async function PATCH(req: Request) {
-//   try {
-//     const session = await getSession();
-//     if (!session || !session.email) {
-//       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-//     }
-
-//     const { userId } = await req.json();
-//     if (!userId) {
-//       return NextResponse.json({ error: "userId is required" }, { status: 400 });
-//     }
-
-//     // Optional: ensure the user belongs to the same organization
-//     const user = await prisma.user.findUnique({ where: { id: userId } });
-//     if (!user) {
-//       return NextResponse.json({ error: "User not found" }, { status: 404 });
-//     }
-
-//     if (user.isDeleted) {
-//       return NextResponse.json({ error: "User is already deleted" }, { status: 400 });
-//     }
-
-//     // Fetch admin's organizationId
-//     const adminOrg = await prisma.user.findUnique({
-//       where: { email: session.email },
-//       select: { organizationId: true },
-//     });
-
-//     if (!adminOrg?.organizationId) {
-//       return NextResponse.json(
-//         { error: "Admin's organization not found." },
-//         { status: 500 }
-//       );
-//     }
-
-//     // Make sure admin and target user share same organization (prevent deleting other orgs)
-//     if (user.organizationId !== adminOrg.organizationId) {
-//       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-//     }
-
-//     await prisma.user.update({
-//       where: { id: userId },
-//       data: { isDeleted: true },
-//     });
-
-//     return NextResponse.json({ message: "User soft-deleted" }, { status: 200 });
-//   } catch (err: any) {
-//     console.error("Error in PATCH /api/users:", err);
-//     return NextResponse.json({ error: "Internal server error", details: err.message }, { status: 500 });
-//   }
-// }
-
-// /**
-//  * PUT -> Restore a soft-deleted user (isDeleted = false)
-//  * Body: { userId: string }
-//  * - Requires session
-//  */
-// export async function PUT(req: Request) {
-//   try {
-//     const session = await getSession();
-//     if (!session || !session.email) {
-//       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-//     }
-
-//     const { userId } = await req.json();
-//     if (!userId) {
-//       return NextResponse.json({ error: "userId is required" }, { status: 400 });
-//     }
-
-//     const user = await prisma.user.findUnique({ where: { id: userId } });
-//     if (!user) {
-//       return NextResponse.json({ error: "User not found" }, { status: 404 });
-//     }
-
-//     // Fetch admin's organizationId
-//     const adminOrg = await prisma.user.findUnique({
-//       where: { email: session.email },
-//       select: { organizationId: true },
-//     });
-
-//     if (!adminOrg?.organizationId) {
-//       return NextResponse.json(
-//         { error: "Admin's organization not found." },
-//         { status: 500 }
-//       );
-//     }
-
-//     // Ensure same organization
-//     if (user.organizationId !== adminOrg.organizationId) {
-//       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-//     }
-
-//     if (!user.isDeleted) {
-//       return NextResponse.json({ error: "User is not deleted" }, { status: 400 });
-//     }
-
-//     await prisma.user.update({
-//       where: { id: userId },
-//       data: { isDeleted: false },
-//     });
-
-//     return NextResponse.json({ message: "User restored" }, { status: 200 });
-//   } catch (err: any) {
-//     console.error("Error in PUT /api/users:", err);
-//     return NextResponse.json({ error: "Internal server error", details: err.message }, { status: 500 });
-//   }
-// }
+    return NextResponse.json({ message: "User restored" }, { status: 200 });
+  } catch (err: any) {
+    console.error("❌ Error restoring user:", err);
+    return NextResponse.json({ error: "Internal server error", details: err.message }, { status: 500 });
+  }
+}

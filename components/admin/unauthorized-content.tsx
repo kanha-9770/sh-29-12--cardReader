@@ -34,7 +34,7 @@ export default function UnauthorizedContent() {
         transition={{ delay: 0.6, duration: 0.8 }}
         className="text-gray-300 mb-10 text-lg"
       >
-        You are not authorized to access this page. Please log in with the appropriate credentials.
+        You are not authorized to access this page. Only Admin can access this page.
       </motion.p>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
