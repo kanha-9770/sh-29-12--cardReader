@@ -1,6 +1,6 @@
 // "use client"
 
-// import React, { useState, useCallback, useEffect, useRef } from "react"
+// import React, { useState, useCallback, useEffect, useRef, useMemo } from "react"
 // import { Button } from "@/components/ui/button"
 // import {
 //   Card,
@@ -93,6 +93,14 @@
 //   const [facingMode, setFacingMode] = useState<"user" | "environment">("environment")
 //   const [consoleData, setConsoleData] = useState<string[]>([])
 //   const [showConsole, setShowConsole] = useState(false)
+
+//   // Capture initial data for change detection
+//   const initialRef = useRef<FormData>({ ...defaultFormData, ...initialData });
+
+//   // Detect changes for edit mode
+//   const hasChanges = useMemo(() => {
+//     return JSON.stringify(formData) !== JSON.stringify(initialRef.current);
+//   }, [formData]);
 
 //   // helper to respect disabledFields OR edit-mode disabling
 //   const fieldDisabled = (fieldName: string) => {
@@ -413,7 +421,11 @@
 //     }
 //   }, [formData, isSubmitting, isEdit, formId, onSubmit, defaultOnSubmit, validateForm, addConsoleLog, toast, router, defaultFormData])
 
-//   const isSubmitDisabled = !formData.cardNo || !formData.salesPerson || !formData.date || isSubmitting
+//   const isSubmitDisabled = isSubmitting || 
+//     (!isEdit 
+//       ? (!formData.cardNo || !formData.salesPerson || !formData.date)
+//       : !hasChanges
+//     );
 
 //   const toggleConsole = () => setShowConsole((prev) => !prev)
 
@@ -432,7 +444,7 @@
 //           <form onSubmit={handleSubmit} className="space-y-6">
 //             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 //               <div className="space-y-2">
-//                 <Label htmlFor="cardNo" className="text-sm font-semibold text-gray-800">Card Number</Label>
+//                 <Label htmlFor="cardNo" className="text-sm font-medium text-gray-800">Card Number</Label>
 //                 <Input
 //                   id="cardNo"
 //                   value={formData.cardNo}
@@ -445,7 +457,7 @@
 //               </div>
 
 //               <div className="space-y-2">
-//                 <Label htmlFor="salesPerson" className="text-sm font-semibold text-gray-800">NESSCO Sales Person</Label>
+//                 <Label htmlFor="salesPerson" className="text-sm font-medium text-gray-800">NESSCO Sales Person</Label>
 //                 <Select
 //                   value={formData.salesPerson}
 //                   onValueChange={(value) => setFormData({ ...formData, salesPerson: value })}
@@ -465,7 +477,7 @@
 
 //             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 //               <div className="space-y-2">
-//                 <Label htmlFor="date" className="text-sm font-semibold text-gray-800">Date</Label>
+//                 <Label htmlFor="date" className="text-sm font-medium text-gray-800">Date</Label>
 //                 <Input
 //                   id="date"
 //                   type="date"
@@ -477,7 +489,7 @@
 //                 {errors.date && <p className="text-sm text-red-600 mt-1">{errors.date}</p>}
 //               </div>
 //               <div className="space-y-2">
-//                 <Label htmlFor="country" className="text-sm font-semibold text-gray-800">Exhibition</Label>
+//                 <Label htmlFor="country" className="text-sm font-medium text-gray-800">Exhibition</Label>
 //                 <Input
 //                   id="country"
 //                   value={formData.country}
@@ -490,7 +502,7 @@
 
 //             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 //               <div className="space-y-2">
-//                 <Label htmlFor="cardFront" className="text-sm font-semibold text-gray-800">Card Front Photo</Label>
+//                 <Label htmlFor="cardFront" className="text-sm font-medium text-gray-800">Card Front Photo</Label>
 //                 <div className="relative">
 //                   <Input id="cardFront" type="file" accept="image/*" onChange={(e) => handleImageChange(e, "front")} className="hidden" />
 //                   <Label htmlFor="cardFront" className="flex items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-purple-300 hover:bg-gray-100 transition-all duration-300">
@@ -516,7 +528,7 @@
 //               </div>
 
 //               <div className="space-y-2">
-//                 <Label htmlFor="cardBack" className="text-sm font-semibold text-gray-800">Card Back Photo</Label>
+//                 <Label htmlFor="cardBack" className="text-sm font-medium text-gray-800">Card Back Photo</Label>
 //                 <div className="relative">
 //                   <Input id="cardBack" type="file" accept="image/*" onChange={(e) => handleImageChange(e, "back")} className="hidden" />
 //                   <Label htmlFor="cardBack" className="flex items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-purple-300 hover:bg-gray-100 transition-all duration-300">
@@ -543,13 +555,13 @@
 //             </div>
 
 //             <div className="space-y-2">
-//               <Label htmlFor="description" className="text-sm font-semibold text-gray-800">Description</Label>
+//               <Label htmlFor="description" className="text-sm font-medium text-gray-800">Description</Label>
 //               <Textarea id="description" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} rows={4} className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-[#b5acda] focus:border-transparent transition-all duration-300" placeholder="Enter additional details" />
 //             </div>
 
 //             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 //               <div className="space-y-2">
-//                 <Label htmlFor="leadStatus" className="text-sm font-semibold text-gray-800">Lead Status</Label>
+//                 <Label htmlFor="leadStatus" className="text-sm font-medium text-gray-800">Lead Status</Label>
 //                 <Select value={formData.leadStatus} onValueChange={(value) => setFormData({ ...formData, leadStatus: value })}>
 //                   <SelectTrigger className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-300"><SelectValue placeholder="Select lead status" /></SelectTrigger>
 //                   <SelectContent className="bg-white border border-gray-200 rounded-lg">
@@ -559,7 +571,7 @@
 //               </div>
 
 //               <div className="space-y-2">
-//                 <Label htmlFor="dealStatus" className="text-sm font-semibold text-gray-800">Deal Status</Label>
+//                 <Label htmlFor="dealStatus" className="text-sm font-medium text-gray-800">Deal Status</Label>
 //                 <Select value={formData.dealStatus} onValueChange={(value) => setFormData({ ...formData, dealStatus: value })}>
 //                   <SelectTrigger className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-300"><SelectValue placeholder="Select deal status" /></SelectTrigger>
 //                   <SelectContent className="bg-white border border-gray-200 rounded-lg">
@@ -571,11 +583,11 @@
 
 //             <div className="flex items-center space-x-3">
 //               <Switch id="meeting" checked={formData.meetingAfterExhibition} onCheckedChange={(checked) => setFormData({ ...formData, meetingAfterExhibition: checked })} className="data-[state=checked]:bg-[#483d73]" />
-//               <Label htmlFor="meeting" className="text-sm font-semibold text-gray-800">Meeting After Exhibition</Label>
+//               <Label htmlFor="meeting" className="text-sm font-medium text-gray-800">Meeting After Exhibition</Label>
 //             </div>
 
 //             <div className="space-y-4">
-//               <Label className="text-sm font-semibold text-gray-800">Industry Category</Label>
+//               <Label className="text-sm font-medium text-gray-800">Industry Category</Label>
 //               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
 //                 {industryCategories.map((category) => {
 //                   const checked = formData.industryCategories ? formData.industryCategories.split(",").includes(category) : false
@@ -601,7 +613,7 @@
 //         </CardContent>
 
 //         <CardFooter className="bg-gray-100 border-t border-blue-100 p-6">
-//           <Button type="submit" onClick={handleSubmit} className="w-full bg-[#483d73] text-white py-3 px-6 rounded-lg font-semibold hover:bg-[#5a5570] transition-all duration-300 disabled:bg-gray-400 disabled:cursor-not-allowed" disabled={isSubmitDisabled}>
+//           <Button type="button" onClick={handleSubmit} className="w-full bg-[#483d73] text-white py-3 px-6 rounded-lg font-semibold hover:bg-[#5a5570] transition-all duration-300 disabled:bg-gray-400 disabled:cursor-not-allowed" disabled={isSubmitDisabled}>
 //             {isSubmitting ? "Submitting..." : isEdit ? "Save Changes" : "Submit Form"}
 //           </Button>
 //         </CardFooter>
@@ -653,10 +665,7 @@
 // }
 
 // export default ExhibitionForm
-
-
 "use client"
-
 import React, { useState, useCallback, useEffect, useRef, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import {
@@ -678,7 +687,6 @@ import {
 } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Checkbox } from "@/components/ui/checkbox"
-import { useToast } from "@/hooks/use-toast"
 import Image from "next/image"
 import { Upload, X, Camera, RefreshCw } from "lucide-react"
 import { Progress } from "@/components/ui/progress"
@@ -691,7 +699,8 @@ import {
 } from "@/types/form"
 import { PopupModal } from "@/components/popup-modal"
 import { useRouter, useSearchParams } from "next/navigation"
-
+import { ToastContainer, toast as toastify } from "react-toastify"
+import "react-toastify/dist/ReactToastify.css"
 interface ExhibitionFormProps {
   initialData?: Partial<FormData>
   onSubmit?: (data: FormData) => Promise<void> | void
@@ -700,7 +709,6 @@ interface ExhibitionFormProps {
   // new prop to disable specific fields (AdminDashboard will pass ["cardNo","date"])
   disabledFields?: string[]
 }
-
 export function ExhibitionForm({
   initialData = {},
   onSubmit,
@@ -710,8 +718,15 @@ export function ExhibitionForm({
 }: ExhibitionFormProps) {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const { toast } = useToast()
-
+  // LIMIT constant
+  const LIMIT = 15
+  // submission count state fetched from server
+  const [submissionCount, setSubmissionCount] = useState<number>(0)
+  const [isLoadingCount, setIsLoadingCount] = useState<boolean>(true)
+  // when true, blocking modal is shown and the form is disabled for create mode
+  const [showLimitModal, setShowLimitModal] = useState<boolean>(false)
+  const [limitReached, setLimitReached] = useState<boolean>(false)
+  // default form data
   const defaultFormData: FormData = {
     cardNo: (searchParams?.get("cardNo") as string) || "",
     salesPerson: (searchParams?.get("salesPerson") as string) || "",
@@ -733,70 +748,112 @@ export function ExhibitionForm({
     userId: undefined,
     user: undefined,
   }
-
   // Merge provided initialData with defaults
   const [formData, setFormData] = useState<FormData>({ ...defaultFormData, ...initialData })
   const [frontImagePreview, setFrontImagePreview] = useState<string | null>(initialData?.cardFrontPhoto || null)
   const [backImagePreview, setBackImagePreview] = useState<string | null>(initialData?.cardBackPhoto || null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [showBackImageModal, setShowBackImageModal] = useState(false)
-  const [frontUploadProgress, setFrontUploadProgress] = useState(0)
-  const [backUploadProgress, setBackUploadProgress] = useState(0)
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
+  const [showBackImageModal, setShowBackImageModal] = useState<boolean>(false)
+  const [frontUploadProgress, setFrontUploadProgress] = useState<number>(0)
+  const [backUploadProgress, setBackUploadProgress] = useState<number>(0)
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({})
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const [isCameraOpen, setIsCameraOpen] = useState(false)
+  const [isCameraOpen, setIsCameraOpen] = useState<boolean>(false)
   const [currentImageType, setCurrentImageType] = useState<"front" | "back" | null>(null)
   const [facingMode, setFacingMode] = useState<"user" | "environment">("environment")
   const [consoleData, setConsoleData] = useState<string[]>([])
-  const [showConsole, setShowConsole] = useState(false)
-
+  const [showConsole, setShowConsole] = useState<boolean>(false)
   // Capture initial data for change detection
   const initialRef = useRef<FormData>({ ...defaultFormData, ...initialData });
-
   // Detect changes for edit mode
   const hasChanges = useMemo(() => {
     return JSON.stringify(formData) !== JSON.stringify(initialRef.current);
   }, [formData]);
-
   // helper to respect disabledFields OR edit-mode disabling
   const fieldDisabled = (fieldName: string) => {
-    // If admin passed disabledFields, honor that. Otherwise, if in edit mode and disabledFields empty, default to false.
     return disabledFields.includes(fieldName)
   }
-
   const addConsoleLog = useCallback((message: string) => {
     setConsoleData((prev) => [...prev, `${new Date().toISOString()} - ${message}`])
   }, [])
-
+  // Fetch submission count on mount
   useEffect(() => {
-    // If initial data contains photos, set previews
+    let mounted = true
+    const fetchSubmissionCount = async () => {
+      try {
+        setIsLoadingCount(true)
+        const res = await fetch("/api/submissions/count", {
+          method: "GET",
+          credentials: "include", // assumes your auth uses cookies/sessions; adapt if you use tokens
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const count = typeof data.count === "number" ? data.count : Number(data.count || 0)
+          if (mounted) {
+            setSubmissionCount(count)
+            // Only block when creating (not editing)
+            if (!isEdit && count >= LIMIT) {
+              setLimitReached(true)
+              setShowLimitModal(true)
+            } else {
+              setLimitReached(false)
+            }
+          }
+        } else {
+          console.error("Failed to fetch submission count")
+          // keep UI usable but inform user
+          toastify.error("Could not load submission limit. Please refresh.")
+        }
+      } catch (error) {
+        console.error("Error fetching submission count:", error)
+        toastify.error("Could not load submission limit. Please refresh.")
+      } finally {
+        if (mounted) setIsLoadingCount(false)
+      }
+    };
+    fetchSubmissionCount();
+    return () => { mounted = false }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  // computed boolean for limit
+  const isBlocked = !isEdit && limitReached
+  // Show modal if limit reached; modal is blocking and close is disabled (user must click Buy Plan)
+  // We already set showLimitModal during fetch; here we keep effect to ensure consistent behavior if count changes later.
+  useEffect(() => {
+    if (!isEdit && submissionCount >= LIMIT) {
+      setLimitReached(true)
+      setShowLimitModal(true)
+    }
+  }, [submissionCount, isEdit])
+  // keep existing initial previews behavior
+  useEffect(() => {
     if (initialData?.cardFrontPhoto) {
       setFrontImagePreview(initialData.cardFrontPhoto)
     }
     if (initialData?.cardBackPhoto) {
       setBackImagePreview(initialData.cardBackPhoto)
     }
-    // Normalize date if provided with time
     if (initialData?.date && (initialData.date as string).includes("T")) {
       setFormData((prev) => ({ ...prev, date: (initialData.date as string).split("T")[0] || "" }))
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialData])
-
-  // Camera functions
+  // Camera functions (do not open camera if blocked)
   const openCamera = useCallback((type: "front" | "back") => {
+    if (isBlocked) {
+      setShowLimitModal(true)
+      return
+    }
     addConsoleLog(`[Camera] Opening camera for ${type}`)
     setCurrentImageType(type)
     setIsCameraOpen(true)
     startCameraStream()
-  }, [addConsoleLog])
-
+  }, [addConsoleLog, isBlocked])
   const startCameraStream = async () => {
     addConsoleLog("[Camera] Starting camera stream.")
     try {
       if (videoRef.current) {
-        // stop previous stream if present
         stopCameraStream()
         const constraints = {
           video: {
@@ -816,16 +873,11 @@ export function ExhibitionForm({
       }
     } catch (err) {
       console.error("Error accessing camera:", err)
-      toast({
-        title: "Camera Error",
-        description: "Failed to access camera. Check permissions or try a different browser.",
-        variant: "destructive",
-      })
+      toastify.error("Failed to access camera. Check permissions or try a different browser.")
       addConsoleLog(`[Camera] Error accessing camera: ${err instanceof Error ? err.message : err}`)
       setIsCameraOpen(false)
     }
   }
-
   useEffect(() => {
     if (isCameraOpen) {
       startCameraStream()
@@ -835,13 +887,16 @@ export function ExhibitionForm({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [facingMode, isCameraOpen])
-
   const toggleCamera = () => {
+    if (isBlocked) return
     setFacingMode((prev) => (prev === "user" ? "environment" : "user"))
     addConsoleLog("[Camera] Toggling camera facing mode")
   }
-
   const captureImage = () => {
+    if (isBlocked) {
+      setShowLimitModal(true)
+      return
+    }
     addConsoleLog("[Camera] Capturing image.")
     if (videoRef.current && canvasRef.current && videoRef.current.videoWidth > 0) {
       const video = videoRef.current
@@ -860,7 +915,7 @@ export function ExhibitionForm({
               // reuse upload flow
               handleImageChange({ target: { files: [file] } } as any, currentImageType as "front" | "back")
             } else {
-              toast({ title: "Error", description: "Could not create image blob.", variant: "destructive" })
+              toastify.error("Could not create image blob.")
               addConsoleLog("[Camera] Could not create blob")
             }
           },
@@ -870,11 +925,10 @@ export function ExhibitionForm({
       }
       closeCamera()
     } else {
-      toast({ title: "Camera Error", description: "Could not capture image. Try again.", variant: "destructive" })
+      toastify.error("Could not capture image. Try again.")
       addConsoleLog("[Camera] Capture failed - no video/canvas")
     }
   }
-
   const stopCameraStream = () => {
     addConsoleLog("[Camera] Stopping camera stream.")
     if (videoRef.current && videoRef.current.srcObject) {
@@ -884,21 +938,23 @@ export function ExhibitionForm({
       videoRef.current.srcObject = null
     }
   }
-
   const closeCamera = () => {
     addConsoleLog("[Camera] Closing camera.")
     setIsCameraOpen(false)
     stopCameraStream()
   }
-
+  // Image change/upload. Block upload if blocked.
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>, type: "front" | "back") => {
+    if (isBlocked) {
+      setShowLimitModal(true)
+      return
+    }
     const file = e.target.files?.[0]
     if (!file) {
       addConsoleLog("[Image] No file selected.")
       return
     }
     addConsoleLog(`[Image] Selected ${type} file: ${file.name}, ${file.size} bytes`)
-
     // Show a local preview immediately
     const reader = new FileReader()
     reader.onload = (ev) => {
@@ -911,13 +967,11 @@ export function ExhibitionForm({
       }
     }
     reader.readAsDataURL(file)
-
     // Upload
     await uploadImage(file, type)
     // reset input value if needed by caller
     if ((e.target as HTMLInputElement)) (e.target as HTMLInputElement).value = ""
   }
-
   const uploadImage = async (file: File, type: "front" | "back") => {
     addConsoleLog(`[Upload] Uploading ${type} image: ${file.name}`)
     const fd = new FormData()
@@ -928,7 +982,6 @@ export function ExhibitionForm({
       progressSetter(0)
       const xhr = new XMLHttpRequest()
       xhr.open("POST", "/api/upload-image", true)
-
       xhr.upload.onprogress = (event) => {
         if (event.lengthComputable) {
           const percent = (event.loaded / event.total) * 100
@@ -936,7 +989,6 @@ export function ExhibitionForm({
           addConsoleLog(`[Upload] ${type} progress: ${percent.toFixed(2)}%`)
         }
       }
-
       xhr.onload = () => {
         addConsoleLog(`[Upload] ${type} onload - status ${xhr.status}`)
         if (xhr.status === 200) {
@@ -948,41 +1000,38 @@ export function ExhibitionForm({
               ...prev,
               [type === "front" ? "cardFrontPhoto" : "cardBackPhoto"]: imageUrl,
             }))
-            toast({ title: "Success", description: `${type === "front" ? "Front" : "Back"} image uploaded` })
+            toastify.success(`${type === "front" ? "Front" : "Back"} image uploaded`)
             if (type === "front") setFrontImagePreview(imageUrl)
             else setBackImagePreview(imageUrl)
           } catch (err) {
             console.error("Upload response parse error", err)
-            toast({ title: "Error", description: `Failed to parse upload response for ${type}`, variant: "destructive" })
+            toastify.error(`Failed to parse upload response for ${type}`)
             addConsoleLog(`[Upload] ${type} parse error: ${err instanceof Error ? err.message : err}`)
           }
         } else {
           console.error(`[Upload] Server returned ${xhr.status}`)
-          toast({ title: "Error", description: `Upload failed with status ${xhr.status}`, variant: "destructive" })
+          toastify.error(`Upload failed with status ${xhr.status}`)
           addConsoleLog(`[Upload] ${type} failed status ${xhr.status}`)
         }
         progressSetter(0)
         addConsoleLog(`[Upload] ${type} upload finished`)
       }
-
       xhr.onerror = () => {
         console.error("[Upload] XHR onerror")
-        toast({ title: "Error", description: `Network error while uploading ${type}`, variant: "destructive" })
+        toastify.error(`Network error while uploading ${type}`)
         const progressSetter = type === "front" ? setFrontUploadProgress : setBackUploadProgress
         progressSetter(0)
         addConsoleLog(`[Upload] ${type} network error`)
       }
-
       xhr.send(fd)
     } catch (error) {
       console.error(`[Upload] Exception uploading ${type}:`, error)
-      toast({ title: "Error", description: `Unexpected error while uploading ${type}`, variant: "destructive" })
+      toastify.error(`Unexpected error while uploading ${type}`)
       const progressSetter = type === "front" ? setFrontUploadProgress : setBackUploadProgress
       progressSetter(0)
       addConsoleLog(`[Upload] ${type} exception: ${error instanceof Error ? error.message : error}`)
     }
   }
-
   const handleRemoveImage = (type: "front" | "back") => {
     addConsoleLog(`[Image] Removing ${type}`)
     if (type === "front") {
@@ -993,15 +1042,16 @@ export function ExhibitionForm({
       setFormData((prev) => ({ ...prev, cardBackPhoto: "" }))
     }
   }
-
   const handleBackImageModalConfirm = () => {
+    if (isBlocked) {
+      setShowLimitModal(true)
+      return
+    }
     setShowBackImageModal(false)
     const backImageInput = document.getElementById("cardBack") as HTMLInputElement
     backImageInput?.click()
   }
-
   const handleBackImageModalClose = () => setShowBackImageModal(false)
-
   // Validation
   const validateForm = useCallback((): boolean => {
     const newErrors: Partial<Record<keyof FormData, string>> = {}
@@ -1012,7 +1062,6 @@ export function ExhibitionForm({
     addConsoleLog(`[Validation] errors: ${JSON.stringify(newErrors)}`)
     return Object.keys(newErrors).length === 0
   }, [formData, addConsoleLog])
-
   // default submit for creation
   const defaultOnSubmit = async (submissionData: FormData) => {
     addConsoleLog(`[Submit] Default submit invoked: ${JSON.stringify(submissionData)}`)
@@ -1028,19 +1077,24 @@ export function ExhibitionForm({
     }
     const data = await res.json()
     addConsoleLog(`[Submit] Default submit success: ${JSON.stringify(data)}`)
-    toast({ title: "Success", description: "Form submitted successfully." })
+    toastify.success("Form submitted successfully.")
     // navigate to submission view if provided
     if (data?.formId) router.push(`/submission/${data.formId}`)
   }
-
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
     if (isSubmitting) {
       addConsoleLog("[Submit] Already submitting - blocked")
       return
     }
+    // STRICT BLOCK: if blocked (limit reached) do not proceed; show modal
+    if (isBlocked) {
+      setShowLimitModal(true)
+      toastify.error(`You have reached the free submission limit (${LIMIT}).`)
+      return
+    }
     if (!validateForm()) {
-      toast({ title: "Validation Error", description: "Please fill in required fields.", variant: "destructive" })
+      toastify.error("Please fill in required fields.")
       return
     }
     setIsSubmitting(true)
@@ -1050,19 +1104,18 @@ export function ExhibitionForm({
         date: new Date(formData.date).toISOString(),
         ...(isEdit && formId ? { id: formId } : {}),
       } as FormData
-
       if (!submissionData.cardBackPhoto) delete submissionData.cardBackPhoto
-
       addConsoleLog(`[Submit] Prepared submission data: ${JSON.stringify(submissionData)}`)
-
       if (onSubmit && isEdit) {
         await onSubmit(submissionData)
       } else {
         await defaultOnSubmit(submissionData)
       }
-
-      toast({ title: "Success", description: `Form ${isEdit ? "updated" : "submitted"} successfully.` })
-
+      toastify.success(`Form ${isEdit ? "updated" : "submitted"} successfully.`)
+      // Increase local count after successful submission (helps immediate UX)
+      if (!isEdit) {
+        setSubmissionCount((prev) => prev + 1)
+      }
       if (!isEdit) {
         setFormData(defaultFormData)
         setFrontImagePreview(null)
@@ -1071,33 +1124,34 @@ export function ExhibitionForm({
     } catch (error) {
       console.error("Submit error:", error)
       addConsoleLog(`[Submit] Error: ${error instanceof Error ? error.message : error}`)
-      toast({ title: "Error", description: error instanceof Error ? error.message : `Failed to ${isEdit ? "update" : "submit"} form.`, variant: "destructive" })
+      toastify.error(error instanceof Error ? error.message : `Failed to ${isEdit ? "update" : "submit"} form.`)
     } finally {
       setIsSubmitting(false)
       addConsoleLog("[Submit] Submission finished")
     }
-  }, [formData, isSubmitting, isEdit, formId, onSubmit, defaultOnSubmit, validateForm, addConsoleLog, toast, router, defaultFormData])
-
-  const isSubmitDisabled = isSubmitting || 
-    (!isEdit 
-      ? (!formData.cardNo || !formData.salesPerson || !formData.date)
+  }, [formData, isSubmitting, isEdit, formId, onSubmit, defaultOnSubmit, validateForm, addConsoleLog, router, defaultFormData, isBlocked])
+  const isSubmitDisabled = isSubmitting ||
+    (!isEdit
+      ? (!formData.cardNo || !formData.salesPerson || !formData.date) || isBlocked
       : !hasChanges
     );
-
   const toggleConsole = () => setShowConsole((prev) => !prev)
-
   const wrapperClass = isEdit ? "" : "min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-12"
-
   // Render
   return (
     <div className={wrapperClass}>
-      <Card className="w-full max-w-4xl mx-auto shadow-lg bg-white rounded-xl overflow-hidden border border-gray-200">
+      <Card className="w-full max-w-4xl mx-auto shadow-lg bg-white rounded-xl overflow-hidden border border-gray-200" aria-hidden={isBlocked}>
         <CardHeader className="bg-gray-100 border-b border-blue-100 p-6">
           <CardTitle className="text-3xl font-bold text-gray-900">
             {isEdit ? "Edit" : "Exhibition"} Form
           </CardTitle>
+          {!isEdit && (
+            <p className="text-sm text-gray-600 mt-2" aria-live="polite">
+              Submissions left: {isLoadingCount ? "Loading..." : Math.max(0, LIMIT - submissionCount)}
+            </p>
+          )}
         </CardHeader>
-        <CardContent className="p-8">
+        <CardContent className={`p-8 ${isBlocked ? "pointer-events-none select-none" : ""}`}>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
@@ -1106,20 +1160,20 @@ export function ExhibitionForm({
                   id="cardNo"
                   value={formData.cardNo}
                   onChange={(e) => setFormData({ ...formData, cardNo: e.target.value })}
-                  className={`w-full p-3 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-300 ${fieldDisabled("cardNo") ? "opacity-70 cursor-not-allowed" : ""}`}
+                  className={`w-full p-3 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-300 ${fieldDisabled("cardNo") || isBlocked ? "opacity-70 cursor-not-allowed" : ""}`}
                   placeholder="Enter card number"
-                  disabled={fieldDisabled("cardNo")}
+                  disabled={fieldDisabled("cardNo") || isBlocked}
                 />
                 {errors.cardNo && <p className="text-sm text-red-600 mt-1">{errors.cardNo}</p>}
               </div>
-
               <div className="space-y-2">
                 <Label htmlFor="salesPerson" className="text-sm font-medium text-gray-800">NESSCO Sales Person</Label>
                 <Select
                   value={formData.salesPerson}
                   onValueChange={(value) => setFormData({ ...formData, salesPerson: value })}
+                  disabled={isBlocked}
                 >
-                  <SelectTrigger className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-300">
+                  <SelectTrigger className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed">
                     <SelectValue placeholder="Select sales person" />
                   </SelectTrigger>
                   <SelectContent className="bg-white border border-gray-200 rounded-lg">
@@ -1131,7 +1185,6 @@ export function ExhibitionForm({
                 {errors.salesPerson && <p className="text-sm text-red-600 mt-1">{errors.salesPerson}</p>}
               </div>
             </div>
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="date" className="text-sm font-medium text-gray-800">Date</Label>
@@ -1140,8 +1193,8 @@ export function ExhibitionForm({
                   type="date"
                   value={formData.date}
                   onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                  className={`w-full p-3 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-[#b5acda] focus:border-transparent transition-all duration-300 ${fieldDisabled("date") ? "opacity-70 cursor-not-allowed" : ""}`}
-                  disabled={fieldDisabled("date")}
+                  className={`w-full p-3 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-[#b5acda] focus:border-transparent transition-all duration-300 ${fieldDisabled("date") || isBlocked ? "opacity-70 cursor-not-allowed" : ""}`}
+                  disabled={fieldDisabled("date") || isBlocked}
                 />
                 {errors.date && <p className="text-sm text-red-600 mt-1">{errors.date}</p>}
               </div>
@@ -1151,22 +1204,22 @@ export function ExhibitionForm({
                   id="country"
                   value={formData.country}
                   onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                  className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-[#b5acda] focus:border-transparent transition-all duration-300"
+                  className={`w-full p-3 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-[#b5acda] focus:border-transparent transition-all duration-300 ${isBlocked ? "opacity-70 cursor-not-allowed" : ""}`}
                   placeholder="Enter exhibition name"
+                  disabled={isBlocked}
                 />
               </div>
             </div>
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="cardFront" className="text-sm font-medium text-gray-800">Card Front Photo</Label>
                 <div className="relative">
-                  <Input id="cardFront" type="file" accept="image/*" onChange={(e) => handleImageChange(e, "front")} className="hidden" />
-                  <Label htmlFor="cardFront" className="flex items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-purple-300 hover:bg-gray-100 transition-all duration-300">
+                  <Input id="cardFront" type="file" accept="image/*" onChange={(e) => handleImageChange(e, "front")} className="hidden" disabled={isBlocked} />
+                  <Label htmlFor="cardFront" className={`flex items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-purple-300 hover:bg-gray-100 transition-all duration-300 ${isBlocked ? "opacity-70 cursor-not-allowed" : ""}`}>
                     {frontImagePreview ? (
                       <div className="relative w-full h-full">
                         <Image src={frontImagePreview || "/placeholder.svg"} alt="Card Front Preview" fill style={{ objectFit: "cover" }} className="rounded-lg" />
-                        <button type="button" onClick={() => handleRemoveImage("front")} className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transition-all duration-300">
+                        <button type="button" onClick={() => handleRemoveImage("front")} className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transition-all duration-300" disabled={isBlocked}>
                           <X className="w-5 h-5" />
                         </button>
                       </div>
@@ -1177,22 +1230,21 @@ export function ExhibitionForm({
                       </div>
                     )}
                   </Label>
-                  <Button type="button" onClick={() => openCamera("front")} className="absolute bottom-3 right-3 bg-black text-white rounded-full p-3 hover:bg-gray-100 hover:text-black transition-all duration-300">
+                  <Button type="button" onClick={() => openCamera("front")} className="absolute bottom-3 right-3 bg-black text-white rounded-full p-3 hover:bg-gray-100 hover:text-black transition-all duration-300" disabled={isBlocked}>
                     <Camera className="w-5 h-5" />
                   </Button>
                 </div>
                 {frontUploadProgress > 0 && frontUploadProgress < 100 && <Progress value={frontUploadProgress} className="w-full h-2 mt-3 bg-gray-200 rounded-full" />}
               </div>
-
               <div className="space-y-2">
                 <Label htmlFor="cardBack" className="text-sm font-medium text-gray-800">Card Back Photo</Label>
                 <div className="relative">
-                  <Input id="cardBack" type="file" accept="image/*" onChange={(e) => handleImageChange(e, "back")} className="hidden" />
-                  <Label htmlFor="cardBack" className="flex items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-purple-300 hover:bg-gray-100 transition-all duration-300">
+                  <Input id="cardBack" type="file" accept="image/*" onChange={(e) => handleImageChange(e, "back")} className="hidden" disabled={isBlocked} />
+                  <Label htmlFor="cardBack" className={`flex items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-purple-300 hover:bg-gray-100 transition-all duration-300 ${isBlocked ? "opacity-70 cursor-not-allowed" : ""}`}>
                     {backImagePreview ? (
                       <div className="relative w-full h-full">
                         <Image src={backImagePreview || "/placeholder.svg"} alt="Card Back Preview" fill style={{ objectFit: "cover" }} className="rounded-lg" />
-                        <button type="button" onClick={() => handleRemoveImage("back")} className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transition-all duration-300">
+                        <button type="button" onClick={() => handleRemoveImage("back")} className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transition-all duration-300" disabled={isBlocked}>
                           <X className="w-5 h-5" />
                         </button>
                       </div>
@@ -1203,46 +1255,41 @@ export function ExhibitionForm({
                       </div>
                     )}
                   </Label>
-                  <Button type="button" onClick={() => setShowBackImageModal(true)} className="absolute bottom-3 right-3 bg-black text-white rounded-full p-3 hover:bg-gray-200 hover:text-black transition-all duration-300">
+                  <Button type="button" onClick={() => setShowBackImageModal(true)} className="absolute bottom-3 right-3 bg-black text-white rounded-full p-3 hover:bg-gray-200 hover:text-black transition-all duration-300" disabled={isBlocked}>
                     <Camera className="w-5 h-5" />
                   </Button>
                 </div>
                 {backUploadProgress > 0 && backUploadProgress < 100 && <Progress value={backUploadProgress} className="w-full h-2 mt-3 bg-gray-200 rounded-full" />}
               </div>
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="description" className="text-sm font-medium text-gray-800">Description</Label>
-              <Textarea id="description" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} rows={4} className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-[#b5acda] focus:border-transparent transition-all duration-300" placeholder="Enter additional details" />
+              <Textarea id="description" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} rows={4} className={`w-full p-3 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-[#b5acda] focus:border-transparent transition-all duration-300 ${isBlocked ? "opacity-70 cursor-not-allowed" : ""}`} placeholder="Enter additional details" disabled={isBlocked} />
             </div>
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="leadStatus" className="text-sm font-medium text-gray-800">Lead Status</Label>
-                <Select value={formData.leadStatus} onValueChange={(value) => setFormData({ ...formData, leadStatus: value })}>
-                  <SelectTrigger className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-300"><SelectValue placeholder="Select lead status" /></SelectTrigger>
+                <Select value={formData.leadStatus} onValueChange={(value) => setFormData({ ...formData, leadStatus: value })} disabled={isBlocked}>
+                  <SelectTrigger className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed"><SelectValue placeholder="Select lead status" /></SelectTrigger>
                   <SelectContent className="bg-white border border-gray-200 rounded-lg">
                     {leadStatuses.map((status) => <SelectItem key={status} value={status} className="hover:bg-blue-50">{status}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
-
               <div className="space-y-2">
                 <Label htmlFor="dealStatus" className="text-sm font-medium text-gray-800">Deal Status</Label>
-                <Select value={formData.dealStatus} onValueChange={(value) => setFormData({ ...formData, dealStatus: value })}>
-                  <SelectTrigger className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-300"><SelectValue placeholder="Select deal status" /></SelectTrigger>
+                <Select value={formData.dealStatus} onValueChange={(value) => setFormData({ ...formData, dealStatus: value })} disabled={isBlocked}>
+                  <SelectTrigger className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed"><SelectValue placeholder="Select deal status" /></SelectTrigger>
                   <SelectContent className="bg-white border border-gray-200 rounded-lg">
                     {dealStatuses.map((status) => <SelectItem key={status} value={status} className="hover:bg-blue-50">{status}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
             </div>
-
             <div className="flex items-center space-x-3">
-              <Switch id="meeting" checked={formData.meetingAfterExhibition} onCheckedChange={(checked) => setFormData({ ...formData, meetingAfterExhibition: checked })} className="data-[state=checked]:bg-[#483d73]" />
+              <Switch id="meeting" checked={formData.meetingAfterExhibition} onCheckedChange={(checked) => setFormData({ ...formData, meetingAfterExhibition: checked })} className="data-[state=checked]:bg-[#483d73]" disabled={isBlocked} />
               <Label htmlFor="meeting" className="text-sm font-medium text-gray-800">Meeting After Exhibition</Label>
             </div>
-
             <div className="space-y-4">
               <Label className="text-sm font-medium text-gray-800">Industry Category</Label>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -1259,6 +1306,7 @@ export function ExhibitionForm({
                           setFormData({ ...formData, industryCategories: updatedCategories.join(",") })
                         }}
                         className="border-gray-300 data-[state=checked]:bg-[#483d73] data-[state=checked]:border-[#483d73]"
+                        disabled={isBlocked}
                       />
                       <Label htmlFor={category} className="text-sm text-gray-700">{category}</Label>
                     </div>
@@ -1268,21 +1316,18 @@ export function ExhibitionForm({
             </div>
           </form>
         </CardContent>
-
         <CardFooter className="bg-gray-100 border-t border-blue-100 p-6">
-          <Button type="button" onClick={handleSubmit} className="w-full bg-[#483d73] text-white py-3 px-6 rounded-lg font-semibold hover:bg-[#5a5570] transition-all duration-300 disabled:bg-gray-400 disabled:cursor-not-allowed" disabled={isSubmitDisabled}>
+          <Button type="button" onClick={handleSubmit} className="w-full bg-[#483d73] text-white py-3 px-6 rounded-lg font-semibold hover:bg-[#5a5570] transition-all duration-300 disabled:bg-gray-400 disabled:cursor-not-allowed" disabled={isSubmitDisabled || isBlocked}>
             {isSubmitting ? "Submitting..." : isEdit ? "Save Changes" : "Submit Form"}
           </Button>
         </CardFooter>
       </Card>
-
       {showConsole && (
         <div className="fixed bottom-0 left-0 w-full h-64 bg-gray-900 text-white overflow-y-auto p-4 z-50">
           <h3 className="text-lg font-semibold mb-2">Console Output</h3>
           {consoleData.map((log, index) => <div key={index} className="text-sm">{log}</div>)}
         </div>
       )}
-
       <PopupModal
         isOpen={showBackImageModal}
         onClose={handleBackImageModalClose}
@@ -1290,7 +1335,20 @@ export function ExhibitionForm({
         title="Upload Back Image"
         description="Do you want to upload the back image of the business card?"
       />
-
+      {/* Blocking limit modal: cannot close via onClose; only Buy Plan */}
+      <PopupModal
+        isOpen={showLimitModal}
+        // disable closing by providing a no-op onClose handler so the modal can't be dismissed
+        onClose={() => {}}
+        onConfirm={() => {
+          // user clicked Buy Plan
+          setShowLimitModal(false)
+          router.push("/pricing")
+        }}
+        title="Limit Reached"
+        description="Your submission limit has been reached. Please buy a plan to submit more."
+        // Optionally you can add custom button text via the modal's implementation if supported
+      />
       {isCameraOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-6">
           <div className="bg-white rounded-xl shadow-2xl overflow-hidden max-w-lg w-full">
@@ -1317,8 +1375,8 @@ export function ExhibitionForm({
           </div>
         </div>
       )}
+      <ToastContainer position="top-right" autoClose={2500} />
     </div>
   )
 }
-
 export default ExhibitionForm

@@ -16,8 +16,7 @@ export default async function AdminPage() {
 
   return (
     <>
-      <Navbar user={session} />
-      <main className="container py-10 mt-20 lg:pl-20 flex justify-center items-center">
+      <main className="flex justify-center items-center bg-gradient-to-br from-background via-muted to-background">
         <SubmissionPage />
       </main>
     </>
