@@ -496,7 +496,7 @@ export function AdminDashboard() {
                 <tbody>
                   {Object.entries(data).map(([key, value]) => (
                     <tr key={key}>
-                      <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
+                      <td className="py-1 px-2 border w-1/2 whitespace-normal break-words ">
                         {key.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
                       </td>
                       <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
@@ -737,8 +737,8 @@ export function AdminDashboard() {
       </div>
 
       <Card>
-        <CardContent className="p-0 sm:mt-8">
-          <div className="w-full h-[calc(100vh-200px)] flex flex-col">
+        <CardContent className="p-0 mt-8">
+          <div className="w-full h-[30rem] flex flex-col">
             <div className="w-full overflow-auto">
               <table className="w-full text-sm border-collapse table-fixed min-w-[1350px]">
                 <thead className="sticky top-0 z-10">

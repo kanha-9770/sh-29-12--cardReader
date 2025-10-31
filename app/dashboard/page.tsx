@@ -1,28 +1,3 @@
-// import { redirect } from "next/navigation"
-// import { getSession } from "@/lib/auth"
-// import { AdminDashboard } from "@/components/admin/dashboard"
-// import { UserDashboard } from "@/components/admin/user-dashboard"
-// import { Navbar } from "@/components/navbar"
-
-// export default async function DashboardPage() {
-//   const session = await getSession()
-
-//   if (!session) {
-//     redirect("/login")
-//   }
-
-//   return (
-//     <>
-
-//       <main className="container mx-auto lg:mt-16 py-6">
-
-//         {session.isAdmin ? <AdminDashboard /> : <UserDashboard />}
-//       </main>
-//     </>
-//   )
-// }
-
-
 import { redirect } from "next/navigation"
 import { getSession } from "@/lib/auth"
 import { AdminDashboard } from "@/components/admin/dashboard"
@@ -85,7 +60,7 @@ export default async function DashboardPage() {
           animation: bounceIn 0.6s ease-out forwards;
         }
       `}</style>
-      <main className="container mx-auto lg:mt-16 py-6 fade-in-up">
+      <main className="mx-auto lg:mt-16 py-6 fade-in-up overflow-hidden">
         <div className="fade-in-up">
           {session.isAdmin ? <AdminDashboard /> : <UserDashboard />}
         </div>
