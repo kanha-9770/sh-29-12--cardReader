@@ -1,4 +1,6 @@
 export interface FormData {
+  createdAt: any;
+  updatedAt: any;
   userId: any;
   user: any;
   id?: string;

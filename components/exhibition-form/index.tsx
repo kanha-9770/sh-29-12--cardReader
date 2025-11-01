@@ -69,8 +69,7 @@ export function ExhibitionForm({
     cardBackPhoto: "",
     leadStatus: (searchParams?.get("leadStatus") as string) || "",
     dealStatus: (searchParams?.get("dealStatus") as string) || "",
-    meetingAfterExhibition:
-      (searchParams?.get("meetingAfterExhibition")?.toLowerCase() === "true") || false,
+    meetingAfterExhibition: (searchParams?.get("meetingAfterExhibition")?.toLowerCase() === "true") || false,
     industryCategories: (searchParams?.get("industryCategories") as string) || "",
     description: "",
     extractedData: null,
@@ -80,6 +79,8 @@ export function ExhibitionForm({
     zohoStatus: "PENDING",
     userId: undefined,
     user: undefined,
+    createdAt: undefined,
+    updatedAt: undefined
   }
   // Merge provided initialData with defaults
   const [formData, setFormData] = useState<FormData>({ ...defaultFormData, ...initialData })
@@ -477,7 +478,7 @@ export function ExhibitionForm({
           </CardTitle>
           {!isEdit && (
             <p className="text-sm text-gray-600 mt-2" aria-live="polite">
-              Submissions left: {isLoadingCount ? "Loading..." : Math.max(0, LIMIT - submissionCount)}
+              Your daily free card submissions left: {isLoadingCount ? "Loading..." : Math.max(0, LIMIT - submissionCount)}
             </p>
           )}
         </CardHeader>
