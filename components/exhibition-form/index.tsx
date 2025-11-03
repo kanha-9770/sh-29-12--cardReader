@@ -478,7 +478,7 @@ export function ExhibitionForm({
           </CardTitle>
           {!isEdit && (
             <p className="text-sm text-gray-600 mt-2" aria-live="polite">
-              Your daily free card submissions left: {isLoadingCount ? "Loading..." : Math.max(0, LIMIT - submissionCount)}
+              Your free card submissions left: {isLoadingCount ? "Loading..." : Math.max(0, LIMIT - submissionCount)}
             </p>
           )}
         </CardHeader>
