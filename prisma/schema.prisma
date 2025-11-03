@@ -22,8 +22,8 @@ model User {
   isDeleted      Boolean       @default(false)
   createdAt      DateTime      @default(now())
   Form           Form[]
-  subscriptionPlan String @default("FREE")
-  formLimit Int @default(15)
+  subscriptionPlan String? @default("FREE")
+  formLimit Int? @default(15)
 }
 
 model Form {
