@@ -15,6 +15,13 @@ body {
   animation: gradient-animation 40s ease infinite;
 }
 
+.toast-container {
+  position: fixed !important;
+  right: 16px;
+  bottom: 16px;
+  z-index: 999999;
+}
+
 @keyframes gradient-animation {
   0% {
     background-position: 0% 50%;

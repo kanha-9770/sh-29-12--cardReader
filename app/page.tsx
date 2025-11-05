@@ -89,18 +89,18 @@ export default function Home() {
                   <span className="text-[#483d73]">For Modern Business</span>
                 </h1>
                 <p className="text-lg text-[#5a5570] max-w-lg">
-                  Transform how you collect and manage business cards with our
-                  elegant, efficient card reader. Designed for professionals who
-                  value both style and substance.
+                  Say goodbye to manual data entry. Our AI reads, saves, and
+                  organizes contact details instantly, helping you build smarter
+                  professional relationships effortlessly.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 pt-4">
                   <Link href="/pricing">
-                  <Button
-                    size="lg"
-                    className="bg-[#483d73] hover:bg-[#5a5570] text-white px-8 transition-all duration-300 hover:scale-105"
-                  >
-                    Order Now
-                  </Button>
+                    <Button
+                      size="lg"
+                      className="bg-[#483d73] hover:bg-[#5a5570] text-white px-8 transition-all duration-300 hover:scale-105"
+                    >
+                      Order Now
+                    </Button>
                   </Link>
                   <Button
                     size="lg"
@@ -142,7 +142,10 @@ export default function Home() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <Card className="border-none shadow-md bg-[#f3f1f8] hover:shadow-lg transition-all duration-300 hover:scale-105 fade-in-up" style={{ animationDelay: '0.1s' }}>
+              <Card
+                className="border-none shadow-md bg-[#f3f1f8] hover:shadow-lg transition-all duration-300 hover:scale-105 fade-in-up"
+                style={{ animationDelay: "0.1s" }}
+              >
                 <CardContent className="p-8">
                   <div className="h-12 w-12 rounded-full bg-[#e5e2f0] flex items-center justify-center mb-6">
                     <Zap className="h-6 w-6 text-[#483d73]" />
@@ -157,7 +160,10 @@ export default function Home() {
                 </CardContent>
               </Card>
 
-              <Card className="border-none shadow-md bg-[#f3f1f8] hover:shadow-lg transition-all duration-300 hover:scale-105 fade-in-up" style={{ animationDelay: '0.2s' }}>
+              <Card
+                className="border-none shadow-md bg-[#f3f1f8] hover:shadow-lg transition-all duration-300 hover:scale-105 fade-in-up"
+                style={{ animationDelay: "0.2s" }}
+              >
                 <CardContent className="p-8">
                   <div className="h-12 w-12 rounded-full bg-[#e5e2f0] flex items-center justify-center mb-6">
                     <Shield className="h-6 w-6 text-[#483d73]" />
@@ -172,7 +178,10 @@ export default function Home() {
                 </CardContent>
               </Card>
 
-              <Card className="border-none shadow-md bg-[#f3f1f8] hover:shadow-lg transition-all duration-300 hover:scale-105 fade-in-up" style={{ animationDelay: '0.3s' }}>
+              <Card
+                className="border-none shadow-md bg-[#f3f1f8] hover:shadow-lg transition-all duration-300 hover:scale-105 fade-in-up"
+                style={{ animationDelay: "0.3s" }}
+              >
                 <CardContent className="p-8">
                   <div className="h-12 w-12 rounded-full bg-[#e5e2f0] flex items-center justify-center mb-6">
                     <CreditCard className="h-6 w-6 text-[#483d73]" />
@@ -181,8 +190,8 @@ export default function Home() {
                     Seamless Integration
                   </h3>
                   <p className="text-[#5a5570]">
-                    Connect with your favorite CRM systems and contact management
-                    tools with just a few clicks.
+                    Connect with your favorite CRM systems and contact
+                    management tools with just a few clicks.
                   </p>
                 </CardContent>
               </Card>
@@ -191,7 +200,10 @@ export default function Home() {
         </section>
 
         {/* How It Works */}
-        <section className="py-20 bg-white fade-in-up" style={{ animationDelay: '0.4s' }}>
+        <section
+          className="py-20 bg-white fade-in-up"
+          style={{ animationDelay: "0.4s" }}
+        >
           <div className="container mx-auto px-4">
             <div className="text-center max-w-3xl mx-auto mb-16">
               <h2 className="text-3xl md:text-4xl font-bold text-[#2d2a4a] mb-4">
@@ -204,7 +216,10 @@ export default function Home() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-12 max-w-5xl mx-auto">
-              <div className="text-center space-y-4 relative fade-in-up" style={{ animationDelay: '0.5s' }}>
+              <div
+                className="text-center space-y-4 relative fade-in-up"
+                style={{ animationDelay: "0.5s" }}
+              >
                 <div className="h-16 w-16 rounded-full bg-[#e5e2f0] flex items-center justify-center mx-auto mb-6 relative z-10">
                   <span className="text-2xl font-bold text-[#483d73]">1</span>
                 </div>
@@ -220,7 +235,10 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="text-center space-y-4 relative fade-in-up" style={{ animationDelay: '0.6s' }}>
+              <div
+                className="text-center space-y-4 relative fade-in-up"
+                style={{ animationDelay: "0.6s" }}
+              >
                 <div className="h-16 w-16 rounded-full bg-[#e5e2f0] flex items-center justify-center mx-auto mb-6 relative z-10">
                   <span className="text-2xl font-bold text-[#483d73]">2</span>
                 </div>
@@ -236,7 +254,10 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="text-center space-y-4 fade-in-up" style={{ animationDelay: '0.7s' }}>
+              <div
+                className="text-center space-y-4 fade-in-up"
+                style={{ animationDelay: "0.7s" }}
+              >
                 <div className="h-16 w-16 rounded-full bg-[#e5e2f0] flex items-center justify-center mx-auto mb-6">
                   <span className="text-2xl font-bold text-[#483d73]">3</span>
                 </div>
@@ -362,7 +383,10 @@ export default function Home() {
       </section> */}
 
         {/* CTA Section */}
-        <section className="py-20 bg-[#e5e2f0] fade-in-up" style={{ animationDelay: '0.8s' }}>
+        <section
+          className="py-20 bg-[#e5e2f0] fade-in-up"
+          style={{ animationDelay: "0.8s" }}
+        >
           <div className="container mx-auto px-4">
             <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden">
               <div className="flex flex-col md:flex-row">
@@ -376,23 +400,27 @@ export default function Home() {
                   </p>
                   <ul className="space-y-3 mb-8">
                     {[
-                      "30-day free trial",
+                      "Smart AI suggestions",
                       "Free shipping",
-                      "24/7 customer support",
+                      "Priority support included",
                     ].map((item, i) => (
-                      <li key={i} className="flex items-center gap-3 slide-in-left" style={{ animationDelay: `${0.9 + i * 0.1}s` }}>
+                      <li
+                        key={i}
+                        className="flex items-center gap-3 slide-in-left"
+                        style={{ animationDelay: `${0.9 + i * 0.1}s` }}
+                      >
                         <CheckCircle className="h-5 w-5 text-[#483d73]" />
                         <span className="text-[#2d2a4a]">{item}</span>
                       </li>
                     ))}
                   </ul>
                   <Link href="/form">
-                  <Button
-                    size="lg"
-                    className="bg-[#483d73] hover:bg-[#5a5570] text-white w-full md:w-auto transition-all duration-300 hover:scale-105"
-                  >
-                    Get Your CardSync Now
-                  </Button>
+                    <Button
+                      size="lg"
+                      className="bg-[#483d73] hover:bg-[#5a5570] text-white w-full md:w-auto transition-all duration-300 hover:scale-105"
+                    >
+                      Get Your CardSync Now
+                    </Button>
                   </Link>
                 </div>
                 <div className="md:w-1/2 bg-[#f3f1f8] flex items-center justify-center">

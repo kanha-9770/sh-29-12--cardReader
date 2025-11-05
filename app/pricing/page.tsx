@@ -12,6 +12,7 @@
     ArrowRight,
     Shield,
   } from "lucide-react";
+import Link from "next/link";
 
   export default function PricingPage() {
     const [isAnnual, setIsAnnual] = useState(true);
@@ -459,16 +460,14 @@
                       professionals trust CardSync.
                     </p>
                     <div className="flex flex-col sm:flex-row gap-4">
+                      <Link href="/form">
                       <Button
                         size="lg"
-                        disabled={loadingPlan === "Professional"}
-                        onClick={handleMainCTA}
                         className="bg-[#483d73] hover:bg-[#5a5570] text-white transition-all duration-300 hover:scale-105"
                       >
-                        {loadingPlan === "Professional"
-                          ? "Redirecting..."
-                          : "Start Free Trial"}
+                           Start Free Trial
                       </Button>
+                      </Link>
                       <Button
                         size="lg"
                         variant="outline"

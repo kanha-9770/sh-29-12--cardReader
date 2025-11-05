@@ -16,7 +16,10 @@ export async function POST(req: Request) {
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      return NextResponse.json({ error: "Invalid email format" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid email format" },
+        { status: 400 }
+      );
     }
 
     if (password.length < 8) {
@@ -28,8 +31,22 @@ export async function POST(req: Request) {
 
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
-      return NextResponse.json({ error: "Email already registered" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Email already registered" },
+        { status: 400 }
+      );
     }
+
+    // ✅ Count users IN THIS organization
+    const userCount = await prisma.user.count({
+      where: {
+        organizationId: organizationId ?? null,
+        isDeleted: false
+      }
+    });
+
+    // ✅ First user in org becomes admin
+    const isAdmin = userCount === 0;
 
     const hashedPassword = await hashPassword(password);
 
@@ -39,6 +56,7 @@ export async function POST(req: Request) {
         password: hashedPassword,
         name: name ?? null,
         organizationId: organizationId ?? null,
+        isAdmin,
       },
     });
 
@@ -57,10 +75,14 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json(
-      { message: "User created & logged in successfully", user },
+      {
+        message: isAdmin
+          ? "Admin user created & logged in successfully"
+          : "User created & logged in successfully",
+        user,
+      },
       { status: 201 }
     );
-
   } catch (error: any) {
     console.error("Registration error:", error);
     return NextResponse.json(

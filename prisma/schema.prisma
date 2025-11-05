@@ -97,10 +97,11 @@ model MergedData {
 }
 
 model Organization {
-  id             Int      @id @default(autoincrement())
-  organizationId String   @unique
-  name           String?
-  createdBy      String
-  createdAt      DateTime @default(now())
-  users          User[]   @relation("OrganizationUsers")
+  id               Int      @id @default(autoincrement())
+  uniqueOrgId      String   @unique
+  name             String?
+  createdBy        String
+  createdAt        DateTime @default(now())
+  users            User[]   @relation("OrganizationUsers")
 }
+
