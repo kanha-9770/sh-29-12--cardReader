@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation"
 import { getSession } from "@/lib/auth"
-import { AdminDashboard } from "@/components/admin/dashboard"
+import { AdminDashboardEnhanced } from "@/components/admin/dashboard"
 import { UserDashboard } from "@/components/admin/user-dashboard"
 
 export default async function DashboardPage() {
@@ -62,7 +62,7 @@ export default async function DashboardPage() {
       `}</style>
       <main className="mx-auto mt-5 py-6 fade-in-up overflow-hidden">
         <div className="fade-in-up">
-          {session.isAdmin ? <AdminDashboard /> : <UserDashboard />}
+          {session.isAdmin ? <AdminDashboardEnhanced /> : <UserDashboard />}
         </div>
       </main>
     </>

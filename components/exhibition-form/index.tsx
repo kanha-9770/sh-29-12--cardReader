@@ -713,6 +713,7 @@
 // }
 // export default ExhibitionForm
 
+
 "use client";
 import React, {
   useCallback,
@@ -741,27 +742,28 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import Image from "next/image";
 import {
   Upload,
   X,
   Camera,
   RefreshCw,
-  ArrowRight,
   GripVertical,
+  Trash2,
+  Settings,
+  ChevronDown,
+  Calendar,
+  Columns,
+  Zap,
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
-import {
-  salesPersons,
-  leadStatuses,
-  dealStatuses,
-  industryCategories,
-  type FormData,
-} from "@/types/form";
+import { type FormData } from "@/types/form";
 import { PopupModal } from "@/components/popup-modal";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ToastContainer, toast as toastify } from "react-toastify";
+import { toast as toastify, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+
 /* DnD-kit imports */
 import {
   DndContext,
@@ -779,34 +781,39 @@ import {
   verticalListSortingStrategy,
   useSortable,
   arrayMove,
-  sortableKeyboardCoordinates,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { motion, AnimatePresence } from "framer-motion"; // Added for enhanced animations
-/**
- * Approach:
- * - Left sidebar contains draggable field blocks (text, textarea, select, switch, checkboxGroup)
- * - Form area accepts drop; dropped fields are appended to formFields[]
- * - The Card Images block (front/back) is fixed and rendered above the sortable list
- * - SortableContext and useSortable are used to reorder user-added fields
- * - Each field item has a unique id (uid) and a type
- * - Enhanced with framer-motion for smooth animations and better UX
- */
-/* Helper types */
+import { motion, AnimatePresence } from "framer-motion";
+
+/* ---------- Types ---------- */
 type FieldType =
   | "text"
+  | "email"
+  | "number"
   | "textarea"
   | "select"
-  | "switch"
-  | "checkboxGroup"
-  | "date";
-type BuilderField = {
+  | "checkbox"
+  | "radio"
+  | "date"
+  | "file";
+
+interface FieldOption {
+  label: string;
+  value: string;
+}
+
+interface BuilderField {
   uid: string;
   type: FieldType;
   label: string;
+  name: string;
+  placeholder?: string;
   required?: boolean;
-  settings?: Record<string, any>;
-};
+  options?: FieldOption[];
+  accept?: string;
+  colSpan?: 1 | 2 | 3 | 4;
+}
+
 interface ExhibitionFormProps {
   initialData?: Partial<FormData>;
   onSubmit?: (data: FormData) => Promise<void> | void;
@@ -814,10 +821,13 @@ interface ExhibitionFormProps {
   formId?: string;
   disabledFields?: string[];
 }
+
+/* ---------- Helpers ---------- */
 function uid(prefix = "") {
   return `${prefix}${Math.random().toString(36).slice(2, 9)}`;
 }
-/* Sortable item wrapper component */
+
+/* ---------- Sortable / Draggable Components ---------- */
 function SortableFieldItem({
   id,
   children,
@@ -841,6 +851,7 @@ function SortableFieldItem({
     opacity: isDragging ? 0.8 : 1,
     cursor: sortable ? "grab" : "default",
   } as React.CSSProperties;
+
   return (
     <motion.div
       ref={setNodeRef}
@@ -859,7 +870,6 @@ function SortableFieldItem({
             className="pt-2 cursor-grab active:cursor-grabbing"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            transition={{ duration: 0.1 }}
           >
             <div className="p-2 rounded-md bg-gray-100 border border-gray-200">
               <GripVertical className="w-4 h-4 text-gray-600" />
@@ -873,7 +883,7 @@ function SortableFieldItem({
     </motion.div>
   );
 }
-/* Draggable block for sidebar */
+
 function DraggableBlock({
   id,
   children,
@@ -886,6 +896,7 @@ function DraggableBlock({
   const style = {
     transform: CSS.Transform.toString(transform),
   } as React.CSSProperties;
+
   return (
     <motion.div
       ref={setNodeRef}
@@ -905,17 +916,15 @@ function DraggableBlock({
     </motion.div>
   );
 }
-/* Droppable form area */
+
 function DroppableFormArea({ children }: { children: React.ReactNode }) {
-  const { setNodeRef, isOver: droppableIsOver } = useDroppable({
-    id: "form-drop",
-  });
+  const { setNodeRef, isOver } = useDroppable({ id: "form-drop" });
   return (
     <motion.div
       ref={setNodeRef}
-      className={`border border-dashed rounded-md p-4 transition-all duration-300 ${
-        droppableIsOver
-          ? "border-gray-400 bg-blue-50 shadow-md"
+      className={`border border-dashed rounded-md p-4 transition-all duration-300 min-h-96 ${
+        isOver
+          ? "border-blue-400 bg-blue-50 shadow-md"
           : "border-gray-200 bg-gray-50"
       }`}
       initial={{ opacity: 0 }}
@@ -923,7 +932,7 @@ function DroppableFormArea({ children }: { children: React.ReactNode }) {
       whileHover={{ scale: 1.005 }}
     >
       <AnimatePresence>
-        {droppableIsOver && (
+        {isOver && (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -938,23 +947,218 @@ function DroppableFormArea({ children }: { children: React.ReactNode }) {
     </motion.div>
   );
 }
+
+function DroppableFieldSlot({
+  id,
+  children,
+}: {
+  id: string;
+  children?: React.ReactNode;
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id });
+  return (
+    <div
+      ref={setNodeRef}
+      className={`min-h-12 rounded-lg transition-all duration-200 ${
+        isOver ? "bg-blue-50 border-2 border-dashed border-blue-400" : ""
+      }`}
+    >
+      {children}
+    </div>
+  );
+}
+
+/* ---------- Field Editor Modal ---------- */
+function FieldEditor({
+  field,
+  onSave,
+  onClose,
+}: {
+  field: BuilderField;
+  onSave: (updated: BuilderField) => void;
+  onClose: () => void;
+}) {
+  const [edited, setEdited] = useState(field);
+
+  const addOption = () => {
+    setEdited({
+      ...edited,
+      options: [...(edited.options || []), { label: "", value: "" }],
+    });
+  };
+
+  const updateOption = (idx: number, key: "label" | "value", val: string) => {
+    const opts = [...(edited.options || [])];
+    opts[idx] = { ...opts[idx], [key]: val };
+    setEdited({ ...edited, options: opts });
+  };
+
+  const removeOption = (idx: number) => {
+    setEdited({
+      ...edited,
+      options: (edited.options || []).filter((_, i) => i !== idx),
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        className="bg-white rounded-xl shadow-xl max-w-lg w-full p-6"
+      >
+        <h3 className="text-lg font-semibold mb-4">Edit Field</h3>
+        <div className="space-y-4">
+          <div>
+            <Label>Field Label *</Label>
+            <Input
+              value={edited.label}
+              onChange={(e) => setEdited({ ...edited, label: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label>Field Name (key) *</Label>
+            <Input
+              value={edited.name}
+              onChange={(e) => setEdited({ ...edited, name: e.target.value })}
+              placeholder="e.g. phone, company"
+            />
+          </div>
+          {["text", "email", "textarea"].includes(edited.type) && (
+            <div>
+              <Label>Placeholder</Label>
+              <Input
+                value={edited.placeholder || ""}
+                onChange={(e) =>
+                  setEdited({ ...edited, placeholder: e.target.value })
+                }
+              />
+            </div>
+          )}
+          {(edited.type === "select" || edited.type === "radio") && (
+            <div>
+              <Label>Options</Label>
+              <div className="space-y-2">
+                {(edited.options || []).map((opt, idx) => (
+                  <div key={idx} className="flex gap-2">
+                    <Input
+                      placeholder="Label"
+                      value={opt.label}
+                      onChange={(e) =>
+                        updateOption(idx, "label", e.target.value)
+                      }
+                    />
+                    <Input
+                      placeholder="Value"
+                      value={opt.value}
+                      onChange={(e) =>
+                        updateOption(idx, "value", e.target.value)
+                      }
+                    />
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => removeOption(idx)}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+                <Button size="sm" variant="outline" onClick={addOption}>
+                  Add Option
+                </Button>
+              </div>
+            </div>
+          )}
+          {edited.type === "file" && (
+            <div>
+              <Label>Accept (MIME types)</Label>
+              <Input
+                value={edited.accept || ""}
+                onChange={(e) => setEdited({ ...edited, accept: e.target.value })}
+                placeholder="e.g. image/*, .pdf"
+              />
+            </div>
+          )}
+          <div className="flex items-center gap-2">
+            <Switch
+              checked={edited.required || false}
+              onCheckedChange={(c) => setEdited({ ...edited, required: c })}
+              className="data-[state=checked]:bg-[#3c335f]"
+            />
+            <Label>Required</Label>
+          </div>
+
+          {/* Column Span Selector */}
+          <div>
+            <Label>Width in Row</Label>
+            <div className="grid grid-cols-2 gap-2 mt-2">
+              {[1, 2].map((span) => {
+                const active = edited.colSpan === span;
+                return (
+                  <Button
+                    key={span}
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      setEdited({ ...edited, colSpan: span as 1 | 2 })
+                    }
+                    className={`
+                      flex items-center gap-1
+                      ${
+                        active
+                          ? "bg-gradient-to-r from-[#483d73] to-[#352c55] text-white hover:from-[#352c55] hover:to-[#483d73] hover:text-white"
+                          : ""
+                      }
+                    `}
+                  >
+                    <Columns className="w-3 h-3" />
+                    {span}
+                  </Button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+        <div className="flex justify-end gap-2 mt-6">
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            className="text-white bg-[#483d73] hover:bg-[#352c55]"
+            onClick={() => {
+              if (!edited.label || !edited.name) {
+                toastify.error("Label and Name are required");
+                return;
+              }
+              onSave(edited);
+              onClose();
+            }}
+          >
+            Save
+          </Button>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+/* ---------- Main Component ---------- */
 export function ExhibitionForm({
   initialData = {},
   onSubmit,
   isEdit = false,
   formId,
-  disabledFields = [],
 }: ExhibitionFormProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
-  // LIMIT constant
+
+  /* ----- Constants & State ----- */
   const LIMIT = 15;
-  // submission count state fetched from server
   const [submissionCount, setSubmissionCount] = useState<number>(0);
   const [isLoadingCount, setIsLoadingCount] = useState<boolean>(true);
-  const [showLimitModal, setShowLimitModal] = useState<boolean>(false);
   const [limitReached, setLimitReached] = useState<boolean>(false);
-  /* Default form data (same as your original) */
+
   const defaultFormData: FormData = {
     cardNo: (searchParams?.get("cardNo") as string) || "",
     salesPerson: (searchParams?.get("salesPerson") as string) || "",
@@ -981,10 +1185,12 @@ export function ExhibitionForm({
     createdAt: undefined,
     updatedAt: undefined,
   };
-  const [formData, setFormData] = useState<FormData>({
+
+  const [formData, setFormData] = useState<FormData & Record<string, any>>({
     ...defaultFormData,
     ...initialData,
   });
+
   const [frontImagePreview, setFrontImagePreview] = useState<string | null>(
     initialData?.cardFrontPhoto || null
   );
@@ -995,9 +1201,7 @@ export function ExhibitionForm({
   const [showBackImageModal, setShowBackImageModal] = useState<boolean>(false);
   const [frontUploadProgress, setFrontUploadProgress] = useState<number>(0);
   const [backUploadProgress, setBackUploadProgress] = useState<number>(0);
-  const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>(
-    {}
-  );
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isCameraOpen, setIsCameraOpen] = useState<boolean>(false);
@@ -1007,310 +1211,528 @@ export function ExhibitionForm({
   const [facingMode, setFacingMode] = useState<"user" | "environment">(
     "environment"
   );
-  const initialRef = useRef<FormData>({ ...defaultFormData, ...initialData });
+
+  const initialRef = useRef<FormData & Record<string, any>>({
+    ...defaultFormData,
+    ...initialData,
+  });
   const hasChanges = useMemo(() => {
     return JSON.stringify(formData) !== JSON.stringify(initialRef.current);
   }, [formData]);
-  const fieldDisabled = (fieldName: string) => {
-    return disabledFields.includes(fieldName);
-  };
-  // Console logs kept for debugging
-  const [consoleData, setConsoleData] = useState<string[]>([]);
-  const addConsoleLog = useCallback((message: string) => {
-    setConsoleData((prev) => [
-      ...prev,
-      `${new Date().toISOString()} - ${message}`,
-    ]);
+
+  const [formFields, setFormFields] = useState<BuilderField[]>([]);
+  const [editingField, setEditingField] = useState<BuilderField | null>(null);
+
+  /* ----- Default Dynamic Fields (Lead Essentials) ----- */
+  const defaultDynamicFields: BuilderField[] = [
+    {
+      uid: "f_company",
+      type: "text",
+      label: "Company",
+      name: "company",
+      required: true,
+      colSpan: 2,
+    },
+    {
+      uid: "f_contact",
+      type: "text",
+      label: "Contact Person",
+      name: "contactPerson",
+      required: true,
+      colSpan: 2,
+    },
+    {
+      uid: "f_phone",
+      type: "text",
+      label: "Phone",
+      name: "phone",
+      required: true,
+      colSpan: 2,
+      placeholder: "+91 98765 43210",
+    },
+    {
+      uid: "f_email",
+      type: "email",
+      label: "Email",
+      name: "email",
+      required: true,
+      colSpan: 2,
+      placeholder: "name@company.com",
+    },
+    {
+      uid: "f_interest",
+      type: "select",
+      label: "Lead Status",
+      name: "interestLevel",
+      required: true,
+      colSpan: 2,
+      options: [
+        { label: "Hot", value: "hot" },
+        { label: "Warm", value: "warm" },
+        { label: "Cold", value: "cold" },
+      ],
+    },
+  ];
+
+  /* Initialize with default fields if empty */
+  useEffect(() => {
+    if (formFields.length === 0) {
+      setFormFields(defaultDynamicFields);
+    }
   }, []);
-  // Fetch submission count
-  useEffect(() => {
-    let mounted = true;
-    const fetchSubmissionCount = async () => {
-      try {
-        setIsLoadingCount(true);
-        const res = await fetch("/api/form-count", {
-          method: "GET",
-          credentials: "include",
-        });
-        if (res.ok) {
-          const data = await res.json();
-          const count =
-            typeof data.count === "number"
-              ? data.count
-              : Number(data.count || 0);
-          if (mounted) {
-            setSubmissionCount(count);
-            if (!isEdit && count >= LIMIT) {
-              setLimitReached(true);
-              setShowLimitModal(true);
-            } else {
-              setLimitReached(false);
-            }
-          }
-        } else {
-          console.error("Failed to fetch submission count");
-        }
-      } catch (error) {
-        console.error("Error fetching submission count:", error);
-        toastify.error("Could not load submission limit. Please refresh.");
-      } finally {
-        if (mounted) setIsLoadingCount(false);
+
+  /* ----- Available Field Types ----- */
+  const availableFieldTypes = [
+    { type: "text" as const, label: "Text Input", icon: <div className="w-5 h-5 border rounded" /> },
+    { type: "email" as const, label: "Email", icon: <div className="w-5 h-5 border rounded" /> },
+    { type: "number" as const, label: "Number", icon: <div className="w-5 h-5 border rounded" /> },
+    { type: "textarea" as const, label: "Textarea", icon: <div className="w-3 h-3 border rounded mx-auto" /> },
+    { type: "select" as const, label: "Dropdown", icon: <ChevronDown className="w-5 h-5" /> },
+    { type: "checkbox" as const, label: "Checkbox", icon: <div className="w-4 h-4 border rounded" /> },
+    { type: "radio" as const, label: "Radio Group", icon: <div className="w-4 h-4 rounded-full border" /> },
+    { type: "date" as const, label: "Date", icon: <Calendar className="w-5 h-5" /> },
+  ];
+
+  /* ----- Add Field ----- */
+  const addField = (type: FieldType) => {
+    const newField: BuilderField = {
+      uid: uid("f_"),
+      type,
+      label: type.charAt(0).toUpperCase() + type.slice(1),
+      name: `field_${uid()}`,
+      required: false,
+      colSpan: 1,
+      options: type === "select" || type === "radio" ? [{ label: "Option 1", value: "1" }] : undefined,
+    };
+    setEditingField(newField);
+  };
+
+  const saveField = (field: BuilderField) => {
+    setFormFields((prev) =>
+      prev.some((f) => f.uid === field.uid)
+        ? prev.map((f) => (f.uid === field.uid ? field : f))
+        : [...prev, field]
+    );
+  };
+
+  const removeField = (uid: string) => {
+    setFormFields((prev) => prev.filter((f) => f.uid !== uid));
+    toastify.success("Field removed");
+  };
+
+  /* Quick Add Default Fields */
+  const addDefaultFields = () => {
+    const newFields = defaultDynamicFields.map((f) => ({
+      ...f,
+      uid: uid("f_"),
+    }));
+    setFormFields((prev) => [...prev, ...newFields]);
+    toastify.success("Default form fields added!");
+  };
+
+  /* ----- DnD Setup ----- */
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
+  );
+  const [activeDragId, setActiveDragId] = useState<string | null>(null);
+
+  const onDragStart = ({ active }: any) => setActiveDragId(active.id);
+
+  const onDragEnd = ({ active, over }: any) => {
+    setActiveDragId(null);
+    if (!over) return;
+
+    const draggedId = String(active.id);
+    const overId = String(over.id);
+
+    // Adding new field from sidebar
+    if (draggedId.startsWith("block-")) {
+      const type = draggedId.replace("block-", "") as FieldType;
+
+      let insertIndex = 0;
+      if (overId === "form-drop") {
+        insertIndex = formFields.length;
+      } else if (overId.startsWith("slot-")) {
+        const slotFieldIndex = formFields.findIndex((f) => `slot-${f.uid}` === overId);
+        insertIndex = overId === "slot-start" ? 0 : slotFieldIndex + 1;
+      } else {
+        const fieldIndex = formFields.findIndex((f) => f.uid === overId);
+        insertIndex = fieldIndex >= 0 ? fieldIndex + 1 : formFields.length;
       }
-    };
-    fetchSubmissionCount();
-    return () => {
-      mounted = false;
-    };
-  }, [isEdit]);
-  useEffect(() => {
-    if (!isEdit && submissionCount >= LIMIT) {
-      setLimitReached(true);
-      setShowLimitModal(true);
+
+      const newField: BuilderField = {
+        uid: uid("f_"),
+        type,
+        label: type.charAt(0).toUpperCase() + type.slice(1),
+        name: `field_${uid()}`,
+        required: false,
+        colSpan: 1,
+        options: type === "select" || type === "radio"
+          ? [{ label: "Option 1", value: "1" }]
+          : undefined,
+      };
+
+      setFormFields((prev) => [
+        ...prev.slice(0, insertIndex),
+        newField,
+        ...prev.slice(insertIndex),
+      ]);
+      setEditingField(newField);
+      return;
     }
-  }, [submissionCount, isEdit]);
-  // keep existing initial previews behavior
-  useEffect(() => {
-    if (initialData?.cardFrontPhoto) {
-      setFrontImagePreview(initialData.cardFrontPhoto);
+
+    // Reordering existing fields
+    const oldIndex = formFields.findIndex((f) => f.uid === draggedId);
+    if (oldIndex === -1) return;
+
+    let newIndex: number;
+    if (overId.startsWith("slot-")) {
+      const slotFieldIndex = formFields.findIndex((f) => `slot-${f.uid}` === overId);
+      newIndex = overId === "slot-start" ? 0 : slotFieldIndex + 1;
+    } else {
+      newIndex = formFields.findIndex((f) => f.uid === overId);
+      if (newIndex === -1) return;
+      newIndex += 1;
     }
-    if (initialData?.cardBackPhoto) {
-      setBackImagePreview(initialData.cardBackPhoto);
+
+    if (oldIndex !== newIndex && oldIndex !== newIndex - 1) {
+      setFormFields((items) =>
+        arrayMove(items, oldIndex, newIndex > oldIndex ? newIndex - 1 : newIndex)
+      );
     }
-    if (initialData?.date && (initialData.date as string).includes("T")) {
-      setFormData((prev) => ({
-        ...prev,
-        date: (initialData.date as string).split("T")[0] || "",
-      }));
+  };
+
+  const onDragCancel = () => setActiveDragId(null);
+
+  /* ----- Form Validation ----- */
+  const isFormValid = useMemo(() => {
+    if (!formData.cardNo?.trim()) return false;
+    if (!formData.cardFrontPhoto) return false;
+
+    for (const field of formFields) {
+      if (field.required) {
+        const value = (formData as any)[field.name];
+
+        if (field.type === "checkbox") {
+          if (value !== true) return false;
+        } else if (field.type === "file") {
+          if (!value) return false;
+        } else {
+          if (!value || (typeof value === "string" && !value.trim())) {
+            return false;
+          }
+        }
+      }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialData]);
-  // Camera functions (same as your original)
+
+    return true;
+  }, [formData, formFields]);
+
+  /* ----- Render Field in Form ----- */
+  const renderField = (field: BuilderField) => {
+    const value = (formData as any)[field.name] || "";
+    const setValue = (val: any) =>
+      setFormData((prev) => ({ ...prev, [field.name]: val }));
+
+    switch (field.type) {
+      case "text":
+      case "email":
+      case "number":
+        return (
+          <Input
+            type={field.type}
+            placeholder={field.placeholder}
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            required={field.required}
+          />
+        );
+      case "textarea":
+        return (
+          <Textarea
+            placeholder={field.placeholder}
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            required={field.required}
+          />
+        );
+      case "select":
+        return (
+          <Select value={value} onValueChange={setValue}>
+            <SelectTrigger>
+              <SelectValue placeholder={field.placeholder || "Select..."} />
+            </SelectTrigger>
+            <SelectContent>
+              {field.options?.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        );
+      case "checkbox":
+        return (
+          <div className="flex items-center gap-2">
+            <Checkbox
+              checked={value === true}
+              onCheckedChange={setValue}
+              required={field.required}
+            />
+          </div>
+        );
+      case "radio":
+        return (
+          <RadioGroup value={value} onValueChange={setValue}>
+            {field.options?.map((opt) => (
+              <div key={opt.value} className="flex items-center gap-2">
+                <RadioGroupItem value={opt.value} />
+                <Label>{opt.label}</Label>
+              </div>
+            ))}
+          </RadioGroup>
+        );
+      case "date":
+        return (
+          <Input
+            type="date"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            required={field.required}
+          />
+        );
+      case "file":
+        return (
+          <Input
+            type="file"
+            accept={field.accept}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) setValue(file);
+            }}
+            required={field.required}
+          />
+        );
+      default:
+        return null;
+    }
+  };
+
+  /* ----- Render Row with Column Layout ----- */
+  const renderRow = (fields: BuilderField[]) => {
+    const totalCols = fields.reduce((sum, f) => sum + (f.colSpan || 1), 0);
+    const effectiveCols = totalCols > 4 ? 4 : totalCols;
+
+    return (
+      <div className="grid grid-cols-4 gap-4">
+        {fields.map((field) => {
+          const span = field.colSpan || 1;
+          const colClass =
+            span === 1
+              ? "col-span-1"
+              : span === 2
+              ? "col-span-2"
+              : span === 3
+              ? "col-span-3"
+              : "col-span-4";
+
+          return (
+            <div key={field.uid} className={colClass}>
+              <SortableFieldItem id={field.uid}>
+                <div className="bg-gray-50 p-4 rounded-lg border space-y-3">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="font-medium text-sm">{field.label}</h4>
+                      <p className="text-xs text-gray-500">{field.type}</p>
+                    </div>
+                    <div className="flex gap-1">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => setEditingField(field)}
+                      >
+                        <Settings className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => removeField(field.uid)}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">
+                      {field.label} {field.required && <span className="text-red-500">*</span>}
+                    </Label>
+                    {renderField(field)}
+                  </div>
+                </div>
+              </SortableFieldItem>
+            </div>
+          );
+        })}
+        {effectiveCols < 4 &&
+          Array.from({ length: 4 - effectiveCols }).map((_, i) => (
+            <div key={`empty-${i}`} className="col-span-1" />
+          ))}
+      </div>
+    );
+  };
+
+  /* ----- Group Fields into Rows ----- */
+  const groupFieldsIntoRows = (fields: BuilderField[]) => {
+    const rows: BuilderField[][] = [];
+    let currentRow: BuilderField[] = [];
+    let currentCols = 0;
+
+    fields.forEach((field) => {
+      const span = field.colSpan || 1;
+      if (currentCols + span > 4) {
+        rows.push(currentRow);
+        currentRow = [field];
+        currentCols = span;
+      } else {
+        currentRow.push(field);
+        currentCols += span;
+      }
+    });
+
+    if (currentRow.length > 0) {
+      rows.push(currentRow);
+    }
+
+    return rows;
+  };
+
+  const fieldRows = groupFieldsIntoRows(formFields);
+
+  /* ----- Drag Overlay ----- */
+  const renderDragOverlay = () => {
+    if (!activeDragId) return null;
+    if (String(activeDragId).startsWith("block-")) {
+      const type = String(activeDragId).replace("block-", "");
+      const block = availableFieldTypes.find((b) => b.type === type);
+      return block ? (
+        <div className="p-3 bg-white border rounded-lg shadow-lg">
+          <div className="text-sm font-medium">{block.label}</div>
+        </div>
+      ) : null;
+    }
+    const field = formFields.find((f) => f.uid === activeDragId);
+    return field ? (
+      <div className="bg-gray-50 border rounded-lg p-4 shadow-lg">
+        <div className="font-medium">{field.label}</div>
+        <div className="text-xs text-gray-500">{field.type}</div>
+      </div>
+    ) : null;
+  };
+
+  /* ----- Camera & Upload Logic ----- */
   const openCamera = useCallback(
     (type: "front" | "back") => {
-      if (limitReached) {
-        setShowLimitModal(true);
-        return;
-      }
-      addConsoleLog(`[Camera] Opening camera for ${type}`);
+      if (limitReached) return;
       setCurrentImageType(type);
       setIsCameraOpen(true);
       startCameraStream();
     },
-    [addConsoleLog, limitReached]
+    [limitReached]
   );
+
   const startCameraStream = async () => {
-    addConsoleLog("[Camera] Starting camera stream.");
     try {
       if (videoRef.current) {
         stopCameraStream();
-        const constraints = {
-          video: {
-            facingMode: facingMode,
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-          },
-        };
-        addConsoleLog(
-          `[Camera] Requesting user media: ${JSON.stringify(constraints)}`
-        );
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play().catch((err) => {
-          console.error("Error playing video:", err);
-          addConsoleLog(`[Camera] Error playing video: ${err}`);
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
         });
-        addConsoleLog("[Camera] Camera stream started.");
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
       }
     } catch (err) {
-      console.error("Error accessing camera:", err);
-      toastify.error(
-        "Failed to access camera. Check permissions or try a different browser."
-      );
-      addConsoleLog(
-        `[Camera] Error accessing camera: ${
-          err instanceof Error ? err.message : err
-        }`
-      );
+      toastify.error("Camera access denied");
       setIsCameraOpen(false);
     }
   };
+
   useEffect(() => {
-    if (isCameraOpen) {
-      startCameraStream();
-    }
-    return () => {
-      if (isCameraOpen) stopCameraStream();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [facingMode, isCameraOpen]);
-  const toggleCamera = () => {
-    if (limitReached) return;
-    setFacingMode((prev) => (prev === "user" ? "environment" : "user"));
-    addConsoleLog("[Camera] Toggling camera facing mode");
-  };
+    if (isCameraOpen) startCameraStream();
+    return () => stopCameraStream();
+  }, [isCameraOpen, facingMode]);
+
   const captureImage = () => {
-    if (limitReached) {
-      setShowLimitModal(true);
-      return;
-    }
-    addConsoleLog("[Camera] Capturing image.");
-    if (
-      videoRef.current &&
-      canvasRef.current &&
-      videoRef.current.videoWidth > 0
-    ) {
+    if (videoRef.current && canvasRef.current && currentImageType) {
       const video = videoRef.current;
       const canvas = canvasRef.current;
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
-      const context = canvas.getContext("2d");
-      if (context) {
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        canvas.toBlob(
-          (blob) => {
-            if (blob) {
-              addConsoleLog(`[Camera] Blob created: ${blob.size} bytes`);
-              const file = new File([blob], `${currentImageType}_image.jpg`, {
-                type: "image/jpeg",
-              });
-              addConsoleLog(
-                `[Camera] File created from blob: ${file.name}, size: ${file.size}`
-              );
-              handleImageChange(
-                { target: { files: [file] } } as any,
-                currentImageType as "front" | "back"
-              );
-            } else {
-              toastify.error("Could not create image blob.");
-              addConsoleLog("[Camera] Could not create blob");
-            }
-          },
-          "image/jpeg",
-          0.9
-        );
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.drawImage(video, 0, 0);
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const file = new File([blob], `${currentImageType}.jpg`, { type: "image/jpeg" });
+            handleImageChange({ target: { files: [file] } } as any, currentImageType);
+          }
+        }, "image/jpeg", 0.9);
       }
       closeCamera();
-    } else {
-      toastify.error("Could not capture image. Try again.");
-      addConsoleLog("[Camera] Capture failed - no video/canvas");
     }
   };
+
   const stopCameraStream = () => {
-    addConsoleLog("[Camera] Stopping camera stream.");
-    if (videoRef.current && videoRef.current.srcObject) {
-      const stream = videoRef.current.srcObject as MediaStream;
-      const tracks = stream.getTracks();
-      tracks.forEach((trk) => trk.stop());
-      videoRef.current.srcObject = null;
+    if (videoRef.current?.srcObject) {
+      (videoRef.current.srcObject as MediaStream).getTracks().forEach((t) => t.stop());
     }
   };
   const closeCamera = () => {
-    addConsoleLog("[Camera] Closing camera.");
     setIsCameraOpen(false);
     stopCameraStream();
   };
-  // Image upload/change (kept original behavior)
+
   const handleImageChange = async (
-    e: React.ChangeEvent<HTMLInputElement> | any,
+    e: React.ChangeEvent<HTMLInputElement>,
     type: "front" | "back"
   ) => {
-    if (limitReached) {
-      setShowLimitModal(true);
-      return;
-    }
     const file = e.target.files?.[0];
-    if (!file) {
-      addConsoleLog("[Image] No file selected.");
-      return;
-    }
-    addConsoleLog(
-      `[Image] Selected ${type} file: ${file.name}, ${file.size} bytes`
-    );
+    if (!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => {
-      if (type === "front") {
-        setFrontImagePreview(ev.target?.result as string);
-        addConsoleLog("[Image] Set front preview");
-      } else {
-        setBackImagePreview(ev.target?.result as string);
-        addConsoleLog("[Image] Set back preview");
-      }
-    };
+    reader.onload = (ev) =>
+      type === "front"
+        ? setFrontImagePreview(ev.target?.result as string)
+        : setBackImagePreview(ev.target?.result as string);
     reader.readAsDataURL(file);
     await uploadImage(file, type);
-    if (e.target as HTMLInputElement) (e.target as HTMLInputElement).value = "";
   };
+
   const uploadImage = async (file: File, type: "front" | "back") => {
-    addConsoleLog(`[Upload] Uploading ${type} image: ${file.name}`);
     const fd = new FormData();
     fd.append("image", file);
     fd.append("type", type);
-    try {
-      const progressSetter =
-        type === "front" ? setFrontUploadProgress : setBackUploadProgress;
-      progressSetter(0);
-      const xhr = new XMLHttpRequest();
-      xhr.open("POST", "/api/upload-image", true);
-      xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable) {
-          const percent = (event.loaded / event.total) * 100;
-          progressSetter(percent);
-          addConsoleLog(`[Upload] ${type} progress: ${percent.toFixed(2)}%`);
-        }
-      };
-      xhr.onload = () => {
-        addConsoleLog(`[Upload] ${type} onload - status ${xhr.status}`);
-        if (xhr.status === 200) {
-          try {
-            const resp = JSON.parse(xhr.responseText);
-            const imageUrl = resp.imageUrl || resp.url || "";
-            setFormData((prev) => ({
-              ...prev,
-              [type === "front" ? "cardFrontPhoto" : "cardBackPhoto"]: imageUrl,
-            }));
-            if (type === "front") setFrontImagePreview(imageUrl);
-            else setBackImagePreview(imageUrl);
-          } catch (err) {
-            console.error("Upload response parse error", err);
-            toastify.error(`Failed to parse upload response for ${type}`);
-            addConsoleLog(
-              `[Upload] ${type} parse error: ${
-                err instanceof Error ? err.message : err
-              }`
-            );
-          }
-        } else {
-          console.error(`[Upload] Server returned ${xhr.status}`);
-          toastify.error(`Upload failed with status ${xhr.status}`);
-          addConsoleLog(`[Upload] ${type} failed status ${xhr.status}`);
-        }
-        progressSetter(0);
-        addConsoleLog(`[Upload] ${type} upload finished`);
-      };
-      xhr.onerror = () => {
-        console.error("[Upload] XHR onerror");
-        toastify.error(`Network error while uploading ${type}`);
-        const progressSetter =
-          type === "front" ? setFrontUploadProgress : setBackUploadProgress;
-        progressSetter(0);
-        addConsoleLog(`[Upload] ${type} network error`);
-      };
-      xhr.send(fd);
-    } catch (error) {
-      console.error(`[Upload] Exception uploading ${type}:`, error);
-      toastify.error(`Unexpected error while uploading ${type}`);
-      const progressSetter =
-        type === "front" ? setFrontUploadProgress : setBackUploadProgress;
-      progressSetter(0);
-      addConsoleLog(
-        `[Upload] ${type} exception: ${
-          error instanceof Error ? error.message : error
-        }`
-      );
-    }
+    const setter = type === "front" ? setFrontUploadProgress : setBackUploadProgress;
+    setter(0);
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", "/api/upload-image", true);
+    xhr.upload.onprogress = (ev) => {
+      if (ev.lengthComputable) setter((ev.loaded / ev.total) * 100);
+    };
+    xhr.onload = () => {
+      if (xhr.status === 200) {
+        const resp = JSON.parse(xhr.responseText);
+        const url = resp.imageUrl || resp.url;
+        setFormData((prev) => ({
+          ...prev,
+          [type === "front" ? "cardFrontPhoto" : "cardBackPhoto"]: url,
+        }));
+        type === "front" ? setFrontImagePreview(url) : setBackImagePreview(url);
+      }
+      setter(0);
+    };
+    xhr.send(fd);
   };
+
   const handleRemoveImage = (type: "front" | "back") => {
-    addConsoleLog(`[Image] Removing ${type}`);
     if (type === "front") {
       setFrontImagePreview(null);
       setFormData((prev) => ({ ...prev, cardFrontPhoto: "" }));
@@ -1319,1007 +1741,303 @@ export function ExhibitionForm({
       setFormData((prev) => ({ ...prev, cardBackPhoto: "" }));
     }
   };
-  const handleBackImageModalConfirm = () => {
-    if (limitReached) {
-      setShowLimitModal(true);
+
+  /* ----- Submission ----- */
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+
+    if (!isFormValid) {
+      toastify.error("Please fill all required fields and upload front card image.");
       return;
     }
-    setShowBackImageModal(false);
-    const backImageInput = document.getElementById(
-      "cardBack"
-    ) as HTMLInputElement;
-    backImageInput?.click();
-  };
-  const handleBackImageModalClose = () => setShowBackImageModal(false);
-  // Validation (kept)
-  const validateForm = useCallback((): boolean => {
-    const newErrors: Partial<Record<keyof FormData, string>> = {};
-    if (!formData.cardNo) newErrors.cardNo = "Card number is required";
-    if (!formData.salesPerson)
-      newErrors.salesPerson = "Sales person is required";
-    if (!formData.date) newErrors.date = "Date is required";
-    setErrors(newErrors);
-    addConsoleLog(`[Validation] errors: ${JSON.stringify(newErrors)}`);
-    return Object.keys(newErrors).length === 0;
-  }, [formData, addConsoleLog]);
-  // default submit (kept)
-  const defaultOnSubmit = async (submissionData: FormData) => {
-    addConsoleLog(
-      `[Submit] Default submit invoked: ${JSON.stringify(submissionData)}`
-    );
-    const res = await fetch("/api/submit-form", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(submissionData),
-    });
-    if (!res.ok) {
-      const errorData = await res.json().catch(() => ({ error: "Unknown" }));
-      addConsoleLog(
-        `[Submit] Default submit error: ${JSON.stringify(errorData)}`
-      );
-      throw new Error(errorData?.error || "Failed to submit form");
-    }
-    const data = await res.json();
-    addConsoleLog(`[Submit] Default submit success: ${JSON.stringify(data)}`);
-    if (data?.formId) router.push(`/submission/${data.formId}`);
-  };
-  // --- Builder state & logic ---
-  // available blocks in sidebar (draggable)
-  const availableBlocks: { type: FieldType; label: string }[] = [
-    // { type: "text", label: "Short Text" },
-    { type: "textarea", label: "Description" },
-    { type: "select", label: "Select (Lead/Deal)" },
-    { type: "switch", label: "Schedule Meeting" },
-    { type: "checkboxGroup", label: "Industry Categories" },
-    { type: "date", label: "Date" },
-  ];
-  // formFields are user-added and reorderable. We keep the card images block fixed outside this array.
-  const [formFields, setFormFields] = useState<BuilderField[]>(() => {
-    // default starter fields (excluding card images which are fixed)
-    return [
-      { uid: uid("f_"), type: "select", label: "Sales Person", required: true },
-      { uid: uid("f_"), type: "date", label: "Date", required: true },
-      { uid: uid("f_"), type: "text", label: "Exhibition" },
-      { uid: uid("f_"), type: "textarea", label: "Description" },
-    ];
-  });
-  // helper to add field of type
-  const addFieldOfType = (type: FieldType) => {
-    const labelMap: Record<FieldType, string> = {
-      text: "",
-      textarea: "Description",
-      select: "Select",
-      switch: "Schedule Meeting",
-      checkboxGroup: "Industry Categories",
-      date: "Date",
-    };
-    const existing = formFields.some((f) => f.type === type);
-    if (existing) {
-      toastify.error(
-        `"${labelMap[type]}" field is already added. You can reorder or edit it.`
-      );
-      return;
-    }
-    const newField: BuilderField = {
-      uid: uid("f_"),
-      type,
-      label: labelMap[type] || "Field",
-    };
-    setFormFields((p) => [...p, newField]);
-    toastify.success(`${labelMap[type]} field added!`);
-  };
-  // remove field by uid
-  const removeField = (uidToRemove: string) => {
-    setFormFields((p) => p.filter((f) => f.uid !== uidToRemove));
-    toastify.info("Field removed");
-  };
-  // update field label/settings
-  const updateField = (uidToUpdate: string, patch: Partial<BuilderField>) => {
-    setFormFields((p) =>
-      p.map((f) => (f.uid === uidToUpdate ? { ...f, ...patch } : f))
-    );
-  };
-  // --- Drag & drop setup (dnd-kit) ---
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
-  );
-  const [activeDragId, setActiveDragId] = useState<string | null>(null);
-  // When a sidebar block is dropped into the form area we add it.
-  const onDragStart = ({ active }: any) => {
-    setActiveDragId(active.id);
-  };
-  const onDragEnd = ({ active, over }: any) => {
-    setActiveDragId(null);
-    // Dropping onto sortable/list (over.id corresponds to uid of list item or "form-drop")
-    if (!over) return;
-    // If the active item is a sidebar block (prefix "block-") and over is the form container ("form-drop") or over any existing field -> add new field
-    const isOverFormArea =
-      over.id === "form-drop" || formFields.some((f) => f.uid === over.id);
-    if (String(active.id).startsWith("block-") && isOverFormArea) {
-      const type = String(active.id).replace("block-", "") as FieldType;
-      addFieldOfType(type);
-      return;
-    }
-    // If both active and over are items inside sortable list -> rearrange
-    const activeIndex = formFields.findIndex((f) => f.uid === active.id);
-    const overIndex = formFields.findIndex((f) => f.uid === over.id);
-    if (activeIndex !== -1 && overIndex !== -1 && activeIndex !== overIndex) {
-      setFormFields((items) => arrayMove(items, activeIndex, overIndex));
-      toastify.info("Field reordered!");
-    }
-  };
-  const onDragCancel = () => setActiveDragId(null);
-  const onDragOver = ({ active, over }: any) => {
-    // Optional: Add logic for dynamic insertion preview if needed
-  };
-  // --- Submit logic adapted to builder: stitch data from formFields into formData before submit ---
-  const handleSubmit = useCallback(
-    async (e?: React.FormEvent) => {
-      e?.preventDefault();
-      if (isSubmitting) return;
-      if (limitReached) {
-        setShowLimitModal(true);
-        toastify.error(
-          `You have reached the free submission limit (${LIMIT}).`
-        );
-        return;
+
+    if (isSubmitting || limitReached) return;
+
+    setIsSubmitting(true);
+    try {
+      const submissionData: any = { ...formData };
+      if (!submissionData.cardBackPhoto) delete submissionData.cardBackPhoto;
+
+      if (onSubmit && isEdit) await onSubmit(submissionData);
+      else {
+        const res = await fetch("/api/submit-form", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(submissionData),
+        });
+        if (!res.ok) throw new Error("Submit failed");
+        const data = await res.json();
+        router.push(`/submission/${data.formId}`);
       }
-      // Build submission object: use fields to map values from formData or from temporary per-field store
-      // For simplicity we keep canonical keys in formData (cardNo, salesPerson, date, country, description, etc.)
-      // – if a field label doesn't match a known key, it will be stored in description as extra data.
-      if (!validateForm()) {
-        toastify.error("Please fill in required fields.");
-        return;
+
+      toastify.success("Submitted!");
+      if (!isEdit) {
+        setSubmissionCount((c) => c + 1);
+        setFormData(defaultFormData);
+        setFrontImagePreview(null);
+        setBackImagePreview(null);
       }
-      setIsSubmitting(true);
+    } catch (err) {
+      toastify.error(err instanceof Error ? err.message : "Submit failed");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  /* ----- Submission Count with Auto-Redirect ----- */
+  useEffect(() => {
+    const fetchCount = async () => {
       try {
-        const submissionData: FormData = {
-          ...formData,
-          date: new Date(formData.date).toISOString(),
-          ...(isEdit && formId ? { id: formId } : {}),
-        } as FormData;
-        if (!submissionData.cardBackPhoto) delete submissionData.cardBackPhoto;
-        if (onSubmit && isEdit) {
-          await onSubmit(submissionData);
-        } else {
-          await defaultOnSubmit(submissionData);
+        setIsLoadingCount(true);
+        const res = await fetch("/api/form-count", { credentials: "include" });
+        if (res.ok) {
+          const data = await res.json();
+          const count = data.count ?? 0;
+          setSubmissionCount(count);
+
+          if (!isEdit && count >= LIMIT) {
+            setLimitReached(true);
+            router.replace("/pricing");
+            return;
+          }
+        } else if (res.status === 403) {
+          const data = await res.json();
+          if (data.limitReached && !isEdit) {
+            setLimitReached(true);
+            router.replace("/pricing");
+            return;
+          }
         }
-        toastify.success(
-          `Form ${isEdit ? "updated" : "submitted"} successfully.`
-        );
-        let newSubmissionCount = submissionCount;
-        if (!isEdit) {
-          newSubmissionCount = submissionCount + 1;
-          setSubmissionCount(newSubmissionCount);
-          toastify.info(
-            `Thank you for submitting! Your submission count is now ${newSubmissionCount}.`
-          );
-        }
-        if (!isEdit) {
-          setFormData(defaultFormData);
-          setFrontImagePreview(null);
-          setBackImagePreview(null);
-        }
-      } catch (error) {
-        console.error("Submit error:", error);
-        toastify.error(
-          error instanceof Error
-            ? error.message
-            : `Failed to ${isEdit ? "update" : "submit"} form.`
-        );
+      } catch (err) {
+        toastify.error("Failed to load limit");
       } finally {
-        setIsSubmitting(false);
+        setIsLoadingCount(false);
       }
-    },
-    [
-      isSubmitting,
-      limitReached,
-      LIMIT,
-      validateForm,
-      formData,
-      isEdit,
-      formId,
-      onSubmit,
-      defaultOnSubmit,
-      submissionCount,
-    ]
-  );
-  const isSubmitDisabled =
-    isSubmitting ||
-    (!isEdit
-      ? !formData.cardNo ||
-        !formData.salesPerson ||
-        !formData.date ||
-        limitReached
-      : !hasChanges);
-  const wrapperClass = isEdit
-    ? ""
-    : "min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-12";
-  // render individual field block by type (reads/writes to formData where possible)
-  const renderFieldByType = (field: BuilderField) => {
-    const key = field.uid;
-    switch (field.type) {
-      case "text":
-        // Heuristic mapping by label to existing keys if possible
-        const lower = field.label.toLowerCase();
-        if (lower.includes("card")) {
-          return (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="space-y-2"
-            >
-              <Label className="text-sm font-medium text-gray-800">
-                {field.label}
-              </Label>
-              <Input
-                value={formData.cardNo}
-                onChange={(e) =>
-                  setFormData({ ...formData, cardNo: e.target.value })
-                }
-                placeholder="Enter card number"
-                className="w-full transition-all duration-200 focus:ring-2 focus:ring-gray-500"
-              />
-            </motion.div>
-          );
-        }
-        if (
-          lower.includes("exhibit") ||
-          lower.includes("exhibition") ||
-          lower.includes("country")
-        ) {
-          return (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="space-y-2"
-            >
-              <Label className="text-sm font-medium text-gray-800">
-                {field.label}
-              </Label>
-              <Input
-                value={formData.country}
-                onChange={(e) =>
-                  setFormData({ ...formData, country: e.target.value })
-                }
-                placeholder="Enter exhibition name"
-                className="w-full transition-all duration-200 focus:ring-2 focus:ring-gray-500"
-              />
-            </motion.div>
-          );
-        }
-        // Generic short text stored in description fallback (appends)
-        return (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="space-y-2"
-          >
-            <Label className="text-sm font-medium text-gray-800">
-              {field.label}
-            </Label>
-            <Input
-              value={(formData as any)[key] || ""}
-              onChange={(e) =>
-                setFormData((p) => ({ ...p, [key]: e.target.value } as any))
-              }
-              placeholder={field.label}
-              className="w-full transition-all duration-200 focus:ring-2 focus:ring-gray-500"
-            />
-          </motion.div>
-        );
-      case "textarea":
-        return (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="space-y-2"
-          >
-            <Label className="text-sm font-medium text-gray-800">
-              {field.label}
-            </Label>
-            <Textarea
-              value={formData.description}
-              onChange={(e) =>
-                setFormData({ ...formData, description: e.target.value })
-              }
-              rows={3}
-              placeholder="Enter additional details"
-              className="transition-all duration-200 focus:ring-2 focus:ring-gray-500 resize-none"
-            />
-          </motion.div>
-        );
-      case "select":
-        // Map to salesPerson / leadStatus / dealStatus based on label heuristics
-        if (field.label.toLowerCase().includes("sales")) {
-          return (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="space-y-2"
-            >
-              <Label className="text-sm font-medium text-gray-800">
-                {field.label}
-              </Label>
-              <Select
-                value={formData.salesPerson}
-                onValueChange={(v) =>
-                  setFormData({ ...formData, salesPerson: v })
-                }
-              >
-                <SelectTrigger className="w-full p-3 transition-all duration-200 focus:ring-1 focus:ring-gray-500">
-                  <SelectValue placeholder="Select sales person" />
-                </SelectTrigger>
-                <SelectContent>
-                  {salesPersons.map((p) => (
-                    <SelectItem key={p} value={p}>
-                      {p}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </motion.div>
-          );
-        }
-        // default fallback select for lead status
-        return (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="space-y-2"
-          >
-            <Label className="text-sm font-medium text-gray-800">
-              {field.label}
-            </Label>
-            <Select
-              value={formData.leadStatus}
-              onValueChange={(v) => setFormData({ ...formData, leadStatus: v })}
-            >
-              <SelectTrigger className="w-full p-3 transition-all duration-200 focus:ring-2 focus:ring-gray-500">
-                <SelectValue placeholder="Select" />
-              </SelectTrigger>
-              <SelectContent>
-                {leadStatuses.map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {s}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </motion.div>
-        );
-      case "switch":
-        return (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex items-center gap-3"
-          >
-            <Switch
-            
-              checked={formData.meetingAfterExhibition}
-              onCheckedChange={(c) =>
-                setFormData({ ...formData, meetingAfterExhibition: c })
-              }
-            />
-            <Label className="text-sm font-medium text-gray-800">
-              {field.label}
-            </Label>
-          </motion.div>
-        );
-      case "checkboxGroup":
-        return (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="space-y-2"
-          >
-            <Label className="text-sm font-medium text-gray-800">
-              {field.label}
-            </Label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 mt-2">
-              {industryCategories.map((category) => {
-                const checked = formData.industryCategories
-                  ? formData.industryCategories.split(",").includes(category)
-                  : false;
-                return (
-                  <motion.div
-                    key={category}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="flex items-center gap-2 transition-all duration-200"
-                  >
-                    <Checkbox
-                      checked={checked}
-                      onCheckedChange={(checked) => {
-                        const currentCategories = formData.industryCategories
-                          ? formData.industryCategories
-                              .split(",")
-                              .filter(Boolean)
-                          : [];
-                        const updatedCategories = checked
-                          ? [...currentCategories, category]
-                          : currentCategories.filter((c) => c !== category);
-                        setFormData({
-                          ...formData,
-                          industryCategories: updatedCategories.join(","),
-                        });
-                      }}
-                    />
-                    <Label className="text-sm">{category}</Label>
-                  </motion.div>
-                );
-              })}
-            </div>
-          </motion.div>
-        );
-      case "date":
-        return (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="space-y-2"
-          >
-            <Label className="text-sm font-medium text-gray-800">
-              {field.label}
-            </Label>
-            <Input
-              type="date"
-              value={formData.date}
-              onChange={(e) =>
-                setFormData({ ...formData, date: e.target.value })
-              }
-              className="w-full transition-all duration-200 focus:ring-2 focus:ring-gray-500"
-            />
-          </motion.div>
-        );
-      default:
-        return null;
-    }
-  };
-  // Drag overlay render
-  const renderDragOverlay = () => {
-    if (!activeDragId) return null;
-    if (String(activeDragId).startsWith("block-")) {
-      const type = String(activeDragId).replace("block-", "") as FieldType;
-      const block = availableBlocks.find((b) => b.type === type);
-      if (!block) return null;
-      return (
-        <motion.div
-          className="p-3 bg-white border rounded-lg shadow-lg"
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.9, opacity: 0 }}
-        >
-          <div className="text-sm font-medium">{block.label}</div>
-          <div className="text-xs text-gray-500">Drop to add</div>
-        </motion.div>
-      );
-    }
-    // For sortable items, render a ghost
-    const draggingField = formFields.find((f) => f.uid === activeDragId);
-    if (!draggingField) return null;
-    return (
-      <motion.div
-        className="bg-gray-50 border border-gray-200 rounded-lg p-4 shadow-lg w-full max-w-md"
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.9, opacity: 0 }}
-      >
-        <div className="text-sm font-semibold">{draggingField.label}</div>
-        <div className="text-xs text-gray-500">{draggingField.type}</div>
-      </motion.div>
-    );
-  };
+    };
+    fetchCount();
+  }, [isEdit, router]);
+
+  /* ---------- JSX ---------- */
   return (
-    <div className={wrapperClass}>
-      <div className="max-w-6xl mx-auto grid grid-cols-12 gap-6 px-4">
-        {/* DnD Context wraps both sidebar and main for cross-container drags */}
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-12">
+      <div className="max-w-7xl mx-auto grid grid-cols-12 gap-6 px-4">
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
           onDragStart={onDragStart}
           onDragEnd={onDragEnd}
-          onDragOver={onDragOver}
           onDragCancel={onDragCancel}
-          measuring={{
-            droppable: { strategy: MeasuringStrategy.Always },
-          }}
+          measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
         >
-          {/* Sidebar - draggable blocks */}
-          <motion.div
-            className="col-span-3 bg-white rounded-xl p-4 shadow-sm sticky top-6 h-fit"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <h3 className="font-semibold text-lg mb-3">Build your form</h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Drag a field into the form area
-            </p>
-            <div className="space-y-3">
-              <AnimatePresence>
-                {availableBlocks.map((b, index) => (
-                  <motion.div
-                    key={b.type}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    transition={{ delay: index * 0.05 }}
-                  >
-                    <DraggableBlock id={`block-${b.type}`}>
-                      <div>
-                        <div className="text-sm font-medium">{b.label}</div>
-                        <div className="text-xs text-gray-500">
-                          Field type: {b.type}
-                        </div>
-                      </div>
-                      <div className="text-xs text-gray-400">⠿</div>
-                    </DraggableBlock>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </div>
-            <div className="mt-6">
+          {/* Sidebar */}
+          <div className="col-span-3 bg-white rounded-xl p-5 shadow-sm sticky top-6 h-fit">
+            <h3 className="font-bold text-lg mb-3">Form Fields</h3>
+            <div className="space-y-2">
               <Button
-                variant="ghost"
-                onClick={() => {
-                  setFormFields([]);
-                  setFormData(defaultFormData);
-                }}
-                className="w-full transition-all duration-200 hover:bg-[#352c52] bg-[#483f69] text-white hover:text-white" 
+                onClick={addDefaultFields}
+                className="w-full justify-start bg-gradient-to-r from-[#483d73] to-[#352c55] text-white hover:from-[#352c55] hover:to-[#483d73]"
               >
-                Reset Form
+                <Zap className="w-4 h-4 mr-2" />
+                Add Default Form Fields
               </Button>
+              <div className="h-px bg-gray-200 my-3" />
+              {availableFieldTypes.map((f) => (
+                <DraggableBlock key={f.type} id={`block-${f.type}`}>
+                  <div className="flex items-center gap-2">
+                    {f.icon}
+                    <span className="text-sm">{f.label}</span>
+                  </div>
+                </DraggableBlock>
+              ))}
             </div>
-          </motion.div>
-          {/* Main form builder + form display */}
-          <motion.div
-            className="col-span-9"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <Card className="w-full mx-auto shadow-lg bg-white rounded-xl overflow-hidden border border-gray-200">
-              <CardHeader className="bg-gray-100 border-b border-blue-100 p-6">
-                <CardTitle className="text-2xl font-bold text-gray-900">
-                  {isEdit ? "Edit" : "Exhibition"} Form Builder
-                </CardTitle>
+          </div>
+
+          {/* Main Form */}
+          <div className="col-span-9">
+            <Card className="shadow-xl">
+              <CardHeader>
+                <CardTitle>Custom Form Builder</CardTitle>
                 {!isEdit && (
-                  <p className="text-sm text-gray-600 mt-2" aria-live="polite">
-                    Your free card submissions left:{" "}
-                    {isLoadingCount
-                      ? "Loading..."
-                      : Math.max(0, LIMIT - submissionCount)}
+                  <p className="text-sm text-gray-600">
+                    Free submissions left: {isLoadingCount ? "..." : Math.max(0, LIMIT - submissionCount)}
                   </p>
                 )}
               </CardHeader>
-              <CardContent
-                className={`p-6 ${
-                  limitReached
-                    ? "pointer-events-none select-none opacity-80"
-                    : ""
-                }`}
-              >
-                {/* Fixed Card Image block (cannot be moved or removed) */}
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="mb-6 space-y-4"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-semibold text-gray-800">Card Number</h4>
-                  </div>
+              <CardContent className="space-y-6">
+                {/* Fixed Card Number */}
+                <div>
+                  <Label>Card Number <span className="text-red-500">*</span></Label>
                   <Input
                     value={formData.cardNo}
-                    onChange={(e) =>
-                      setFormData({ ...formData, cardNo: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, cardNo: e.target.value })}
                     placeholder="Enter card number"
-                    className="w-full transition-all duration-200 focus:ring-2 focus:ring-gray-500"
                   />
-                  {errors.cardNo && (
-                    <p className="text-red-500 text-xs mt-1 animate-pulse">
-                      {errors.cardNo}
-                    </p>
-                  )}
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-semibold text-gray-800">Card Images</h4>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Front */}
-                    <motion.div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-800">
-                        Card Front Photo
-                      </Label>
-                      <div className="relative">
-                        <input
-                          id="cardFront"
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => handleImageChange(e, "front")}
-                          className="hidden"
-                        />
-                        <label
-                          htmlFor="cardFront"
-                          className="flex items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-purple-300 hover:bg-gray-100 transition-all duration-300"
-                        >
-                          <AnimatePresence mode="wait">
-                            {frontImagePreview ? (
-                              <motion.div
-                                key="preview"
-                                className="relative w-full h-full"
-                                initial={{ scale: 0.95 }}
-                                animate={{ scale: 1 }}
-                                exit={{ scale: 0.95 }}
-                              >
-                                <Image
-                                  src={frontImagePreview || "/placeholder.svg"}
-                                  alt="Card Front Preview"
-                                  fill
-                                  style={{ objectFit: "cover" }}
-                                  className="rounded-lg"
-                                />
-                                <motion.button
-                                  type="button"
-                                  onClick={() => handleRemoveImage("front")}
-                                  className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600"
-                                  whileHover={{ scale: 1.1 }}
-                                  whileTap={{ scale: 0.9 }}
-                                >
-                                  <X className="w-5 h-5" />
-                                </motion.button>
-                              </motion.div>
-                            ) : (
-                              <motion.div
-                                key="upload"
-                                className="text-center"
-                                initial={{ scale: 0.95 }}
-                                animate={{ scale: 1 }}
-                              >
-                                <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                                <span className="mt-2 block text-sm font-medium text-gray-600">
-                                  Upload or capture front image
-                                </span>
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-                        </label>
-                        <motion.div
-                          className="absolute bottom-3 right-3"
-                          whileHover={{ scale: 1.05 }}
-                        >
-                          <Button
-                            type="button"
-                            onClick={() => openCamera("front")}
-                            className="bg-black text-white rounded-full p-3 hover:bg-gray-100 hover:text-black transition-all duration-300"
-                          >
-                            <Camera className="w-5 h-5" />
-                          </Button>
-                        </motion.div>
-                      </div>
-                      <AnimatePresence>
-                        {frontUploadProgress > 0 &&
-                          frontUploadProgress < 100 && (
-                            <motion.div
-                              initial={{ width: 0 }}
-                              animate={{ width: `${frontUploadProgress}%` }}
-                              className="w-full h-2 mt-3 bg-gray-200 rounded-full overflow-hidden"
-                            >
-                              <motion.div
-                                className="h-full bg-blue-600 rounded-full"
-                                initial={{ width: 0 }}
-                                animate={{ width: `${frontUploadProgress}%` }}
-                                transition={{ duration: 0.5 }}
-                              />
-                            </motion.div>
-                          )}
-                      </AnimatePresence>
-                    </motion.div>
-                    {/* Back */}
-                    <motion.div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-800">
-                        Card Back Photo
-                      </Label>
-                      <div className="relative">
-                        <input
-                          id="cardBack"
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => handleImageChange(e, "back")}
-                          className="hidden"
-                        />
-                        <label
-                          htmlFor="cardBack"
-                          className="flex items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-purple-300 hover:bg-gray-100 transition-all duration-300"
-                        >
-                          <AnimatePresence mode="wait">
-                            {backImagePreview ? (
-                              <motion.div
-                                key="preview"
-                                className="relative w-full h-full"
-                                initial={{ scale: 0.95 }}
-                                animate={{ scale: 1 }}
-                                exit={{ scale: 0.95 }}
-                              >
-                                <Image
-                                  src={backImagePreview || "/placeholder.svg"}
-                                  alt="Card Back Preview"
-                                  fill
-                                  style={{ objectFit: "cover" }}
-                                  className="rounded-lg"
-                                />
-                                <motion.button
-                                  type="button"
-                                  onClick={() => handleRemoveImage("back")}
-                                  className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600"
-                                  whileHover={{ scale: 1.1 }}
-                                  whileTap={{ scale: 0.9 }}
-                                >
-                                  <X className="w-5 h-5" />
-                                </motion.button>
-                              </motion.div>
-                            ) : (
-                              <motion.div
-                                key="upload"
-                                className="text-center"
-                                initial={{ scale: 0.95 }}
-                                animate={{ scale: 1 }}
-                              >
-                                <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                                <span className="mt-2 block text-sm font-medium text-gray-600">
-                                  Upload or capture back image
-                                </span>
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-                        </label>
-                        <motion.div
-                          className="absolute bottom-3 right-3"
-                          whileHover={{ scale: 1.05 }}
-                        >
-                          <Button
-                            type="button"
-                            onClick={() => setShowBackImageModal(true)}
-                            className="bg-black text-white rounded-full p-3 hover:bg-gray-200 hover:text-black transition-all duration-300"
-                          >
-                            <Camera className="w-5 h-5" />
-                          </Button>
-                        </motion.div>
-                      </div>
-                      <AnimatePresence>
-                        {backUploadProgress > 0 && backUploadProgress < 100 && (
-                          <motion.div
-                            initial={{ width: 0 }}
-                            animate={{ width: `${backUploadProgress}%` }}
-                            className="w-full h-2 mt-3 bg-gray-200 rounded-full overflow-hidden"
-                          >
-                            <motion.div
-                              className="h-full bg-blue-600 rounded-full"
-                              initial={{ width: 0 }}
-                              animate={{ width: `${backUploadProgress}%` }}
-                              transition={{ duration: 0.5 }}
-                            />
-                          </motion.div>
+                </div>
+
+                {/* Fixed Card Images */}
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Card Front <span className="text-red-500">*</span></Label>
+                    <div className="relative">
+                      <input id="front" type="file" accept="image/*" className="hidden" onChange={(e) => handleImageChange(e, "front")} />
+                      <label htmlFor="front" className="block h-60 border-2 border-dashed rounded-lg cursor-pointer flex items-center justify-center relative overflow-hidden">
+                        {frontImagePreview ? (
+                          <Image src={frontImagePreview} alt="" fill className="object-cover" />
+                        ) : (
+                          <Upload className="w-10 h-10 text-gray-400" />
                         )}
-                      </AnimatePresence>
-                    </motion.div>
+                      </label>
+                      <Button size="icon" className="absolute bottom-2 right-2" onClick={() => openCamera("front")}>
+                        <Camera className="w-4 h-4" />
+                      </Button>
+                      {frontImagePreview && (
+                        <Button size="icon" variant="destructive" className="absolute top-2 right-2" onClick={() => handleRemoveImage("front")}>
+                          <X className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
+                    {frontUploadProgress > 0 && frontUploadProgress < 100 && (
+                      <Progress value={frontUploadProgress} />
+                    )}
                   </div>
-                </motion.div>
-                {/* Droppable form area with sortable context */}
+
+                  <div className="space-y-2">
+                    <Label>Card Back</Label>
+                    <div className="relative">
+                      <input id="back" type="file" accept="image/*" className="hidden" onChange={(e) => handleImageChange(e, "back")} />
+                      <label htmlFor="back" className="block h-60 border-2 border-dashed rounded-lg cursor-pointer flex items-center justify-center relative overflow-hidden">
+                        {backImagePreview ? (
+                          <Image src={backImagePreview} alt="" fill className="object-cover" />
+                        ) : (
+                          <Upload className="w-10 h-10 text-gray-400" />
+                        )}
+                      </label>
+                      <Button size="icon" className="absolute bottom-2 right-2" onClick={() => setShowBackImageModal(true)}>
+                        <Camera className="w-4 h-4" />
+                      </Button>
+                      {backImagePreview && (
+                        <Button size="icon" variant="destructive" className="absolute top-2 right-2" onClick={() => handleRemoveImage("back")}>
+                          <X className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
+                    {backUploadProgress > 0 && backUploadProgress < 100 && (
+                      <Progress value={backUploadProgress} />
+                    )}
+                  </div>
+                </div>
+
+                {/* Dynamic Fields with Row Layout */}
                 <DroppableFormArea>
-                  <SortableContext
-                    items={formFields.map((f) => f.uid)}
-                    strategy={verticalListSortingStrategy}
-                  >
-                    <div className="space-y-4" id="form-list">
+                  <SortableContext items={formFields.map((f) => f.uid)} strategy={verticalListSortingStrategy}>
+                    <div className="space-y-6">
+                      <DroppableFieldSlot id="slot-start" />
+
                       <AnimatePresence>
-                        {formFields.map((field, index) => (
-                          <motion.div
-                            key={field.uid}
-                            initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={{ opacity: 0, y: -20, scale: 0.95 }}
-                            transition={{ duration: 0.2, delay: index * 0.05 }}
-                          >
-                            <div className="bg-gray-50 border border-gray-100 rounded-lg p-4 hover:shadow-md transition-shadow duration-200">
-                              <SortableFieldItem id={field.uid}>
-                                <div className="flex justify-between items-start">
-                                  <div className="flex-1">
-                                    <div className="flex items-center justify-between">
-                                      <div>
-                                        <div className="text-sm font-semibold text-gray-800">
-                                          {field.label}
-                                        </div>
-                                        <div className="text-xs text-gray-500">
-                                          {field.type}
-                                        </div>
-                                      </div>
-                                      <motion.button
-                                        onClick={() => removeField(field.uid)}
-                                        className="text-sm text-red-600 hover:text-red-800 transition-colors duration-200"
-                                        whileHover={{ scale: 1.05 }}
-                                      >
-                                        Remove
-                                      </motion.button>
-                                    </div>
-                                    <div className="mt-3">
-                                      {renderFieldByType(field)}
-                                    </div>
-                                  </div>
-                                </div>
-                              </SortableFieldItem>
-                            </div>
-                          </motion.div>
-                        ))}
+                        {fieldRows.map((row, rowIndex) => {
+                          const rowKey = row.map(f => f.uid).join("-");
+                          return (
+                            <motion.div
+                              key={rowKey}
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -20 }}
+                              transition={{ duration: 0.2 }}
+                            >
+                              {renderRow(row)}
+                              <DroppableFieldSlot id={`slot-row-${rowIndex}`} />
+                            </motion.div>
+                          );
+                        })}
                       </AnimatePresence>
-                      {/* Drop hint when list is empty */}
+
                       {formFields.length === 0 && (
-                        <motion.div
-                          className="p-6 text-center text-gray-500"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                        >
-                          Drag fields from the left to build your form.
-                        </motion.div>
+                        <div className="p-10 text-center text-gray-500 border-2 border-dashed border-gray-300 rounded-lg">
+                          Drag fields here to start building
+                        </div>
                       )}
                     </div>
                   </SortableContext>
                 </DroppableFormArea>
-                {/* Extra: manual "Add field" buttons as alternative for accessibility */}
-                <motion.div
-                  className="mt-4 flex flex-wrap gap-2"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                >
-                  {availableBlocks.map((b, index) => (
-                    <motion.div
-                      key={`add-${b.type}`}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                    >
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => addFieldOfType(b.type)}
-                        className="transition-all duration-200 hover:scale-105"
-                        whileHover={{ scale: 1.05 }}
-                      >
-                        {b.label}
-                      </Button>
-                    </motion.div>
-                  ))}
-                </motion.div>
               </CardContent>
-              <CardFooter className="bg-gray-100 border-t border-blue-100 p-6">
-                <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <div className="md:col-span-2">
-                    <div className="text-sm text-gray-700 mb-2">
-                      Note: Card front/back are fixed and will always be
-                      included.
-                    </div>
-                  </div>
-                  <div>
-                    <motion.div
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      <Button
-                        onClick={handleSubmit}
-                        className="w-full bg-[#483d73] text-white py-3 px-6 rounded-lg font-semibold hover:bg-[#5a5570] transition-all duration-300"
-                        disabled={isSubmitDisabled}
-                      >
-                        {isSubmitting
-                          ? "Submitting..."
-                          : isEdit
-                          ? "Save Changes"
-                          : "Submit Form"}
-                      </Button>
-                    </motion.div>
-                  </div>
-                </div>
+              <CardFooter>
+                <Button 
+                  onClick={handleSubmit} 
+                  className="w-full justify-center bg-gradient-to-r from-[#483d73] to-[#352c55] text-white hover:from-[#352c55] hover:to-[#483d73]" 
+                  disabled={isSubmitting || !isFormValid || limitReached}
+                >
+                  {isSubmitting ? "Submitting..." : "Submit Form"}
+                </Button>
               </CardFooter>
             </Card>
-          </motion.div>
-          {/* Drag overlay for visuals */}
+          </div>
+
           <DragOverlay>{renderDragOverlay()}</DragOverlay>
         </DndContext>
-      </div>
-      {/* Camera modal */}
-      {isCameraOpen && (
-        <motion.div
-          className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-6"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-        >
-          <motion.div
-            className="bg-white rounded-xl shadow-2xl overflow-hidden max-w-lg w-full"
-            initial={{ scale: 0.9 }}
-            animate={{ scale: 1 }}
-          >
-            <div className="p-4 bg-gray-200 border-b border-blue-100 flex justify-between items-center">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Capture Photo
-              </h3>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={closeCamera}
-                className="p-2 hover:bg-gray-100"
-              >
-                <X className="w-5 h-5 text-gray-600" />
-              </Button>
-            </div>
-            <div className="relative bg-black">
-              <video
-                ref={videoRef}
-                className="w-screen h-auto"
-                autoPlay
-                playsInline
-                muted
-              />
-              <canvas ref={canvasRef} className="hidden" />
-            </div>
-            <div className="p-4 flex justify-between items-center bg-gray-200">
-              <Button
-                variant="outline"
-                onClick={toggleCamera}
-                className="flex items-center gap-2 border-gray-300 hover:bg-gray-100"
-              >
-                <RefreshCw className="w-4 h-4" />
-                Switch Camera
-              </Button>
-              <div className="flex gap-2">
-                <Button
-                  onClick={captureImage}
-                  className="bg-[#483d73] hover:bg-[#5a5570] text-white"
-                >
-                  Capture Photo
-                </Button>
-                <Button variant="ghost" onClick={closeCamera}>
-                  Close
+
+        {/* Modals */}
+        {editingField && (
+          <FieldEditor
+            field={editingField}
+            onSave={saveField}
+            onClose={() => setEditingField(null)}
+          />
+        )}
+
+        {isCameraOpen && (
+          <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-6">
+            <div className="bg-white rounded-xl shadow-2xl overflow-hidden max-w-lg w-full">
+              <div className="p-4 bg-gray-200 border-b flex justify-between items-center">
+                <h3 className="text-lg font-semibold">Capture Photo</h3>
+                <Button variant="ghost" size="sm" onClick={closeCamera}>
+                  <X className="w-5 h-5" />
                 </Button>
               </div>
+              <div className="relative bg-black">
+                <video ref={videoRef} className="w-full h-auto" autoPlay playsInline muted />
+                <canvas ref={canvasRef} className="hidden" />
+              </div>
+              <div className="p-4 flex justify-between bg-gray-200">
+                <Button variant="outline" onClick={() => setFacingMode(prev => prev === "user" ? "environment" : "user")}>
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Switch
+                </Button>
+                <div className="flex gap-2">
+                  <Button onClick={captureImage} className="bg-blue-600 text-white">Capture</Button>
+                  <Button variant="ghost" onClick={closeCamera}>Close</Button>
+                </div>
+              </div>
             </div>
-          </motion.div>
-        </motion.div>
-      )}
-      {/* Back image confirmation modal */}
-      <PopupModal
-        isOpen={showBackImageModal}
-        onClose={handleBackImageModalClose}
-        onConfirm={handleBackImageModalConfirm}
-        title="Upload Back Image"
-        description="Do you want to upload the back image of the business card?"
-      />
-      {/* Limit modal */}
-      <PopupModal
-        isOpen={showLimitModal}
-        onClose={() => {}}
-        onConfirm={() => {
-          setShowLimitModal(false);
-          router.push("/pricing");
-        }}
-        title="Limit Reached"
-        description="Your submission limit has been reached. Please buy a plan to submit more."
-      />
-      <ToastContainer
-        className="toast-container"
-        position="bottom-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="colored"
-        style={{ zIndex: 9999 }}
-      />
+          </div>
+        )}
+
+        <PopupModal
+          isOpen={showBackImageModal}
+          onClose={() => setShowBackImageModal(false)}
+          onConfirm={() => {
+            setShowBackImageModal(false);
+            (document.getElementById("back") as HTMLInputElement)?.click();
+          }}
+          title="Upload Back Image"
+          description="Do you want to upload the back image?"
+        />
+
+        <ToastContainer
+          position="bottom-right"
+          autoClose={2500}
+          hideProgressBar={false}
+          newestOnTop
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme="light"
+          toastClassName="!rounded-lg !font-medium"
+        />
+      </div>
     </div>
   );
 }
+
 export default ExhibitionForm;

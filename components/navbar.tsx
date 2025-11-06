@@ -118,7 +118,7 @@ export function Navbar({ user }: NavbarProps) {
         {/* Mobile Menu Button */}
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="sm:hidden text-black focus:outline-none transition-all ml-auto"
+          className="sm:hidden text-black focus:outline-none transition-all ml-auto top-6"
           aria-label={isOpen ? "Close menu" : "Open menu"}
         >
           {isOpen ? <X size={24} /> : <Menu size={24} />}
@@ -151,7 +151,7 @@ export function Navbar({ user }: NavbarProps) {
           </Link>
             <Link
             href="/feature"
-            className="text-black text-sm font-medium hover:text-white transition-all px-3 py-1.5 rounded hover:bg-[#3d3260]"
+            className="text-sm font-medium hover:text-gray-300 transition-all py-2 px-3 rounded hover:bg-gray-800 w-full text-center"
           >
             Feature
           </Link>

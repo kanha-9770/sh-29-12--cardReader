@@ -1,6 +1,5 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -12,22 +11,22 @@ datasource db {
 }
 
 model User {
-  id             String        @id @default(cuid())
-  name           String?
-  email          String        @unique
-  password       String
-  isAdmin        Boolean       @default(false)
-  organizationId Int?
-  organization   Organization? @relation("OrganizationUsers", fields: [organizationId], references: [id])
-  isDeleted      Boolean       @default(false)
-  createdAt      DateTime      @default(now())
-  Form           Form[]
-  subscriptionPlan String? @default("FREE")
-  formLimit Int? @default(15)
+  id               String        @id @default(cuid())
+  name             String?
+  email            String        @unique
+  password         String
+  isAdmin          Boolean       @default(false)
+  organizationId   Int?
+  organization     Organization? @relation("OrganizationUsers", fields: [organizationId], references: [id])
+  isDeleted        Boolean       @default(false)
+  createdAt        DateTime      @default(now())
+  Form             Form[]
+  subscriptionPlan String?       @default("FREE")
+  formLimit        Int?          @default(15)
 }
 
 model Form {
-  id                     String         @id @default(cuid())
+  id                     String   @id @default(cuid())
   cardNo                 String
   salesPerson            String
   date                   DateTime
@@ -38,16 +37,22 @@ model Form {
   dealStatus             String
   meetingAfterExhibition Boolean
   industryCategories     String
-  description            String         @db.Text
-  userId                 String
-  user                   User           @relation(fields: [userId], references: [id])
-  createdAt              DateTime       @default(now())
-  updatedAt              DateTime       @updatedAt
-  extractedData          ExtractedData?
-  mergedData             MergedData?
-  status                 String         @default("PENDING")
-  extractionStatus       String         @default("PENDING")
-  zohoStatus             String         @default("PENDING")
+  description            String   @db.Text
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  /// ✅ Tenant-isolation
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  extractedData    ExtractedData?
+  mergedData       MergedData?
+  status           String         @default("PENDING")
+  extractionStatus String         @default("PENDING")
+  zohoStatus       String         @default("PENDING")
 }
 
 model ExtractedData {
@@ -97,11 +102,15 @@ model MergedData {
 }
 
 model Organization {
-  id               Int      @id @default(autoincrement())
-  uniqueOrgId      String   @unique
-  name             String?
-  createdBy        String
-  createdAt        DateTime @default(now())
-  users            User[]   @relation("OrganizationUsers")
-}
+  id          Int      @id @default(autoincrement())
+  uniqueOrgId String   @unique
+  name        String?
+  createdBy   String
+  createdAt   DateTime @default(now())
 
+  /// existing user relation
+  users User[] @relation("OrganizationUsers")
+
+  /// ✅ add this relation back reference
+  forms Form[]
+}
