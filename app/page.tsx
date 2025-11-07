@@ -82,7 +82,7 @@ export default function Home() {
               <div className="flex-1 space-y-6">
                 <div className="inline-flex items-center gap-2 bg-[#e5e2f0] px-4 py-2 rounded-full text-sm text-[#2d2a4a] bounce-in">
                   <span className="inline-block w-2 h-2 rounded-full bg-[#483d73]"></span>
-                  New: Contactless Card Reader
+                  AI-Powered Business Card Reader
                 </div>
                 <h1 className="text-4xl md:text-6xl font-bold text-[#2d2a4a] leading-tight">
                   Seamless Card Reading <br />
@@ -400,7 +400,7 @@ export default function Home() {
                   </p>
                   <ul className="space-y-3 mb-8">
                     {[
-                      "Smart AI suggestions",
+                      "Smart AI reader",
                       "Free shipping",
                       "Priority support included",
                     ].map((item, i) => (

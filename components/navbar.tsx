@@ -50,9 +50,12 @@ export function Navbar({ user }: NavbarProps) {
             className="flex items-center gap-2"
             onClick={() => setIsOpen(false)}
           >
-            <span className="font-semibold text-xl text-[#2d2a4a]">
+            <p className="font-semibold text-xl text-[#2d2a4a] leading-tight">
               CardSync
-            </span>
+              <span className="block text-sm text-[#483d73] font-medium">
+                With AI
+              </span>
+            </p>
           </Link>
         </div>
 
@@ -149,7 +152,7 @@ export function Navbar({ user }: NavbarProps) {
           >
             Form
           </Link>
-            <Link
+          <Link
             href="/feature"
             className="text-sm font-medium hover:text-gray-300 transition-all py-2 px-3 rounded hover:bg-gray-800 w-full text-center"
           >

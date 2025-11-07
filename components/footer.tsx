@@ -17,9 +17,12 @@ export function Footer() {
           <div>
             <div className="flex items-center gap-2 mb-4">
               <CreditCard className="h-5 w-5 text-[#483d73]" />
-              <span className="font-semibold text-lg text-[#2d2a4a]">
-                CardSync
+              <p className="font-semibold text-xl text-[#2d2a4a] leading-tight">
+              CardSync
+              <span className="block text-sm text-[#483d73] font-medium">
+                With AI
               </span>
+            </p>
             </div>
             <p className="text-[#5a5570] mb-4">
               Transforming how professionals connect and network in the digital
@@ -87,7 +90,7 @@ export function Footer() {
               </li>
               <li>
                 <Link
-                  href="/admin"
+                  href="/dashboard"
                   className="text-[#5a5570] hover:text-[#483d73] transition-colors"
                 >
                   Dashboard

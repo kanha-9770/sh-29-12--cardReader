@@ -756,6 +756,7 @@ import {
   Calendar,
   Columns,
   Zap,
+  Plus,
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { type FormData } from "@/types/form";
@@ -764,7 +765,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { toast as toastify, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-/* DnD-kit imports */
+/* DnD-kit */
 import {
   DndContext,
   closestCenter,
@@ -785,7 +786,6 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { motion, AnimatePresence } from "framer-motion";
 
-/* ---------- Types ---------- */
 type FieldType =
   | "text"
   | "email"
@@ -819,15 +819,12 @@ interface ExhibitionFormProps {
   onSubmit?: (data: FormData) => Promise<void> | void;
   isEdit?: boolean;
   formId?: string;
-  disabledFields?: string[];
 }
 
-/* ---------- Helpers ---------- */
 function uid(prefix = "") {
   return `${prefix}${Math.random().toString(36).slice(2, 9)}`;
 }
 
-/* ---------- Sortable / Draggable Components ---------- */
 function SortableFieldItem({
   id,
   children,
@@ -906,11 +903,8 @@ function DraggableBlock({
       className={`flex items-center justify-between p-3 border rounded-lg cursor-grab hover:bg-gray-50 transition-all duration-200 ${
         isDragging ? "opacity-50 scale-105 shadow-lg" : ""
       }`}
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
-      transition={{ duration: 0.15 }}
     >
       {children}
     </motion.div>
@@ -968,7 +962,6 @@ function DroppableFieldSlot({
   );
 }
 
-/* ---------- Field Editor Modal ---------- */
 function FieldEditor({
   field,
   onSave,
@@ -1005,7 +998,7 @@ function FieldEditor({
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="bg-white rounded-xl shadow-xl max-w-lg w-full p-6"
+        className="bg-white rounded-xl shadow-xl max-w-lg w-full p-6 max-h-screen overflow-y-auto"
       >
         <h3 className="text-lg font-semibold mb-4">Edit Field</h3>
         <div className="space-y-4">
@@ -1075,7 +1068,9 @@ function FieldEditor({
               <Label>Accept (MIME types)</Label>
               <Input
                 value={edited.accept || ""}
-                onChange={(e) => setEdited({ ...edited, accept: e.target.value })}
+                onChange={(e) =>
+                  setEdited({ ...edited, accept: e.target.value })
+                }
                 placeholder="e.g. image/*, .pdf"
               />
             </div>
@@ -1089,28 +1084,24 @@ function FieldEditor({
             <Label>Required</Label>
           </div>
 
-          {/* Column Span Selector */}
           <div>
             <Label>Width in Row</Label>
-            <div className="grid grid-cols-2 gap-2 mt-2">
-              {[1, 2].map((span) => {
+            <div className="grid grid-cols-4 gap-2 mt-2">
+              {[1, 2, 3, 4].map((span) => {
                 const active = edited.colSpan === span;
                 return (
                   <Button
                     key={span}
                     size="sm"
-                    variant="outline"
+                    variant={active ? "default" : "outline"}
                     onClick={() =>
-                      setEdited({ ...edited, colSpan: span as 1 | 2 })
+                      setEdited({ ...edited, colSpan: span as 1 | 2 | 3 | 4 })
                     }
-                    className={`
-                      flex items-center gap-1
-                      ${
-                        active
-                          ? "bg-gradient-to-r from-[#483d73] to-[#352c55] text-white hover:from-[#352c55] hover:to-[#483d73] hover:text-white"
-                          : ""
-                      }
-                    `}
+                    className={`flex items-center gap-1 ${
+                      active
+                        ? "bg-gradient-to-r from-[#483d73] to-[#352c55] text-white"
+                        : ""
+                    }`}
                   >
                     <Columns className="w-3 h-3" />
                     {span}
@@ -1143,7 +1134,6 @@ function FieldEditor({
   );
 }
 
-/* ---------- Main Component ---------- */
 export function ExhibitionForm({
   initialData = {},
   onSubmit,
@@ -1153,11 +1143,11 @@ export function ExhibitionForm({
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  /* ----- Constants & State ----- */
   const LIMIT = 15;
   const [submissionCount, setSubmissionCount] = useState<number>(0);
   const [isLoadingCount, setIsLoadingCount] = useState<boolean>(true);
   const [limitReached, setLimitReached] = useState<boolean>(false);
+  const [mobileFieldPanelOpen, setMobileFieldPanelOpen] = useState(false);
 
   const defaultFormData: FormData = {
     cardNo: (searchParams?.get("cardNo") as string) || "",
@@ -1191,6 +1181,33 @@ export function ExhibitionForm({
     ...initialData,
   });
 
+  useEffect(() => {
+    if (initialData?.additionalData && isEdit) {
+      setFormData((prev) => ({ ...prev, ...initialData.additionalData }));
+    }
+  }, [initialData, isEdit]);
+
+  useEffect(() => {
+    if (!isEdit && !formData.cardNo.trim()) {
+      const generateCardNo = async () => {
+        try {
+          const countRes = await fetch("/api/form-count", {
+            credentials: "include",
+          });
+          if (!countRes.ok) throw new Error("Failed to fetch form count");
+          const { count } = await countRes.json();
+          const nextNo = String(count + 1).padStart(3, "0");
+          setFormData((prev) => ({ ...prev, cardNo: nextNo }));
+          toastify.success(`Auto-generated Card Number: ${nextNo}`);
+        } catch (err) {
+          console.error("Error generating card number:", err);
+          toastify.error("Failed to auto-generate card number.");
+        }
+      };
+      generateCardNo();
+    }
+  }, [isEdit, formData.cardNo]);
+
   const [frontImagePreview, setFrontImagePreview] = useState<string | null>(
     initialData?.cardFrontPhoto || null
   );
@@ -1223,7 +1240,6 @@ export function ExhibitionForm({
   const [formFields, setFormFields] = useState<BuilderField[]>([]);
   const [editingField, setEditingField] = useState<BuilderField | null>(null);
 
-  /* ----- Default Dynamic Fields (Lead Essentials) ----- */
   const defaultDynamicFields: BuilderField[] = [
     {
       uid: "f_company",
@@ -1259,41 +1275,62 @@ export function ExhibitionForm({
       colSpan: 2,
       placeholder: "name@company.com",
     },
-    {
-      uid: "f_interest",
-      type: "select",
-      label: "Lead Status",
-      name: "interestLevel",
-      required: true,
-      colSpan: 2,
-      options: [
-        { label: "Hot", value: "hot" },
-        { label: "Warm", value: "warm" },
-        { label: "Cold", value: "cold" },
-      ],
-    },
   ];
 
-  /* Initialize with default fields if empty */
   useEffect(() => {
     if (formFields.length === 0) {
       setFormFields(defaultDynamicFields);
     }
   }, []);
 
-  /* ----- Available Field Types ----- */
   const availableFieldTypes = [
-    { type: "text" as const, label: "Text Input", icon: <div className="w-5 h-5 border rounded" /> },
-    { type: "email" as const, label: "Email", icon: <div className="w-5 h-5 border rounded" /> },
-    { type: "number" as const, label: "Number", icon: <div className="w-5 h-5 border rounded" /> },
-    { type: "textarea" as const, label: "Textarea", icon: <div className="w-3 h-3 border rounded mx-auto" /> },
-    { type: "select" as const, label: "Dropdown", icon: <ChevronDown className="w-5 h-5" /> },
-    { type: "checkbox" as const, label: "Checkbox", icon: <div className="w-4 h-4 border rounded" /> },
-    { type: "radio" as const, label: "Radio Group", icon: <div className="w-4 h-4 rounded-full border" /> },
-    { type: "date" as const, label: "Date", icon: <Calendar className="w-5 h-5" /> },
+    {
+      type: "text" as const,
+      label: "Single line text",
+      icon: <div className="w-5 h-5 border rounded" />,
+    },
+    {
+      type: "email" as const,
+      label: "Email",
+      icon: <div className="w-5 h-5 border rounded" />,
+    },
+    {
+      type: "number" as const,
+      label: "Number",
+      icon: <div className="w-5 h-5 border rounded" />,
+    },
+    {
+      type: "textarea" as const,
+      label: "Multi line text",
+      icon: <div className="w-3 h-3 border rounded mx-auto" />,
+    },
+    {
+      type: "select" as const,
+      label: "Dropdown",
+      icon: <ChevronDown className="w-5 h-5" />,
+    },
+    {
+      type: "checkbox" as const,
+      label: "Checkbox",
+      icon: <div className="w-4 h-4 border rounded" />,
+    },
+    {
+      type: "radio" as const,
+      label: "Radio Group",
+      icon: <div className="w-4 h-4 rounded-full border" />,
+    },
+    {
+      type: "date" as const,
+      label: "Date",
+      icon: <Calendar className="w-5 h-5" />,
+    },
+    {
+      type: "file" as const,
+      label: "File Upload",
+      icon: <Upload className="w-5 h-5" />,
+    },
   ];
 
-  /* ----- Add Field ----- */
   const addField = (type: FieldType) => {
     const newField: BuilderField = {
       uid: uid("f_"),
@@ -1302,9 +1339,41 @@ export function ExhibitionForm({
       name: `field_${uid()}`,
       required: false,
       colSpan: 1,
-      options: type === "select" || type === "radio" ? [{ label: "Option 1", value: "1" }] : undefined,
+      options:
+        type === "select" || type === "radio"
+          ? [{ label: "Option 1", value: "1" }]
+          : undefined,
     };
     setEditingField(newField);
+  };
+
+  const addDefaultFields = () => {
+    const newFields = defaultDynamicFields.map((f) => ({
+      ...f,
+      uid: uid("f_"),
+    }));
+    setFormFields((prev) => [...prev, ...newFields]);
+    toastify.success("Default form fields added!");
+    setMobileFieldPanelOpen(false);
+  };
+
+  const handleMobileTapAdd = (type: FieldType) => {
+    const newField: BuilderField = {
+      uid: uid("f_"),
+      type,
+      label: type.charAt(0).toUpperCase() + type.slice(1),
+      name: `field_${uid()}`,
+      required: false,
+      colSpan: 2,
+      options:
+        type === "select" || type === "radio"
+          ? [{ label: "Option 1", value: "1" }]
+          : undefined,
+    };
+    setFormFields((prev) => [...prev, newField]);
+    setEditingField(newField);
+    setMobileFieldPanelOpen(false);
+    toastify.success(`${type} field added!`);
   };
 
   const saveField = (field: BuilderField) => {
@@ -1320,24 +1389,12 @@ export function ExhibitionForm({
     toastify.success("Field removed");
   };
 
-  /* Quick Add Default Fields */
-  const addDefaultFields = () => {
-    const newFields = defaultDynamicFields.map((f) => ({
-      ...f,
-      uid: uid("f_"),
-    }));
-    setFormFields((prev) => [...prev, ...newFields]);
-    toastify.success("Default form fields added!");
-  };
-
-  /* ----- DnD Setup ----- */
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
   );
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
 
   const onDragStart = ({ active }: any) => setActiveDragId(active.id);
-
   const onDragEnd = ({ active, over }: any) => {
     setActiveDragId(null);
     if (!over) return;
@@ -1345,15 +1402,15 @@ export function ExhibitionForm({
     const draggedId = String(active.id);
     const overId = String(over.id);
 
-    // Adding new field from sidebar
     if (draggedId.startsWith("block-")) {
       const type = draggedId.replace("block-", "") as FieldType;
-
       let insertIndex = 0;
       if (overId === "form-drop") {
         insertIndex = formFields.length;
       } else if (overId.startsWith("slot-")) {
-        const slotFieldIndex = formFields.findIndex((f) => `slot-${f.uid}` === overId);
+        const slotFieldIndex = formFields.findIndex(
+          (f) => `slot-${f.uid}` === overId
+        );
         insertIndex = overId === "slot-start" ? 0 : slotFieldIndex + 1;
       } else {
         const fieldIndex = formFields.findIndex((f) => f.uid === overId);
@@ -1367,9 +1424,10 @@ export function ExhibitionForm({
         name: `field_${uid()}`,
         required: false,
         colSpan: 1,
-        options: type === "select" || type === "radio"
-          ? [{ label: "Option 1", value: "1" }]
-          : undefined,
+        options:
+          type === "select" || type === "radio"
+            ? [{ label: "Option 1", value: "1" }]
+            : undefined,
       };
 
       setFormFields((prev) => [
@@ -1381,13 +1439,14 @@ export function ExhibitionForm({
       return;
     }
 
-    // Reordering existing fields
     const oldIndex = formFields.findIndex((f) => f.uid === draggedId);
     if (oldIndex === -1) return;
 
     let newIndex: number;
     if (overId.startsWith("slot-")) {
-      const slotFieldIndex = formFields.findIndex((f) => `slot-${f.uid}` === overId);
+      const slotFieldIndex = formFields.findIndex(
+        (f) => `slot-${f.uid}` === overId
+      );
       newIndex = overId === "slot-start" ? 0 : slotFieldIndex + 1;
     } else {
       newIndex = formFields.findIndex((f) => f.uid === overId);
@@ -1397,14 +1456,17 @@ export function ExhibitionForm({
 
     if (oldIndex !== newIndex && oldIndex !== newIndex - 1) {
       setFormFields((items) =>
-        arrayMove(items, oldIndex, newIndex > oldIndex ? newIndex - 1 : newIndex)
+        arrayMove(
+          items,
+          oldIndex,
+          newIndex > oldIndex ? newIndex - 1 : newIndex
+        )
       );
     }
   };
 
   const onDragCancel = () => setActiveDragId(null);
 
-  /* ----- Form Validation ----- */
   const isFormValid = useMemo(() => {
     if (!formData.cardNo?.trim()) return false;
     if (!formData.cardFrontPhoto) return false;
@@ -1412,7 +1474,6 @@ export function ExhibitionForm({
     for (const field of formFields) {
       if (field.required) {
         const value = (formData as any)[field.name];
-
         if (field.type === "checkbox") {
           if (value !== true) return false;
         } else if (field.type === "file") {
@@ -1424,11 +1485,9 @@ export function ExhibitionForm({
         }
       }
     }
-
     return true;
   }, [formData, formFields]);
 
-  /* ----- Render Field in Form ----- */
   const renderField = (field: BuilderField) => {
     const value = (formData as any)[field.name] || "";
     const setValue = (val: any) =>
@@ -1518,7 +1577,6 @@ export function ExhibitionForm({
     }
   };
 
-  /* ----- Render Row with Column Layout ----- */
   const renderRow = (fields: BuilderField[]) => {
     const totalCols = fields.reduce((sum, f) => sum + (f.colSpan || 1), 0);
     const effectiveCols = totalCols > 4 ? 4 : totalCols;
@@ -1529,11 +1587,11 @@ export function ExhibitionForm({
           const span = field.colSpan || 1;
           const colClass =
             span === 1
-              ? "col-span-1"
+              ? "col-span-4 sm:col-span-2 lg:col-span-1"
               : span === 2
-              ? "col-span-2"
+              ? "col-span-4 sm:col-span-2 lg:col-span-2"
               : span === 3
-              ? "col-span-3"
+              ? "col-span-4 lg:col-span-3"
               : "col-span-4";
 
           return (
@@ -1564,7 +1622,10 @@ export function ExhibitionForm({
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">
-                      {field.label} {field.required && <span className="text-red-500">*</span>}
+                      {field.label}{" "}
+                      {field.required && (
+                        <span className="text-red-500">*</span>
+                      )}
                     </Label>
                     {renderField(field)}
                   </div>
@@ -1581,7 +1642,6 @@ export function ExhibitionForm({
     );
   };
 
-  /* ----- Group Fields into Rows ----- */
   const groupFieldsIntoRows = (fields: BuilderField[]) => {
     const rows: BuilderField[][] = [];
     let currentRow: BuilderField[] = [];
@@ -1608,7 +1668,6 @@ export function ExhibitionForm({
 
   const fieldRows = groupFieldsIntoRows(formFields);
 
-  /* ----- Drag Overlay ----- */
   const renderDragOverlay = () => {
     if (!activeDragId) return null;
     if (String(activeDragId).startsWith("block-")) {
@@ -1629,7 +1688,6 @@ export function ExhibitionForm({
     ) : null;
   };
 
-  /* ----- Camera & Upload Logic ----- */
   const openCamera = useCallback(
     (type: "front" | "back") => {
       if (limitReached) return;
@@ -1670,12 +1728,21 @@ export function ExhibitionForm({
       const ctx = canvas.getContext("2d");
       if (ctx) {
         ctx.drawImage(video, 0, 0);
-        canvas.toBlob((blob) => {
-          if (blob) {
-            const file = new File([blob], `${currentImageType}.jpg`, { type: "image/jpeg" });
-            handleImageChange({ target: { files: [file] } } as any, currentImageType);
-          }
-        }, "image/jpeg", 0.9);
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              const file = new File([blob], `${currentImageType}.jpg`, {
+                type: "image/jpeg",
+              });
+              handleImageChange(
+                { target: { files: [file] } } as any,
+                currentImageType
+              );
+            }
+          },
+          "image/jpeg",
+          0.9
+        );
       }
       closeCamera();
     }
@@ -1683,7 +1750,9 @@ export function ExhibitionForm({
 
   const stopCameraStream = () => {
     if (videoRef.current?.srcObject) {
-      (videoRef.current.srcObject as MediaStream).getTracks().forEach((t) => t.stop());
+      (videoRef.current.srcObject as MediaStream)
+        .getTracks()
+        .forEach((t) => t.stop());
     }
   };
   const closeCamera = () => {
@@ -1710,7 +1779,8 @@ export function ExhibitionForm({
     const fd = new FormData();
     fd.append("image", file);
     fd.append("type", type);
-    const setter = type === "front" ? setFrontUploadProgress : setBackUploadProgress;
+    const setter =
+      type === "front" ? setFrontUploadProgress : setBackUploadProgress;
     setter(0);
     const xhr = new XMLHttpRequest();
     xhr.open("POST", "/api/upload-image", true);
@@ -1742,17 +1812,14 @@ export function ExhibitionForm({
     }
   };
 
-  /* ----- Submission ----- */
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
-
-    if (!isFormValid) {
-      toastify.error("Please fill all required fields and upload front card image.");
+    if (!isFormValid || isSubmitting || limitReached) {
+      toastify.error(
+        "Please fill all required fields and upload front card image."
+      );
       return;
     }
-
-    if (isSubmitting || limitReached) return;
-
     setIsSubmitting(true);
     try {
       const submissionData: any = { ...formData };
@@ -1784,7 +1851,6 @@ export function ExhibitionForm({
     }
   };
 
-  /* ----- Submission Count with Auto-Redirect ----- */
   useEffect(() => {
     const fetchCount = async () => {
       try {
@@ -1794,18 +1860,15 @@ export function ExhibitionForm({
           const data = await res.json();
           const count = data.count ?? 0;
           setSubmissionCount(count);
-
           if (!isEdit && count >= LIMIT) {
             setLimitReached(true);
             router.replace("/pricing");
-            return;
           }
         } else if (res.status === 403) {
           const data = await res.json();
           if (data.limitReached && !isEdit) {
             setLimitReached(true);
             router.replace("/pricing");
-            return;
           }
         }
       } catch (err) {
@@ -1817,7 +1880,11 @@ export function ExhibitionForm({
     fetchCount();
   }, [isEdit, router]);
 
-  /* ---------- JSX ---------- */
+  const fabPos =
+    typeof window !== "undefined"
+      ? JSON.parse(localStorage.getItem("mobile-fab-pos") || '{"x":20,"y":100}')
+      : { x: 20, y: 100 };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-12">
       <div className="max-w-7xl mx-auto grid grid-cols-12 gap-6 px-4">
@@ -1829,8 +1896,8 @@ export function ExhibitionForm({
           onDragCancel={onDragCancel}
           measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
         >
-          {/* Sidebar */}
-          <div className="col-span-3 bg-white rounded-xl p-5 shadow-sm sticky top-6 h-fit">
+          {/* Desktop Sidebar */}
+          <div className="col-span-3 bg-white rounded-xl p-5 shadow-sm sticky top-6 h-fit hidden lg:block">
             <h3 className="font-bold text-lg mb-3">Form Fields</h3>
             <div className="space-y-2">
               <Button
@@ -1853,28 +1920,35 @@ export function ExhibitionForm({
           </div>
 
           {/* Main Form */}
-          <div className="col-span-9">
+          <div className="col-span-12 lg:col-span-9">
             <Card className="shadow-xl">
               <CardHeader>
                 <CardTitle>Custom Form Builder</CardTitle>
                 {!isEdit && (
                   <p className="text-sm text-gray-600">
-                    Free submissions left: {isLoadingCount ? "..." : Math.max(0, LIMIT - submissionCount)}
+                    Free submissions left:{" "}
+                    {isLoadingCount
+                      ? "..."
+                      : Math.max(0, LIMIT - submissionCount)}
                   </p>
                 )}
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Fixed Card Number */}
                 <div>
-                  <Label>Card Number <span className="text-red-500">*</span></Label>
+                  <Label>
+                    Card Number <span className="text-red-500">*</span>
+                  </Label>
                   <Input
                     value={formData.cardNo}
-                    onChange={(e) => setFormData({ ...formData, cardNo: e.target.value })}
-                    placeholder="Enter card number"
+                    onChange={(e) =>
+                      setFormData({ ...formData, cardNo: e.target.value })
+                    }
+                    placeholder="Auto-generating..."
+                    className="bg-gray-50"
                   />
                 </div>
 
-                {/* Fixed Card Images */}
+                {/* REPLACED CARD FRONT / BACK SECTION FROM CODE 2 */}
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Card Front <span className="text-red-500">*</span></Label>
@@ -1927,15 +2001,46 @@ export function ExhibitionForm({
                   </div>
                 </div>
 
-                {/* Dynamic Fields with Row Layout */}
+                <div>
+                  <Label>Lead Status</Label>
+                  <Select
+                    value={formData.leadStatus}
+                    onValueChange={(val) =>
+                      setFormData({ ...formData, leadStatus: val })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select lead status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="hot">Hot</SelectItem>
+                      <SelectItem value="warm">Warm</SelectItem>
+                      <SelectItem value="cold">Cold</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label>Description</Label>
+                  <Textarea
+                    value={formData.description}
+                    onChange={(e) =>
+                      setFormData({ ...formData, description: e.target.value })
+                    }
+                    placeholder="Enter description"
+                  />
+                </div>
+
                 <DroppableFormArea>
-                  <SortableContext items={formFields.map((f) => f.uid)} strategy={verticalListSortingStrategy}>
+                  <SortableContext
+                    items={formFields.map((f) => f.uid)}
+                    strategy={verticalListSortingStrategy}
+                  >
                     <div className="space-y-6">
                       <DroppableFieldSlot id="slot-start" />
-
                       <AnimatePresence>
                         {fieldRows.map((row, rowIndex) => {
-                          const rowKey = row.map(f => f.uid).join("-");
+                          const rowKey = row.map((f) => f.uid).join("-");
                           return (
                             <motion.div
                               key={rowKey}
@@ -1950,10 +2055,12 @@ export function ExhibitionForm({
                           );
                         })}
                       </AnimatePresence>
-
                       {formFields.length === 0 && (
                         <div className="p-10 text-center text-gray-500 border-2 border-dashed border-gray-300 rounded-lg">
-                          Drag fields here to start building
+                          {typeof window !== "undefined" &&
+                          window.innerWidth < 1024
+                            ? "Tap the purple button to add fields"
+                            : "Drag fields from the left to start building"}
                         </div>
                       )}
                     </div>
@@ -1961,9 +2068,9 @@ export function ExhibitionForm({
                 </DroppableFormArea>
               </CardContent>
               <CardFooter>
-                <Button 
-                  onClick={handleSubmit} 
-                  className="w-full justify-center bg-gradient-to-r from-[#483d73] to-[#352c55] text-white hover:from-[#352c55] hover:to-[#483d73]" 
+                <Button
+                  onClick={handleSubmit}
+                  className="w-full justify-center bg-gradient-to-r from-[#483d73] to-[#352c55] text-white hover:from-[#352c55] hover:to-[#483d73]"
                   disabled={isSubmitting || !isFormValid || limitReached}
                 >
                   {isSubmitting ? "Submitting..." : "Submit Form"}
@@ -1975,7 +2082,158 @@ export function ExhibitionForm({
           <DragOverlay>{renderDragOverlay()}</DragOverlay>
         </DndContext>
 
-        {/* Modals */}
+        {/* Mobile FAB + Panel */}
+        <div className="fixed inset-0 pointer-events-none z-50 lg:hidden">
+          <motion.div
+            drag
+            dragMomentum={false}
+            dragElastic={0.3}
+            dragConstraints={{
+              left: -window.innerWidth + 100,
+              right: 20,
+              top: 20,
+              bottom: 20,
+            }}
+            initial={false}
+            animate={{ x: fabPos.x, y: fabPos.y }}
+            onDragEnd={(_, info) => {
+              const x = info.point.x - 50;
+              const y = info.point.y - 50;
+              localStorage.setItem("mobile-fab-pos", JSON.stringify({ x, y }));
+            }}
+            className="pointer-events-auto cursor-grab active:cursor-grabbing"
+            whileDrag={{ scale: 1.2 }}
+          >
+            <Button
+              size="lg"
+              className="rounded-full shadow-2xl bg-gradient-to-r from-[#483d73] to-[#352c55] hover:from-[#352c55] hover:to-[#483d73] w-14 h-14 p-0 border-4 border-white"
+              onClick={() => setMobileFieldPanelOpen(true)}
+            >
+              <motion.div
+                animate={{ rotate: mobileFieldPanelOpen ? 45 : 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <Zap className="w-7 h-7" />
+              </motion.div>
+            </Button>
+          </motion.div>
+        </div>
+
+        <AnimatePresence>
+          {mobileFieldPanelOpen && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setMobileFieldPanelOpen(false)}
+                className="fixed inset-0 bg-black bg-opacity-70 z-40 lg:hidden"
+              />
+              <motion.div
+                initial={{ x: "-100%" }}
+                animate={{ x: 0 }}
+                exit={{ x: "-100%" }}
+                transition={{ type: "spring", damping: 35, stiffness: 400 }}
+                className="fixed inset-y-0 left-0 z-50 lg:hidden bg-white w-11/12 max-w-sm shadow-2xl flex flex-col"
+              >
+                {/* Header */}
+                <div className="p-4 border-b bg-gradient-to-r from-[#483d73] to-[#352c55] flex justify-between items-center shrink-0">
+                  <h3 className="text-white font-bold text-lg">Add Field</h3>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="text-white"
+                    onClick={() => setMobileFieldPanelOpen(false)}
+                  >
+                    <X className="w-5 h-5" />
+                  </Button>
+                </div>
+
+                {/* Scrollable Content */}
+                <div className="flex-1 overflow-y-auto">
+                  <div className="p-3 space-y-2">
+                    {/* Add All Default */}
+                    <motion.button
+                      whileTap={{ scale: 0.98 }}
+                      onClick={addDefaultFields}
+                      className="w-full flex items-center gap-3 p-3 bg-gradient-to-r from-[#483d73] to-[#352c55] text-white rounded-xl font-medium text-sm shadow-md hover:shadow-lg transition-all"
+                    >
+                      <Zap className="w-5 h-5" />
+                      <span>Add All Default Fields</span>
+                    </motion.button>
+
+                    <div className="h-px bg-gray-200 my-2" />
+
+                    {/* Field List */}
+                    <div className="space-y-1.5">
+                      {availableFieldTypes.map((f) => (
+                        <motion.button
+                          key={f.type}
+                          whileTap={{ scale: 0.97 }}
+                          onClick={() => handleMobileTapAdd(f.type)}
+                          className="w-full flex items-center gap-3 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-all duration-200 border border-gray-200 hover:border-[#483d73] hover:shadow-sm"
+                        >
+                          <div className="p-1.5 bg-white rounded-md shadow-sm border border-gray-300">
+                            {React.cloneElement(f.icon as React.ReactElement, {
+                              className: "w-5 h-5 text-[#483d73]",
+                            })}
+                          </div>
+                          <span className="text-sm font-medium text-gray-800 flex-1 text-left">
+                            {f.label}
+                          </span>
+                          <Plus className="w-4 h-4 text-gray-400" />
+                        </motion.button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+
+        {/* Camera Modal */}
+        {isCameraOpen && (
+          <div className="fixed inset-0 bg-black z-50 flex flex-col">
+            <div className="flex justify-between p-4">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() =>
+                  setFacingMode(facingMode === "user" ? "environment" : "user")
+                }
+                className="text-white"
+              >
+                <RefreshCw className="w-6 h-6" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={closeCamera}
+                className="text-white"
+              >
+                <X className="w-6 h-6" />
+              </Button>
+            </div>
+            <video
+              ref={videoRef}
+              className="flex-1 w-full object-cover"
+              playsInline
+            />
+            <div className="p-8">
+              <Button
+                size="lg"
+                className="w-20 h-20 rounded-full mx-auto bg-white text-black hover:bg-gray-200"
+                onClick={captureImage}
+              >
+                <div className="w-16 h-16 rounded-full border-4 border-gray-800" />
+              </Button>
+            </div>
+            <canvas ref={canvasRef} className="hidden" />
+          </div>
+        )}
+
+        {/* All Modals */}
         {editingField && (
           <FieldEditor
             field={editingField}
@@ -1983,34 +2241,6 @@ export function ExhibitionForm({
             onClose={() => setEditingField(null)}
           />
         )}
-
-        {isCameraOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-6">
-            <div className="bg-white rounded-xl shadow-2xl overflow-hidden max-w-lg w-full">
-              <div className="p-4 bg-gray-200 border-b flex justify-between items-center">
-                <h3 className="text-lg font-semibold">Capture Photo</h3>
-                <Button variant="ghost" size="sm" onClick={closeCamera}>
-                  <X className="w-5 h-5" />
-                </Button>
-              </div>
-              <div className="relative bg-black">
-                <video ref={videoRef} className="w-full h-auto" autoPlay playsInline muted />
-                <canvas ref={canvasRef} className="hidden" />
-              </div>
-              <div className="p-4 flex justify-between bg-gray-200">
-                <Button variant="outline" onClick={() => setFacingMode(prev => prev === "user" ? "environment" : "user")}>
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Switch
-                </Button>
-                <div className="flex gap-2">
-                  <Button onClick={captureImage} className="bg-blue-600 text-white">Capture</Button>
-                  <Button variant="ghost" onClick={closeCamera}>Close</Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
         <PopupModal
           isOpen={showBackImageModal}
           onClose={() => setShowBackImageModal(false)}
@@ -2021,20 +2251,7 @@ export function ExhibitionForm({
           title="Upload Back Image"
           description="Do you want to upload the back image?"
         />
-
-        <ToastContainer
-          position="bottom-right"
-          autoClose={2500}
-          hideProgressBar={false}
-          newestOnTop
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-          theme="light"
-          toastClassName="!rounded-lg !font-medium"
-        />
+        <ToastContainer position="bottom-right" />
       </div>
     </div>
   );
