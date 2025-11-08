@@ -40,6 +40,30 @@ body {
   }
 }
 
+.nav-link {
+  @apply text-black text-sm font-medium hover:text-white transition-all px-3 py-1.5 rounded hover:bg-[#3d3260];
+}
+
+.mobile-link {
+  @apply text-sm font-medium hover:text-gray-300 transition-all py-2 px-3 rounded hover:bg-gray-800 w-full text-center;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slideDown {
+  animation: slideDown .2s ease-out;
+}
+
+
 @layer base {
   :root {
     --background: 0 0% 100%;

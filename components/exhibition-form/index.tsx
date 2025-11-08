@@ -1148,6 +1148,8 @@ export function ExhibitionForm({
   const [isLoadingCount, setIsLoadingCount] = useState<boolean>(true);
   const [limitReached, setLimitReached] = useState<boolean>(false);
   const [mobileFieldPanelOpen, setMobileFieldPanelOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const [isCheckingAdmin, setIsCheckingAdmin] = useState<boolean>(true);
 
   const defaultFormData: FormData = {
     cardNo: (searchParams?.get("cardNo") as string) || "",
@@ -1240,9 +1242,8 @@ export function ExhibitionForm({
   const [formFields, setFormFields] = useState<BuilderField[]>([]);
   const [editingField, setEditingField] = useState<BuilderField | null>(null);
 
-  const defaultDynamicFields: BuilderField[] = [
+  const defaultDynamicFields: Omit<BuilderField, "uid">[] = [
     {
-      uid: "f_company",
       type: "text",
       label: "Company",
       name: "company",
@@ -1250,7 +1251,6 @@ export function ExhibitionForm({
       colSpan: 2,
     },
     {
-      uid: "f_contact",
       type: "text",
       label: "Contact Person",
       name: "contactPerson",
@@ -1258,7 +1258,6 @@ export function ExhibitionForm({
       colSpan: 2,
     },
     {
-      uid: "f_phone",
       type: "text",
       label: "Phone",
       name: "phone",
@@ -1267,7 +1266,6 @@ export function ExhibitionForm({
       placeholder: "+91 98765 43210",
     },
     {
-      uid: "f_email",
       type: "email",
       label: "Email",
       name: "email",
@@ -1277,11 +1275,71 @@ export function ExhibitionForm({
     },
   ];
 
-  useEffect(() => {
-    if (formFields.length === 0) {
-      setFormFields(defaultDynamicFields);
+  const freshDefaults = useMemo(() => 
+    defaultDynamicFields.map((f) => ({
+      ...f,
+      uid: uid("f_"),
+    }))
+  , []);
+
+  // Load form fields
+useEffect(() => {
+  const loadFields = async () => {
+    setIsCheckingAdmin(true);
+
+    if (isEdit) {
+      setFormFields(freshDefaults);
+      setIsCheckingAdmin(false);
+      return;
     }
-  }, []);
+
+    try {
+      // FETCH FROM CORRECT ENDPOINT
+      const res = await fetch("/api/current-user", {
+        credentials: "include",
+      });
+
+      if (!res.ok) throw new Error("Failed to fetch user");
+
+      const { isAdmin: admin } = await res.json();
+      setIsAdmin(admin);
+
+      // Load saved fields only for admin
+      if (admin) {
+        const saved = localStorage.getItem("exhibitionFormFields");
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved);
+            setFormFields(parsed);
+            toastify.success("Custom form loaded");
+          } catch (e) {
+            console.error("Invalid saved fields:", e);
+            setFormFields(freshDefaults);
+          }
+        } else {
+          setFormFields(freshDefaults);
+        }
+      } else {
+        setFormFields(freshDefaults);
+        toastify.info("Form locked — fill & submit only");
+      }
+    } catch (err) {
+      console.log("No session or API error → user mode");
+      setIsAdmin(false);
+      setFormFields(freshDefaults);
+    } finally {
+      setIsCheckingAdmin(false);
+    }
+  };
+
+  loadFields();
+}, [isEdit, freshDefaults]);
+
+  // Save form fields to localStorage (only for admins, not in edit mode)
+  useEffect(() => {
+    if (isEdit || !isAdmin || formFields.length === 0) return;
+    localStorage.setItem("exhibitionFormFields", JSON.stringify(formFields));
+  }, [formFields, isEdit, isAdmin]);
 
   const availableFieldTypes = [
     {
@@ -1396,6 +1454,10 @@ export function ExhibitionForm({
 
   const onDragStart = ({ active }: any) => setActiveDragId(active.id);
   const onDragEnd = ({ active, over }: any) => {
+    if (!isAdmin || isEdit || isCheckingAdmin) {
+      setActiveDragId(null);
+      return;
+    }
     setActiveDragId(null);
     if (!over) return;
 
@@ -1580,6 +1642,7 @@ export function ExhibitionForm({
   const renderRow = (fields: BuilderField[]) => {
     const totalCols = fields.reduce((sum, f) => sum + (f.colSpan || 1), 0);
     const effectiveCols = totalCols > 4 ? 4 : totalCols;
+    const canEdit = isAdmin && !isEdit && !isCheckingAdmin;
 
     return (
       <div className="grid grid-cols-4 gap-4">
@@ -1596,29 +1659,31 @@ export function ExhibitionForm({
 
           return (
             <div key={field.uid} className={colClass}>
-              <SortableFieldItem id={field.uid}>
+              <SortableFieldItem id={field.uid} sortable={canEdit}>
                 <div className="bg-gray-50 p-4 rounded-lg border space-y-3">
                   <div className="flex justify-between items-start">
                     <div>
                       <h4 className="font-medium text-sm">{field.label}</h4>
                       <p className="text-xs text-gray-500">{field.type}</p>
                     </div>
-                    <div className="flex gap-1">
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => setEditingField(field)}
-                      >
-                        <Settings className="w-3 h-3" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => removeField(field.uid)}
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
-                    </div>
+                    {canEdit && (
+                      <div className="flex gap-1">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => setEditingField(field)}
+                        >
+                          <Settings className="w-3 h-3" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => removeField(field.uid)}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">
@@ -1885,6 +1950,19 @@ export function ExhibitionForm({
       ? JSON.parse(localStorage.getItem("mobile-fab-pos") || '{"x":20,"y":100}')
       : { x: 20, y: 100 };
 
+  const canBuildForm = isAdmin && !isEdit && !isCheckingAdmin;
+
+  if (isCheckingAdmin) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-12 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#483d73] mx-auto mb-4"></div>
+          <p>Checking permissions...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-12">
       <div className="max-w-7xl mx-auto grid grid-cols-12 gap-6 px-4">
@@ -1896,31 +1974,33 @@ export function ExhibitionForm({
           onDragCancel={onDragCancel}
           measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
         >
-          {/* Desktop Sidebar */}
-          <div className="col-span-3 bg-white rounded-xl p-5 shadow-sm sticky top-6 h-fit hidden lg:block">
-            <h3 className="font-bold text-lg mb-3">Form Fields</h3>
-            <div className="space-y-2">
-              <Button
-                onClick={addDefaultFields}
-                className="w-full justify-start bg-gradient-to-r from-[#483d73] to-[#352c55] text-white hover:from-[#352c55] hover:to-[#483d73]"
-              >
-                <Zap className="w-4 h-4 mr-2" />
-                Add Default Form Fields
-              </Button>
-              <div className="h-px bg-gray-200 my-3" />
-              {availableFieldTypes.map((f) => (
-                <DraggableBlock key={f.type} id={`block-${f.type}`}>
-                  <div className="flex items-center gap-2">
-                    {f.icon}
-                    <span className="text-sm">{f.label}</span>
-                  </div>
-                </DraggableBlock>
-              ))}
+          {/* Desktop Sidebar - Only for admins in build mode */}
+          {canBuildForm && (
+            <div className="col-span-3 bg-white rounded-xl p-5 shadow-sm sticky top-6 h-fit hidden lg:block">
+              <h3 className="font-bold text-lg mb-3">Form Fields</h3>
+              <div className="space-y-2">
+                <Button
+                  onClick={addDefaultFields}
+                  className="w-full justify-start bg-gradient-to-r from-[#483d73] to-[#352c55] text-white hover:from-[#352c55] hover:to-[#483d73]"
+                >
+                  <Zap className="w-4 h-4 mr-2" />
+                  Add Default Form Fields
+                </Button>
+                <div className="h-px bg-gray-200 my-3" />
+                {availableFieldTypes.map((f) => (
+                  <DraggableBlock key={f.type} id={`block-${f.type}`}>
+                    <div className="flex items-center gap-2">
+                      {f.icon}
+                      <span className="text-sm">{f.label}</span>
+                    </div>
+                  </DraggableBlock>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Main Form */}
-          <div className="col-span-12 lg:col-span-9">
+          <div className={`col-span-12 ${canBuildForm ? 'lg:col-span-9' : 'col-span-12'}`}>
             <Card className="shadow-xl">
               <CardHeader>
                 <CardTitle>Custom Form Builder</CardTitle>
@@ -1932,6 +2012,16 @@ export function ExhibitionForm({
                       : Math.max(0, LIMIT - submissionCount)}
                   </p>
                 )}
+                {isAdmin && !isEdit && (
+                  <p className="text-sm text-green-600 mt-1">Admin mode: Form builder active</p>
+                )}
+                {!isAdmin && !isEdit && (
+                  <p className="text-sm text-amber-600 mt-1">
+                    Form is locked. Contact admin to modify fields.
+                  </p>
+                )}
+              
+              <CardContent className="space-y-6"></CardContent>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div>
@@ -1948,7 +2038,6 @@ export function ExhibitionForm({
                   />
                 </div>
 
-                {/* REPLACED CARD FRONT / BACK SECTION FROM CODE 2 */}
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Card Front <span className="text-red-500">*</span></Label>
@@ -2058,9 +2147,11 @@ export function ExhibitionForm({
                       {formFields.length === 0 && (
                         <div className="p-10 text-center text-gray-500 border-2 border-dashed border-gray-300 rounded-lg">
                           {typeof window !== "undefined" &&
-                          window.innerWidth < 1024
+                          window.innerWidth < 1024 && canBuildForm
                             ? "Tap the purple button to add fields"
-                            : "Drag fields from the left to start building"}
+                            : canBuildForm
+                            ? "Drag fields from the left to start building"
+                            : ""}
                         </div>
                       )}
                     </div>
@@ -2082,45 +2173,47 @@ export function ExhibitionForm({
           <DragOverlay>{renderDragOverlay()}</DragOverlay>
         </DndContext>
 
-        {/* Mobile FAB + Panel */}
-        <div className="fixed inset-0 pointer-events-none z-50 lg:hidden">
-          <motion.div
-            drag
-            dragMomentum={false}
-            dragElastic={0.3}
-            dragConstraints={{
-              left: -window.innerWidth + 100,
-              right: 20,
-              top: 20,
-              bottom: 20,
-            }}
-            initial={false}
-            animate={{ x: fabPos.x, y: fabPos.y }}
-            onDragEnd={(_, info) => {
-              const x = info.point.x - 50;
-              const y = info.point.y - 50;
-              localStorage.setItem("mobile-fab-pos", JSON.stringify({ x, y }));
-            }}
-            className="pointer-events-auto cursor-grab active:cursor-grabbing"
-            whileDrag={{ scale: 1.2 }}
-          >
-            <Button
-              size="lg"
-              className="rounded-full shadow-2xl bg-gradient-to-r from-[#483d73] to-[#352c55] hover:from-[#352c55] hover:to-[#483d73] w-14 h-14 p-0 border-4 border-white"
-              onClick={() => setMobileFieldPanelOpen(true)}
+        {/* Mobile FAB + Panel - Only for admins in build mode */}
+        {canBuildForm && (
+          <div className="fixed inset-0 pointer-events-none z-50 lg:hidden">
+            <motion.div
+              drag
+              dragMomentum={false}
+              dragElastic={0.3}
+              dragConstraints={{
+                left: -window.innerWidth + 100,
+                right: 20,
+                top: 20,
+                bottom: 20,
+              }}
+              initial={false}
+              animate={{ x: fabPos.x, y: fabPos.y }}
+              onDragEnd={(_, info) => {
+                const x = info.point.x - 50;
+                const y = info.point.y - 50;
+                localStorage.setItem("mobile-fab-pos", JSON.stringify({ x, y }));
+              }}
+              className="pointer-events-auto cursor-grab active:cursor-grabbing"
+              whileDrag={{ scale: 1.2 }}
             >
-              <motion.div
-                animate={{ rotate: mobileFieldPanelOpen ? 45 : 0 }}
-                transition={{ duration: 0.3 }}
+              <Button
+                size="lg"
+                className="rounded-full shadow-2xl bg-gradient-to-r from-[#483d73] to-[#352c55] hover:from-[#352c55] hover:to-[#483d73] w-14 h-14 p-0 border-4 border-white"
+                onClick={() => setMobileFieldPanelOpen(true)}
               >
-                <Zap className="w-7 h-7" />
-              </motion.div>
-            </Button>
-          </motion.div>
-        </div>
+                <motion.div
+                  animate={{ rotate: mobileFieldPanelOpen ? 45 : 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <Zap className="w-7 h-7" />
+                </motion.div>
+              </Button>
+            </motion.div>
+          </div>
+        )}
 
         <AnimatePresence>
-          {mobileFieldPanelOpen && (
+          {mobileFieldPanelOpen && canBuildForm && (
             <>
               <motion.div
                 initial={{ opacity: 0 }}

@@ -2180,3 +2180,28 @@ export function AdminDashboardEnhanced() {
     </div>
   )
 }
+
+
+// pages/api/forms/[id]/merge.ts (or app route)
+import { NextApiRequest, NextApiResponse } from 'next'
+import { PrismaClient } from '@prisma/client'
+
+const prisma = new PrismaClient()
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== 'POST') return res.status(405).end()
+  const { id } = req.query
+  if (!id) return res.status(400).json({ error: 'ID required' })
+
+  try {
+    // Your mergeToMergedData function here
+    await mergeToMergedData({ formId: id as string })
+    res.json({ success: true })
+  } catch (err) {
+    res.status(500).json({ error: 'Merge failed' })
+  }
+}
+
+function mergeToMergedData(arg0: { formId: string }) {
+  throw new Error("Function not implemented.")
+}

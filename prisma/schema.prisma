@@ -53,6 +53,7 @@ model Form {
   zohoStatus            String       @default("PENDING")
   /// ✅ New field for dynamic/custom form data
   additionalData        Json?        @db.Json
+   emailSent             Boolean  @default(false)
 }
 
 model ExtractedData {
@@ -111,4 +112,16 @@ model Organization {
   users     User[]   @relation("OrganizationUsers")
   /// ✅ add this relation back reference
   forms     Form[]
+}
+
+model EmailLog {
+  id        String   @id @default(cuid())
+  formId    String?
+  to        String
+  from      String
+  subject   String
+  status    String
+  createdAt DateTime @default(now())
+
+  @@index([formId])
 }
