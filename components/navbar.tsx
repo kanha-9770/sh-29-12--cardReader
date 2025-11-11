@@ -218,24 +218,26 @@ export function Navbar({ user }: NavbarProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
+  
+const handleLogout = async () => {
+  try {
+    await fetch("/api/auth/logout", { method: "POST", cache: "no-store" });
+    router.refresh(); // 👈 Force layout re-render
+    router.push("/login");
+    toast({
+      title: "Logged out successfully",
+      description: "You have been logged out of your account.",
+    });
+  } catch (error) {
+    console.error("Logout failed:", error);
+    toast({
+      title: "Logout failed",
+      description: "An error occurred while logging out. Please try again.",
+      variant: "destructive",
+    });
+  }
+};
 
-  const handleLogout = async () => {
-    try {
-      await fetch("/api/auth/logout", { method: "POST" });
-      toast({
-        title: "Logged out successfully",
-        description: "You have been logged out of your account.",
-      });
-      router.push("/login");
-    } catch (error) {
-      console.error("Logout failed:", error);
-      toast({
-        title: "Logout failed",
-        description: "An error occurred while logging out. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
 
   return (
     <nav className="border-b border-[#e5e2f0] bg-white/80 backdrop-blur-sm sticky top-0 z-50">
@@ -324,7 +326,7 @@ export function Navbar({ user }: NavbarProps) {
 
       {/* Mobile Navigation */}
       {isOpen && (
-        <div className="sm:hidden bg-gray-900 text-center text-white w-full py-4 px-4 flex flex-col gap-4 shadow-md border-t border-gray-700 animate-slideDown">
+        <div className="sm:hidden bg-white/10 backdrop-blur-sm text-center text-black w-full py-4 px-4 flex flex-col gap-4 shadow-md border-t animate-slideDown">
           <Link href="/" className="mobile-link" onClick={() => setIsOpen(false)}>Home</Link>
           <Link href="/dashboard" className="mobile-link" onClick={() => setIsOpen(false)}>Dashboard</Link>
           <Link href="/form" className="mobile-link" onClick={() => setIsOpen(false)}>Form</Link>
@@ -334,7 +336,7 @@ export function Navbar({ user }: NavbarProps) {
           {user ? (
             <Button
               onClick={() => { handleLogout(); setIsOpen(false); }}
-              className="border-gray-500 text-red-500 hover:bg-gray-800 w-full"
+              className="bg-[#483d73] hover:bg-[#3d3260] text-white w-full"
               size="sm"
             >
               Logout
