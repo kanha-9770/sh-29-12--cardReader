@@ -3092,11 +3092,6 @@ export function ExhibitionForm({
       label: "Date",
       icon: <Calendar className="w-5 h-5" />,
     },
-    {
-      type: "file" as const,
-      label: "File Upload",
-      icon: <Upload className="w-5 h-5" />,
-    },
   ];
 
   const addDefaultFields = () => {

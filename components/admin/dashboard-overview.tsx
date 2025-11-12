@@ -1791,7 +1791,7 @@ export function DashboardOverview({ forms }: DashboardOverviewProps) {
 
             {/* EXCEL TABLE */}
             {userChartData.length > 0 && (
-              <div className="mt-6 -mx-4 overflow-x-auto">
+              <div className="-mx-4 overflow-x-auto">
                 <div className="inline-block min-w-full align-middle">
                   <table className="w-full text-xs border border-gray-300">
                     <thead className="bg-gray-100 border-b border-gray-300">

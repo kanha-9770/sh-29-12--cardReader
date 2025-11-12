@@ -296,46 +296,46 @@ export default function FeaturesPage() {
       />
 
       {/* Hero Section */}
-      <motion.section
-        initial={{ opacity: 0, y: 40 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8 }}
-        className="relative py-5 text-center px-4 z-10 bg-[url('/test.png')]
-    bg-cover bg-center bg-no-repeat "
-      >
-        <div className="flex flex-col lg:flex-row items-center justify-center gap-12 max-w-6xl mx-auto ">
-          <div className="flex-1 text-center lg:text-left ">
-            <h1 className="text-4xl md:text-5xl font-bold text-[#2d2a4a] mb-6 leading-tight">
-              Powerful Features, <br /> Seamless Experience
-            </h1>
-            <p className="text-lg text-[#5a5570] mb-8 max-w-lg mx-auto lg:mx-0">
-              Everything you need to manage, automate, and grow — built to
-              simplify your workflow and elevate productivity.
-            </p>
-            <Link href="/form">
-              <Button className="bg-[#483d73] hover:bg-[#5a5570] text-white px-8 py-6 rounded-full text-lg shadow-md hover:shadow-lg transition-all">
-                Get Started Now
-              </Button>
-            </Link>
-          </div>
+        <motion.section
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          className="relative py-5 text-center px-4 z-10 bg-[url('/test2.png')]
+      bg-cover bg-center bg-no-repeat "
+        >
+          <div className="flex flex-col lg:flex-row items-center justify-center gap-12 max-w-6xl mx-auto ">
+            <div className="flex-1 text-center lg:text-left ">
+              <h1 className="text-4xl md:text-5xl font-bold text-[#2d2a4a] mb-6 leading-tight">
+                Powerful Features, <br /> Seamless Experience
+              </h1>
+              <p className="text-lg text-[#5a5570] mb-8 max-w-lg mx-auto lg:mx-0">
+                Everything you need to manage, automate, and grow — built to
+                simplify your workflow and elevate productivity.
+              </p>
+              <Link href="/form">
+                <Button className="bg-[#483d73] hover:bg-[#5a5570] text-white px-8 py-6 rounded-full text-lg shadow-md hover:shadow-lg transition-all">
+                  Get Started Now
+                </Button>
+              </Link>
+            </div>
 
-          {/* Hero Illustration */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 1 }}
-            className="flex-1 flex justify-center"
-          >
-            <Image
-              src="/img00.png"
-              alt="Features Illustration"
-              width={540}
-              height={540}
-              className="object-contain"
-            />
-          </motion.div>
-        </div>
-      </motion.section>
+            {/* Hero Illustration */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 1 }}
+              className="flex-1 flex justify-center"
+            >
+              <Image
+                src="/img00.png"
+                alt="Features Illustration"
+                width={540}
+                height={240}
+                className="object-contain"
+              />
+            </motion.div>
+          </div>
+        </motion.section>
 
       {/* Features Grid */}
       {/* ✅ MOBILE VIEW (default) */}
@@ -478,32 +478,31 @@ export default function FeaturesPage() {
       </section>
 
       {/* CTA Section */}
-   <motion.section
-  initial={{ opacity: 0, y: 50 }}
-  whileInView={{ opacity: 1, y: 0 }}
-  viewport={{ once: true }}
-  transition={{ duration: 0.8 }}
-  className="
+      <motion.section
+        initial={{ opacity: 0, y: 50 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.8 }}
+        className="
     py-24 text-center
     relative overflow-hidden z-10
-    bg-[url('/test.png')]
+    bg-[url('/test2.png')]
     bg-cover bg-center bg-no-repeat
   "
->
-  <h2 className="text-3xl font-bold text-[#2d2a4a] mb-4">
-    Ready to Unlock These Features?
-  </h2>
-  <p className="text-[#5a5570] mb-8 max-w-2xl mx-auto px-4">
-    Join thousands of teams using our platform to simplify their
-    operations and take their business to the next level.
-  </p>
-  <Link href="/pricing">
-    <Button className="bg-[#483d73] hover:bg-[#5a5570] text-white px-8 py-6 rounded-full text-lg shadow-md hover:shadow-lg transition-all hover:scale-105">
-      Start Your Free Trial
-    </Button>
-  </Link>
-</motion.section>
-
+      >
+        <h2 className="text-3xl font-bold text-[#2d2a4a] mb-4">
+          Ready to Unlock These Features?
+        </h2>
+        <p className="text-[#5a5570] mb-8 max-w-2xl mx-auto px-4">
+          Join thousands of teams using our platform to simplify their
+          operations and take their business to the next level.
+        </p>
+        <Link href="/pricing">
+          <Button className="bg-[#483d73] hover:bg-[#5a5570] text-white px-8 py-6 rounded-full text-lg shadow-md hover:shadow-lg transition-all hover:scale-105">
+            Start Your Free Trial
+          </Button>
+        </Link>
+      </motion.section>
     </div>
   );
 }

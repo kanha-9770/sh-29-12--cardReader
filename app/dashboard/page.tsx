@@ -60,7 +60,7 @@ export default async function DashboardPage() {
           animation: bounceIn 0.6s ease-out forwards;
         }
       `}</style>
-      <main className="mx-auto mt-5 py-6 fade-in-up overflow-hidden">
+      <main className="mx-auto fade-in-up overflow-hidden">
         <div className="fade-in-up">
           {session.isAdmin ? <AdminDashboardEnhanced /> : <UserDashboard />}
         </div>
