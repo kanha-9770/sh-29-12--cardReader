@@ -11,6 +11,7 @@ const ExtractedDataSchema = z.object({
   contactNumbers: z.string().nullable(),
   state: z.string().nullable(),
   country: z.string().nullable(),
+  city: z.string().nullable(),
   description: z.string().nullable(),
 });
 
@@ -82,6 +83,7 @@ export async function extractCardDetails(
       *   **Mobile_2:** The second contact number (if present).
       *   **Phone:** A third contact number (if present).
       *   **Address:** The full street address.
+      *   **City:** The city within the address.
       *   **State:** The state within the address.
       *   **Country:** The country within the address. Ensure the country name is spelled correctly and uses its full proper name. Correct any spelling errors.
       *   **Email:** The primary email address.
@@ -107,6 +109,7 @@ export async function extractCardDetails(
         "Phone": null,
         "Address": null,
         "State": null,
+        "City": null,
         "Country": null,
         "Email": null,
         "Secondary_Email": null,
@@ -201,6 +204,7 @@ export async function extractCardDetails(
           .join(", ") || null,
       state: extractedData.State !== null ? extractedData.State : null,
       country: extractedData.Country !== null ? extractedData.Country : null,
+      city: extractedData.city !== null ? extractedData.city : null,
       description: extractedData.description !== null ? extractedData.description : null
     };
     console.log("here is mapped data", mappedData);
@@ -218,6 +222,7 @@ export async function extractCardDetails(
       contactNumbers: null,
       state: null,
       country: null,
+      city: null,
       description: null
     };
   }

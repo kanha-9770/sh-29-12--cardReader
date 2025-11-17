@@ -82,6 +82,7 @@ export async function appendToGoogleSheet(formData: any, extractedData: any, mer
     Address: extractedData.address || "",
     Contact_Numbers: `\`${extractedData.contactNumbers}\`` || "",
     State: extractedData.state || "",
+    City: extractedData.city || "",
     Country: extractedData.country || "",
     description:extractedData.description || ""
   };
@@ -106,6 +107,7 @@ export async function appendToGoogleSheet(formData: any, extractedData: any, mer
     Phone: mergedData.contactNumbers ? `\`${mergedData.contactNumbers.split(",")[2] || ""}\`` : "",
     Address: mergedData.address || "",
     State: mergedData.state || "",
+    City: mergedData.city || "",
     Website: mergedData.website || "",
     Extracted_Country: mergedData.extractedCountry || "",
   };

@@ -40,6 +40,7 @@ export async function submitToZoho(mergedData: any) {
         : null,
       Address: mergedData.address || null,
       State: mergedData.state || null,
+      City: mergedData.city || null,
       Email: mergedData.email || null,
       Website: mergedData.website || null,
       Extracted_Country: mergedData.extractedCountry || null,

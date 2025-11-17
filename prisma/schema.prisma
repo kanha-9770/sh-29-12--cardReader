@@ -53,7 +53,7 @@ model Form {
   zohoStatus            String       @default("PENDING")
   /// ✅ New field for dynamic/custom form data
   additionalData        Json?        @db.Json
-   emailSent             Boolean  @default(false)
+  emailSent             Boolean  @default(false)
 }
 
 model ExtractedData {

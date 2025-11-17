@@ -10,6 +10,7 @@ export interface FormData {
   salesPerson: string;
   date: string;
   country: string;
+  city: string;
   cardFrontPhoto?: string;
   cardBackPhoto?: string;
   leadStatus: string;

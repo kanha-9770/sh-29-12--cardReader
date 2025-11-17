@@ -538,7 +538,7 @@ async function processFormInBackground(form: any) {
       contactNumbers: rawExtracted.contactNumbers || null,
       state: rawExtracted.state || null,
       country: rawExtracted.country || null,
-       city: rawExtracted.city || null, 
+      city: rawExtracted.city || null, 
       description: rawExtracted.description || null,
       // city will be added later via migration
     };
