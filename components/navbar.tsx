@@ -525,7 +525,7 @@ export function Navbar() {
           ) : (
             <Button
               asChild
-              className="border border-gray-600 text-black w-full"
+              className="border bg-gradient-to-r from-[#483d73] to-[#352c55] text-white w-full"
             >
               <Link href="/login" onClick={() => setIsOpen(false)}>
                 Sign In

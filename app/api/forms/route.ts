@@ -121,78 +121,255 @@
 //   }
 // }
 
+// import { NextResponse } from "next/server";
+// import { prisma } from "@/lib/prisma";
+// import { getSession } from "@/lib/auth";
+// import { submitToZoho } from "@/lib/zoho-submit";
+
+// export const dynamic = "force-dynamic";
+// export const revalidate = 0;
+
+// /* ========== ADMIN: GET ALL FORMS ========== */
+// /* ========== ADMIN: GET ALL FORMS (Org Scoped) ========== */
+// export async function GET(req: Request) {
+//   try {
+//     const session = await getSession();
+
+//     if (!session?.isAdmin) {
+//       return NextResponse.json(
+//         { error: "Unauthorized - Admin access required" },
+//         { status: 401 }
+//       );
+//     }
+
+//     // ✅ Fetch admin with its organization
+//     const admin = await prisma.user.findUnique({
+//       where: { id: String(session.id) },
+//       select: { organizationId: true },
+//     });
+
+//     if (!admin?.organizationId) {
+//       return NextResponse.json(
+//         { error: "Admin has no organization assigned" },
+//         { status: 400 }
+//       );
+//     }
+
+//     // ✅ Query only forms that belong to users of the same organization
+//     const forms = await prisma.form.findMany({
+//       where: {
+//         user: {
+//           organizationId: admin.organizationId,
+//         },
+//       },
+//       orderBy: { createdAt: "desc" },
+//       include: {
+//         user: { select: { email: true } },
+//         extractedData: true,
+//         mergedData: true,
+//       },
+//     });
+
+//     return NextResponse.json(forms);
+//   } catch (error) {
+//     console.error("Error in GET /api/forms:", error);
+//     return NextResponse.json(
+//       { error: "Failed to fetch forms" },
+//       { status: 500 }
+//     );
+//   }
+// }
+
+
+// /* ========== USER: CREATE FORM ========== */
+// export async function POST(req: Request) {
+//   try {
+//     const session = await getSession();
+//     if (!session?.id) {
+//       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+//     }
+
+//     const userId = String(session.id);
+
+//     const user = await prisma.user.findUnique({
+//       where: { id: userId },
+//       select: {
+//         id: true,
+//         subscriptionPlan: true,
+//         formLimit: true,
+//       },
+//     });
+
+//     if (!user) {
+//       return NextResponse.json({ error: "User not found" }, { status: 401 });
+//     }
+
+//     // === ENFORCE FORM LIMIT (FREE users only) ===
+//     if (user.subscriptionPlan === "FREE") {
+//       const formCount = await prisma.form.count({
+//         where: { userId: user.id },
+//       });
+
+//       const limit = user.formLimit ?? 15;
+//       if (formCount >= limit) {
+//         return NextResponse.json(
+//           {
+//             error: "Form limit reached",
+//             message: `You've used all ${limit} free submissions. Upgrade to continue.`,
+//             upgradeUrl: "/pricing",
+//           },
+//           { status: 403 }
+//         );
+//       }
+//     }
+
+//     // === PARSE FORM DATA ===
+//     const formData = await req.formData();
+//     const jsonData = formData.get("jsonData") as string;
+//     if (!jsonData) {
+//       return NextResponse.json(
+//         { error: "Missing jsonData" },
+//         { status: 400 }
+//       );
+//     }
+
+//     let data;
+//     try {
+//       data = JSON.parse(jsonData);
+//     } catch {
+//       return NextResponse.json(
+//         { error: "Invalid JSON in jsonData" },
+//         { status: 400 }
+//       );
+//     }
+
+//     // === PREPARE DATA FOR DB ===
+//     const dbData = {
+//       ...data,
+//       userId: user.id,
+//       date: new Date(data.date),
+//       cardFrontPhoto: data.cardFrontPhoto || "",
+//       cardBackPhoto: data.cardBackPhoto || null,
+//       leadStatus: data.leadStatus || "",
+//       dealStatus: data.dealStatus || "",
+//       meetingAfterExhibition: Boolean(data.meetingAfterExhibition),
+//       industryCategories: data.industryCategories || "",
+//       description: data.description || "",
+//     };
+
+//     // === SAVE TO DATABASE ===
+//     let form;
+//     try {
+//       form = await prisma.form.create({
+//         data: dbData,
+//       });
+//     } catch (error: any) {
+//       if (error.code === "P2002") {
+//         return NextResponse.json(
+//           {
+//             error: "Duplicate card number",
+//             message: "A form with this card number already exists.",
+//           },
+//           { status: 400 }
+//         );
+//       }
+//       throw error;
+//     }
+
+//     // === SUBMIT TO ZOHO ===
+//     let zohoResponse;
+//     try {
+//       zohoResponse = await submitToZoho(dbData);
+//     } catch (zohoError) {
+//       console.error("Zoho submission failed:", zohoError);
+//       // Don't fail the whole request — still saved to DB
+//       zohoResponse = { success: false, error: zohoError };
+//     }
+
+//     return NextResponse.json(
+//       {
+//         success: true,
+//         formId: form.id,
+//         zohoResponse,
+//         message: "Form saved and submitted to Zoho.",
+//       },
+//       { status: 201 }
+//     );
+//   } catch (error) {
+//     console.error("Error in POST /api/forms:", error);
+//     return NextResponse.json(
+//       { error: "Internal server error" },
+//       { status: 500 }
+//     );
+//   }
+// }
+
+// app/api/forms/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { submitToZoho } from "@/lib/zoho-submit";
 
 export const dynamic = "force-dynamic";
-export const revalidate = 0;
 
-/* ========== ADMIN: GET ALL FORMS ========== */
-/* ========== ADMIN: GET ALL FORMS (Org Scoped) ========== */
-export async function GET(req: Request) {
+/* ========== GET: Admin sees all forms in organization ========== */
+export async function GET() {
   try {
     const session = await getSession();
 
-    if (!session?.isAdmin) {
-      return NextResponse.json(
-        { error: "Unauthorized - Admin access required" },
-        { status: 401 }
-      );
+    // Accept both shapes: { user: { ... } } or direct { email, isAdmin }
+    const userEmail = (session as any)?.user?.email || (session as any)?.email;
+    const isAdmin = (session as any)?.user?.isAdmin || (session as any)?.isAdmin;
+
+    if (!userEmail) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // ✅ Fetch admin with its organization
-    const admin = await prisma.user.findUnique({
-      where: { id: String(session.id) },
+    if (!isAdmin) {
+      return NextResponse.json({ error: "Forbidden - Admin only" }, { status: 403 });
+    }
+
+    // Find the admin and their organization
+    const adminUser = await prisma.user.findUnique({
+      where: { email: userEmail },
       select: { organizationId: true },
     });
 
-    if (!admin?.organizationId) {
-      return NextResponse.json(
-        { error: "Admin has no organization assigned" },
-        { status: 400 }
-      );
+    if (!adminUser?.organizationId) {
+      return NextResponse.json({ error: "No organization found" }, { status: 400 });
     }
 
-    // ✅ Query only forms that belong to users of the same organization
     const forms = await prisma.form.findMany({
       where: {
-        user: {
-          organizationId: admin.organizationId,
-        },
+        user: { organizationId: adminUser.organizationId },
       },
       orderBy: { createdAt: "desc" },
       include: {
-        user: { select: { email: true } },
+        user: { select: { email: true, name: true } },
         extractedData: true,
         mergedData: true,
       },
     });
 
-    return NextResponse.json(forms);
+    return NextResponse.json({ forms });
   } catch (error) {
-    console.error("Error in GET /api/forms:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch forms" },
-      { status: 500 }
-    );
+    console.error("GET /api/forms error:", error);
+    return NextResponse.json({ error: "Failed to fetch forms" }, { status: 500 });
   }
 }
 
-
-/* ========== USER: CREATE FORM ========== */
+/* ========== POST: Create new form (any logged-in user) ========== */
 export async function POST(req: Request) {
   try {
     const session = await getSession();
-    if (!session?.id) {
+
+    const userEmail = (session as any)?.user?.email || (session as any)?.email;
+    if (!userEmail) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const userId = String(session.id);
-
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
+    const currentUser = await prisma.user.findUnique({
+      where: { email: userEmail },
       select: {
         id: true,
         subscriptionPlan: true,
@@ -200,106 +377,51 @@ export async function POST(req: Request) {
       },
     });
 
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 401 });
+    if (!currentUser) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // === ENFORCE FORM LIMIT (FREE users only) ===
-    if (user.subscriptionPlan === "FREE") {
-      const formCount = await prisma.form.count({
-        where: { userId: user.id },
-      });
-
-      const limit = user.formLimit ?? 15;
-      if (formCount >= limit) {
+    // Free plan limit check
+    if (currentUser.subscriptionPlan === "FREE") {
+      const count = await prisma.form.count({ where: { userId: currentUser.id } });
+      const limit = currentUser.formLimit ?? 15;
+      if (count >= limit) {
         return NextResponse.json(
-          {
-            error: "Form limit reached",
-            message: `You've used all ${limit} free submissions. Upgrade to continue.`,
-            upgradeUrl: "/pricing",
-          },
+          { error: "Limit reached", message: "Upgrade your plan to submit more forms" },
           { status: 403 }
         );
       }
     }
 
-    // === PARSE FORM DATA ===
     const formData = await req.formData();
     const jsonData = formData.get("jsonData") as string;
-    if (!jsonData) {
-      return NextResponse.json(
-        { error: "Missing jsonData" },
-        { status: 400 }
-      );
-    }
+    if (!jsonData) return NextResponse.json({ error: "Missing data" }, { status: 400 });
 
     let data;
     try {
       data = JSON.parse(jsonData);
     } catch {
-      return NextResponse.json(
-        { error: "Invalid JSON in jsonData" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     }
 
-    // === PREPARE DATA FOR DB ===
-    const dbData = {
-      ...data,
-      userId: user.id,
-      date: new Date(data.date),
-      cardFrontPhoto: data.cardFrontPhoto || "",
-      cardBackPhoto: data.cardBackPhoto || null,
-      leadStatus: data.leadStatus || "",
-      dealStatus: data.dealStatus || "",
-      meetingAfterExhibition: Boolean(data.meetingAfterExhibition),
-      industryCategories: data.industryCategories || "",
-      description: data.description || "",
-    };
-
-    // === SAVE TO DATABASE ===
-    let form;
-    try {
-      form = await prisma.form.create({
-        data: dbData,
-      });
-    } catch (error: any) {
-      if (error.code === "P2002") {
-        return NextResponse.json(
-          {
-            error: "Duplicate card number",
-            message: "A form with this card number already exists.",
-          },
-          { status: 400 }
-        );
-      }
-      throw error;
-    }
-
-    // === SUBMIT TO ZOHO ===
-    let zohoResponse;
-    try {
-      zohoResponse = await submitToZoho(dbData);
-    } catch (zohoError) {
-      console.error("Zoho submission failed:", zohoError);
-      // Don't fail the whole request — still saved to DB
-      zohoResponse = { success: false, error: zohoError };
-    }
-
-    return NextResponse.json(
-      {
-        success: true,
-        formId: form.id,
-        zohoResponse,
-        message: "Form saved and submitted to Zoho.",
+    const newForm = await prisma.form.create({
+      data: {
+        ...data,
+        userId: currentUser.id,
+        date: new Date(data.date || Date.now()),
+        cardFrontPhoto: data.cardFrontPhoto || "",
+        cardBackPhoto: data.cardBackPhoto || null,
+        meetingAfterExhibition: Boolean(data.meetingAfterExhibition),
+        additionalData: data.additionalData || {},
       },
-      { status: 201 }
-    );
+    });
+
+    // Submit to Zoho (fire and forget)
+    submitToZoho({ ...data, id: newForm.id }).catch(console.error);
+
+    return NextResponse.json({ success: true, formId: newForm.id }, { status: 201 });
   } catch (error) {
-    console.error("Error in POST /api/forms:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    console.error("POST /api/forms error:", error);
+    return NextResponse.json({ error: "Failed to save form" }, { status: 500 });
   }
 }

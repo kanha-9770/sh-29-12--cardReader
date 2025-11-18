@@ -50,30 +50,108 @@
 //     );
 //   }
 // }
+
+
+// import { NextResponse } from "next/server";
+// import { prisma } from "@/lib/prisma";
+// import { getSession } from "@/lib/auth";
+
+// export const dynamic = "force-dynamic";
+// export const revalidate = 0;
+
+// interface Session {
+//   id: string;
+//   isAdmin?: boolean;
+// }
+
+// export async function GET(req: Request) {
+//   try {
+//     const session = (await getSession()) as Session | null;
+
+//     if (!session?.id) {
+//       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+//     }
+
+//     // Fetch the current user with organization
+//     const currentUser = await prisma.user.findUnique({
+//       where: { id: session.id },
+//       select: { organizationId: true, isAdmin: true },
+//     });
+
+//     if (!currentUser) {
+//       return NextResponse.json({ error: "User not found" }, { status: 404 });
+//     }
+
+//     let forms;
+
+//     // ✅ Admin can see all forms of their organization
+//     if (currentUser.isAdmin) {
+//       forms = await prisma.form.findMany({
+//         where: {
+//           user: {
+//             organizationId: currentUser.organizationId,
+//           },
+//         },
+//         orderBy: { createdAt: "desc" },
+//         include: {
+//           user: { select: { email: true } },
+//           extractedData: true,
+//           mergedData: true,
+//         },
+//       });
+//     } else {
+//       // ✅ Regular user sees only their data
+//       forms = await prisma.form.findMany({
+//         where: { userId: session.id },
+//         orderBy: { createdAt: "desc" },
+//         include: {
+//           user: { select: { email: true } },
+//           extractedData: true,
+//           mergedData: true,
+//         },
+//       });
+//     }
+
+//     return NextResponse.json(forms);
+//   } catch (error: any) {
+//     console.error("Error fetching user forms:", error);
+//     return NextResponse.json(
+//       {
+//         error: "Failed to fetch forms",
+//         details: error instanceof Error ? error.message : "Unknown error",
+//       },
+//       { status: 500 }
+//     );
+//   }
+// }
+
+
+// app/api/forms/user/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
-export const revalidate = 0;
 
-interface Session {
-  id: string;
-  isAdmin?: boolean;
-}
-
-export async function GET(req: Request) {
+export async function GET() {
   try {
-    const session = (await getSession()) as Session | null;
+    const session = await getSession();
 
-    if (!session?.id) {
+    // FIXED: Correct session shape
+    if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Fetch the current user with organization
+    const { email, isAdmin: isUserAdmin, organizationId } = session.user;
+
+    // Get full user record (needed for organizationId if not in token)
     const currentUser = await prisma.user.findUnique({
-      where: { id: session.id },
-      select: { organizationId: true, isAdmin: true },
+      where: { email },
+      select: {
+        id: true,
+        isAdmin: true,
+        organizationId: true,
+      },
     });
 
     if (!currentUser) {
@@ -82,42 +160,39 @@ export async function GET(req: Request) {
 
     let forms;
 
-    // ✅ Admin can see all forms of their organization
     if (currentUser.isAdmin) {
+      // Admin sees ALL forms in their organization
       forms = await prisma.form.findMany({
         where: {
           user: {
-            organizationId: currentUser.organizationId,
+            organizationId: currentUser.organizationId!,
           },
         },
         orderBy: { createdAt: "desc" },
         include: {
-          user: { select: { email: true } },
+          user: { select: { email: true, name: true } },
           extractedData: true,
           mergedData: true,
         },
       });
     } else {
-      // ✅ Regular user sees only their data
+      // Regular user sees only their own forms
       forms = await prisma.form.findMany({
-        where: { userId: session.id },
+        where: { userId: currentUser.id },
         orderBy: { createdAt: "desc" },
         include: {
-          user: { select: { email: true } },
+          user: { select: { email: true, name: true } },
           extractedData: true,
           mergedData: true,
         },
       });
     }
 
-    return NextResponse.json(forms);
+    return NextResponse.json({ forms });
   } catch (error: any) {
-    console.error("Error fetching user forms:", error);
+    console.error("Error fetching forms:", error);
     return NextResponse.json(
-      {
-        error: "Failed to fetch forms",
-        details: error instanceof Error ? error.message : "Unknown error",
-      },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }

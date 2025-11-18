@@ -286,114 +286,476 @@
 //   )
 // }
 
-"use client"
+// "use client"
 
-import { useState, useEffect } from "react"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Eye, RefreshCcw, ZoomIn } from "lucide-react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { useToast } from "@/components/ui/use-toast"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import type { FormData } from "@/types/form"
+// import { useState, useEffect } from "react"
+// import { Input } from "@/components/ui/input"
+// import { Button } from "@/components/ui/button"
+// import { Eye, RefreshCcw, ZoomIn } from "lucide-react"
+// import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+// import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+// import { useToast } from "@/components/ui/use-toast"
+// import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+// import { ScrollArea } from "@/components/ui/scroll-area"
+// import type { FormData } from "@/types/form"
+
+// export function UserDashboard() {
+//   const [forms, setForms] = useState<FormData[]>([])
+//   const [search, setSearch] = useState("")
+//   const [isLoading, setIsLoading] = useState(false)
+//   const [zoomedImage, setZoomedImage] = useState<string | null>(null)
+//   const { toast } = useToast()
+
+//   useEffect(() => {
+//     fetchForms()
+//   }, [])
+
+//   const fetchForms = async () => {
+//     try {
+//       setIsLoading(true)
+//       const res = await fetch("/api/forms/user", {
+//         method: "GET",
+//         headers: {
+//           "Cache-Control": "no-cache",
+//         },
+//       })
+
+//       if (!res.ok) {
+//         throw new Error(`Failed to fetch forms: ${res.status}`)
+//       }
+
+//       const data = await res.json()
+//       setForms(data)
+//     } catch (error) {
+//       console.error("Error fetching forms:", error)
+//       toast({
+//         title: "Error",
+//         description: "Failed to fetch forms. Please try again.",
+//         variant: "destructive",
+//       })
+//     } finally {
+//       setIsLoading(false)
+//     }
+//   }
+
+//   const filteredForms = forms.filter(
+//     (form) => {
+//       const q = search.toLowerCase()
+//       return (
+//         (form.cardNo || "").toLowerCase().includes(q) ||
+//         (form.country || "").toLowerCase().includes(q) ||
+//         (form.salesPerson || "").toLowerCase().includes(q) ||
+//         ((form.mergedData?.companyName || "") as string)
+//           .toLowerCase()
+//           .includes(q) ||
+//         ((form.mergedData?.name || "") as string).toLowerCase().includes(q) ||
+//         ((form.mergedData?.email || "") as string)
+//           .toLowerCase()
+//           .includes(q) ||
+//         ((form.mergedData?.contactNumbers || "") as string)
+//           .toLowerCase()
+//           .includes(q) ||
+//         ((form.extractedData?.state || form.additionalData?.city || "") as string)
+//           .toLowerCase()
+//           .includes(q) ||
+//         ((form.extractedData?.country || "") as string)
+//           .toLowerCase()
+//           .includes(q)
+//       )
+//     }
+//   )
+
+//   const formatData = (data: any) => {
+//     if (!data) return "No data available"
+
+//     return Object.entries(data)
+//       .map(([key, value]) => {
+//         const formattedKey = key.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())
+//         if (Array.isArray(value)) {
+//           return `${formattedKey}: ${value.join(", ") || "None"}`
+//         }
+//         return `${formattedKey}: ${value || "None"}`
+//       })
+//       .join("\n")
+//   }
+
+//   const handleRefresh = () => {
+//     fetchForms()
+//   }
+
+//   return (
+//     <div className="space-y-4 px-2 sm:px-4">
+//       <div className="flex flex-row sm:flex-row justify-between items-center gap-4">
+//         <div className="flex flex-col sm:flex-row gap-4 items-center w-full sm:w-auto">
+//           <Input
+//             placeholder="Search forms..."
+//             value={search}
+//             onChange={(e) => setSearch(e.target.value)}
+//             className="w-64"
+//           />
+//           <Button variant="outline" onClick={handleRefresh} disabled={isLoading}>
+//             <RefreshCcw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
+//             Refresh
+//           </Button>
+//         </div>
+//       </div>
+
+//       <Card>
+//         <CardContent className="p-0 ">
+//           <div className="w-full h-[calc(100vh-200px)] overflow-auto">
+//             <table className="w-full text-sm border-collapse table-fixed min-w-[1600px]">
+//               <thead className="sticky top-0 z-10">
+//                 <tr>
+//                   <th className="bg-blue-50 dark:bg-blue-950 py-2 text-xs font-semibold border border-gray-200 px-2 w-24 text-left">
+//                     Card Image
+//                   </th>
+//                   <th className="bg-blue-50 dark:bg-blue-950 py-2 text-xs font-semibold border border-gray-200 px-2 w-24 text-left">
+//                     Card No
+//                   </th>
+//                   <th className="bg-blue-50 dark:bg-blue-950 py-2 text-xs font-semibold border border-gray-200 px-2 w-28 text-left">
+//                     Sales Person
+//                   </th>
+//                   <th className="bg-blue-50 dark:bg-blue-950 py-2 text-xs font-semibold border border-gray-200 px-2 w-24 text-left">
+//                     Date
+//                   </th>
+//                   <th className="bg-blue-50 dark:bg-blue-950 py-2 text-xs font-semibold border border-gray-200 px-2 w-32 text-left">
+//                     Person Name
+//                   </th>
+//                   <th className="bg-blue-50 dark:bg-blue-950 py-2 text-xs font-semibold border border-gray-200 px-2 w-32 text-left">
+//                     Company
+//                   </th>
+//                   <th className="bg-blue-50 dark:bg-blue-950 py-2 text-xs font-semibold border border-gray-200 px-2 w-24 text-left">
+//                     State
+//                   </th>
+//                   <th className="bg-blue-50 dark:bg-blue-950 py-2 text-xs font-semibold border border-gray-200 px-2 w-24 text-left">
+//                     Country
+//                   </th>
+//                   <th className="bg-blue-50 dark:bg-blue-950 py-2 text-xs font-semibold border border-gray-200 px-2 w-32 text-left">
+//                     Contact Info
+//                   </th>
+//                   <th className="bg-blue-50 dark:bg-blue-950 py-2 text-xs font-semibold border border-gray-200 px-2 w-24 text-left">
+//                     Lead Status
+//                   </th>
+//                   <th className="bg-blue-50 dark:bg-blue-950 py-2 text-xs font-semibold border border-gray-200 px-2 w-24 text-left">
+//                     Deal Status
+//                   </th>
+//                   <th className="bg-blue-50 dark:bg-blue-950 py-2 text-xs font-semibold border border-gray-200 px-2 w-20 text-left">
+//                     Meeting
+//                   </th>
+//                   <th className="bg-blue-50 dark:bg-blue-950 py-2 text-xs font-semibold border border-gray-200 px-2 w-24 text-left">
+//                     Form Status
+//                   </th>
+//                   <th className="bg-blue-50 dark:bg-blue-950 py-2 text-xs font-semibold border border-gray-200 px-2 w-32 text-left">
+//                     Extraction Status
+//                   </th>
+//                   <th className="bg-blue-50 dark:bg-blue-950 py-2 text-xs font-semibold border border-gray-200 px-2 w-24 text-left">
+//                     Zoho Status
+//                   </th>
+//                   <th className="bg-blue-50 dark:bg-blue-950 py-2 text-xs font-semibold border border-gray-200 px-2 w-20 text-left">
+//                     Actions
+//                   </th>
+//                 </tr>
+//               </thead>
+//               <tbody>
+//                 {filteredForms.length > 0 ? (
+//                   filteredForms.map((form) => (
+//                     <tr key={form.id} className="text-xs hover:bg-gray-50 dark:hover:bg-gray-900">
+//                       <td className="py-1 px-2 border border-gray-200">
+//                         {form.cardFrontPhoto ? (
+//                           <button
+//                             onClick={() => setZoomedImage(form.cardFrontPhoto!)}
+//                             className="group"
+//                           >
+//                             <img
+//                               src={form.cardFrontPhoto || "/placeholder.svg"}
+//                               alt="Card"
+//                               className="max-w-20 h-12 object-cover rounded border transition group-hover:opacity-80"
+//                             />
+//                           </button>
+//                         ) : (
+//                           <span className="text-[10px] text-muted-foreground">—</span>
+//                         )}
+//                       </td>
+//                       <td className="py-1 px-2 border border-gray-200 truncate">{form.cardNo ?? "N/A"}</td>
+//                       <td className="py-1 px-2 border border-gray-200 truncate">{form.salesPerson ?? "N/A"}</td>
+//                       <td className="py-1 px-2 border border-gray-200 truncate">
+//                         {form.date ? new Date(form.date).toLocaleDateString() : "N/A"}
+//                       </td>
+//                       <td className="py-1 px-2 border border-gray-200 truncate">
+//                         {form.mergedData?.name || form.additionalData?.contactPerson || "N/A"}
+//                       </td>
+//                       <td className="py-1 px-2 border border-gray-200">
+//                         <div className="w-full">
+//                           <div className="font-medium truncate">{form.mergedData?.companyName || form.additionalData?.company || "N/A"}</div>
+//                         </div>
+//                       </td>
+//                       <td className="py-1 px-2 border border-gray-200 truncate">
+//                         {form.extractedData?.state || form.additionalData?.city || "N/A"}
+//                       </td>
+//                       <td className="py-1 px-2 border border-gray-200 truncate">
+//                         {form.extractedData?.country || form.country || "N/A"}
+//                       </td>
+//                       <td className="py-1 px-2 border border-gray-200">
+//                         <div className="w-full">
+//                           {form.mergedData?.email && <div className="truncate">{form.mergedData.email}</div>}
+//                           {form.mergedData?.contactNumbers && (
+//                             <div className="text-[10px] text-muted-foreground truncate">
+//                               {form.mergedData.contactNumbers.split(",")[0]}
+//                             </div>
+//                           )}
+//                         </div>
+//                       </td>
+//                       <td className="py-1 px-2 border border-gray-200 truncate">{form.leadStatus ?? "N/A"}</td>
+//                       <td className="py-1 px-2 border border-gray-200 truncate">{form.dealStatus ?? "N/A"}</td>
+//                       <td className="py-1 px-2 border border-gray-200 truncate">
+//                         {form.meetingAfterExhibition ? "Yes" : "No"}
+//                       </td>
+//                       <td className="py-1 px-2 border border-gray-200 truncate">{form.status ?? "N/A"}</td>
+//                       <td className="py-1 px-2 border border-gray-200 truncate">{form.extractionStatus ?? "N/A"}</td>
+//                       <td className="py-1 px-2 border border-gray-200 truncate">{form.zohoStatus ?? "N/A"}</td>
+//                       <td className="py-1 px-2 border border-gray-200">
+//                         <Dialog>
+//                           <DialogTrigger asChild>
+//                             <Button variant="outline" size="sm" className="h-6 text-[10px]">
+//                               <Eye className="h-3 w-3 mr-1" />
+//                               View
+//                             </Button>
+//                           </DialogTrigger>
+//                           <DialogContent className="max-w-4xl h-[90vh] overflow-hidden flex flex-col">
+//                             <DialogHeader>
+//                               <DialogTitle>Business Card Details - {form.cardNo || "N/A"}</DialogTitle>
+//                             </DialogHeader>
+//                             <div className="flex-grow overflow-y-auto">
+//                               <Tabs defaultValue="merged" className="w-full">
+//                                 <TabsList className="grid w-full grid-cols-4 sticky top-0 bg-background z-10">
+//                                   <TabsTrigger value="merged">Merged Data</TabsTrigger>
+//                                   <TabsTrigger value="extracted">Extracted Data</TabsTrigger>
+//                                   <TabsTrigger value="form">Form Data</TabsTrigger>
+//                                   <TabsTrigger value="images">Images</TabsTrigger>
+//                                 </TabsList>
+//                                 <ScrollArea className="h-[calc(90vh-120px)]">
+//                                   <TabsContent value="merged">
+//                                     <Card>
+//                                       <CardHeader>
+//                                         <CardTitle>Merged Information</CardTitle>
+//                                       </CardHeader>
+//                                       <CardContent>
+//                                         <pre className="whitespace-pre-wrap bg-muted p-4 rounded-md text-sm">
+//                                           {formatData(form.mergedData)}
+//                                         </pre>
+//                                       </CardContent>
+//                                     </Card>
+//                                   </TabsContent>
+//                                   <TabsContent value="extracted">
+//                                     <Card>
+//                                       <CardHeader>
+//                                         <CardTitle>Extracted Information</CardTitle>
+//                                       </CardHeader>
+//                                       <CardContent>
+//                                         <pre className="whitespace-pre-wrap bg-muted p-4 rounded-md text-sm">
+//                                           {formatData(form.extractedData)}
+//                                         </pre>
+//                                       </CardContent>
+//                                     </Card>
+//                                   </TabsContent>
+//                                   <TabsContent value="form">
+//                                     <Card>
+//                                       <CardHeader>
+//                                         <CardTitle>Form Details</CardTitle>
+//                                       </CardHeader>
+//                                       <CardContent>
+//                                         <pre className="whitespace-pre-wrap bg-muted p-4 rounded-md text-sm">
+//                                           {formatData(form)}
+//                                         </pre>
+//                                       </CardContent>
+//                                     </Card>
+//                                   </TabsContent>
+//                                   <TabsContent value="images">
+//                                     <Card>
+//                                       <CardHeader>
+//                                         <CardTitle>Card Images</CardTitle>
+//                                       </CardHeader>
+//                                       <CardContent>
+//                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+//                                           {form.cardFrontPhoto && (
+//                                             <div>
+//                                               <h4 className="font-medium mb-2">Front</h4>
+//                                               <button
+//                                                 onClick={() => setZoomedImage(form.cardFrontPhoto!)}
+//                                                 className="block w-full"
+//                                               >
+//                                                 <img
+//                                                   src={form.cardFrontPhoto || "/placeholder.svg"}
+//                                                   alt="Card Front"
+//                                                   className="max-w-full max-h-96 object-contain rounded-md border hover:opacity-90 transition"
+//                                                 />
+//                                               </button>
+//                                             </div>
+//                                           )}
+//                                           {form.cardBackPhoto && (
+//                                             <div>
+//                                               <h4 className="font-medium mb-2">Back</h4>
+//                                               <button
+//                                                 onClick={() => setZoomedImage(form.cardBackPhoto!)}
+//                                                 className="block w-full"
+//                                               >
+//                                                 <img
+//                                                   src={form.cardBackPhoto || "/placeholder.svg"}
+//                                                   alt="Card Back"
+//                                                   className="max-w-full max-h-96 object-contain rounded-md border hover:opacity-90 transition"
+//                                                 />
+//                                               </button>
+//                                             </div>
+//                                           )}
+//                                         </div>
+//                                       </CardContent>
+//                                     </Card>
+//                                   </TabsContent>
+//                                 </ScrollArea>
+//                               </Tabs>
+//                             </div>
+//                           </DialogContent>
+//                         </Dialog>
+//                       </td>
+//                     </tr>
+//                   ))
+//                 ) : (
+//                   <tr>
+//                     <td colSpan={16} className="py-4 text-center border border-gray-200">
+//                       {isLoading ? "Loading..." : "No forms found matching your criteria"}
+//                     </td>
+//                   </tr>
+//                 )}
+//               </tbody>
+//             </table>
+//           </div>
+//         </CardContent>
+//       </Card>
+
+//       {/* Zoomed Image Dialog */}
+//       {zoomedImage && (
+//         <Dialog open={true} onOpenChange={() => setZoomedImage(null)}>
+//           <DialogContent className="max-w-3xl p-0 overflow-hidden">
+//             <img
+//               src={zoomedImage || "/placeholder.svg"}
+//               alt="Zoomed Card"
+//               className="w-full h-auto max-h-[80vh] object-contain"
+//             />
+//           </DialogContent>
+//         </Dialog>
+//       )}
+//     </div>
+//   )
+// }
+
+"use client";
+
+import React, { useState, useEffect } from "react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Eye, RefreshCcw, Loader2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/components/ui/use-toast";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import Image from "next/image";
+import type { FormData } from "@/types/form";
 
 export function UserDashboard() {
-  const [forms, setForms] = useState<FormData[]>([])
-  const [search, setSearch] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-  const [zoomedImage, setZoomedImage] = useState<string | null>(null)
-  const { toast } = useToast()
-
-  useEffect(() => {
-    fetchForms()
-  }, [])
+  const [forms, setForms] = useState<FormData[]>([]);
+  const [search, setSearch] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [zoomedImage, setZoomedImage] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const fetchForms = async () => {
     try {
-      setIsLoading(true)
-      const res = await fetch("/api/forms/user", {
-        method: "GET",
-        headers: {
-          "Cache-Control": "no-cache",
-        },
-      })
+      setIsLoading(true);
+      const res = await fetch("/api/forms/user", { cache: "no-store" });
 
       if (!res.ok) {
-        throw new Error(`Failed to fetch forms: ${res.status}`)
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to load your forms");
       }
 
-      const data = await res.json()
-      setForms(data)
-    } catch (error) {
-      console.error("Error fetching forms:", error)
+      const data = await res.json();
+      setForms(Array.isArray(data) ? data : data.forms || []);
+    } catch (error: any) {
+      console.error("Error:", error);
       toast({
         title: "Error",
-        description: "Failed to fetch forms. Please try again.",
+        description: error.message || "Could not load your forms",
         variant: "destructive",
-      })
+      });
+      setForms([]);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
-  const filteredForms = forms.filter(
-    (form) => {
-      const q = search.toLowerCase()
-      return (
-        (form.cardNo || "").toLowerCase().includes(q) ||
-        (form.country || "").toLowerCase().includes(q) ||
-        (form.salesPerson || "").toLowerCase().includes(q) ||
-        ((form.mergedData?.companyName || "") as string)
-          .toLowerCase()
-          .includes(q) ||
-        ((form.mergedData?.name || "") as string).toLowerCase().includes(q) ||
-        ((form.mergedData?.email || "") as string)
-          .toLowerCase()
-          .includes(q) ||
-        ((form.mergedData?.contactNumbers || "") as string)
-          .toLowerCase()
-          .includes(q) ||
-        ((form.extractedData?.state || form.additionalData?.city || "") as string)
-          .toLowerCase()
-          .includes(q) ||
-        ((form.extractedData?.country || "") as string)
-          .toLowerCase()
-          .includes(q)
-      )
-    }
-  )
+  useEffect(() => {
+    fetchForms();
+  }, []);
 
-  const formatData = (data: any) => {
-    if (!data) return "No data available"
+  const filteredForms = forms.filter((form) => {
+    const q = search.toLowerCase();
+    return (
+      form.cardNo?.toLowerCase().includes(q) ||
+      form.salesPerson?.toLowerCase().includes(q) ||
+      form.country?.toLowerCase().includes(q) ||
+      form.mergedData?.companyName?.toLowerCase().includes(q) ||
+      form.mergedData?.name?.toLowerCase().includes(q) ||
+      form.mergedData?.email?.toLowerCase().includes(q) ||
+      form.extractedData?.state?.toLowerCase().includes(q)
+    );
+  });
 
-    return Object.entries(data)
+  const formatData = (obj: any) => {
+    if (!obj || typeof obj !== "object") return "No data";
+    return Object.entries(obj)
       .map(([key, value]) => {
-        const formattedKey = key.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())
-        if (Array.isArray(value)) {
-          return `${formattedKey}: ${value.join(", ") || "None"}`
-        }
-        return `${formattedKey}: ${value || "None"}`
+        const label = key
+          .replace(/([A-Z])/g, " $1")
+          .replace(/^./, (s) => s.toUpperCase());
+        const val = Array.isArray(value)
+          ? value.join(", ")
+          : typeof value === "object"
+          ? JSON.stringify(value, null, 2)
+          : String(value ?? "N/A");
+        return `${label}: ${val}`;
       })
-      .join("\n")
-  }
+      .join("\n");
+  };
 
-  const handleRefresh = () => {
-    fetchForms()
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-[#483d73] mx-auto mb-4" />
+          <p className="text-xl">Loading your forms...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-4 px-2 sm:px-4">
-      <div className="flex flex-row sm:flex-row justify-between items-center gap-4">
-        <div className="flex flex-col sm:flex-row gap-4 items-center w-full sm:w-auto">
-          <Input
-            placeholder="Search forms..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-64"
-          />
-          <Button variant="outline" onClick={handleRefresh} disabled={isLoading}>
+    <div className="space-y-6 px-2 sm:px-4 py-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <Input
+          placeholder="Search forms..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full sm:w-64"
+        />
+        <div className="flex items-center gap-2">
+          <Button onClick={fetchForms} variant="outline" disabled={isLoading}>
             <RefreshCcw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
             Refresh
           </Button>
@@ -401,233 +763,235 @@ export function UserDashboard() {
       </div>
 
       <Card>
-        <CardContent className="p-0 ">
-          <div className="w-full h-[calc(100vh-200px)] overflow-auto">
-            <table className="w-full text-sm border-collapse table-fixed min-w-[1600px]">
-              <thead className="sticky top-0 z-10">
-                <tr>
-                  <th className="bg-blue-50 dark:bg-blue-950 py-2 text-xs font-semibold border border-gray-200 px-2 w-24 text-left">
-                    Card Image
-                  </th>
-                  <th className="bg-blue-50 dark:bg-blue-950 py-2 text-xs font-semibold border border-gray-200 px-2 w-24 text-left">
-                    Card No
-                  </th>
-                  <th className="bg-blue-50 dark:bg-blue-950 py-2 text-xs font-semibold border border-gray-200 px-2 w-28 text-left">
-                    Sales Person
-                  </th>
-                  <th className="bg-blue-50 dark:bg-blue-950 py-2 text-xs font-semibold border border-gray-200 px-2 w-24 text-left">
-                    Date
-                  </th>
-                  <th className="bg-blue-50 dark:bg-blue-950 py-2 text-xs font-semibold border border-gray-200 px-2 w-32 text-left">
-                    Person Name
-                  </th>
-                  <th className="bg-blue-50 dark:bg-blue-950 py-2 text-xs font-semibold border border-gray-200 px-2 w-32 text-left">
-                    Company
-                  </th>
-                  <th className="bg-blue-50 dark:bg-blue-950 py-2 text-xs font-semibold border border-gray-200 px-2 w-24 text-left">
-                    State
-                  </th>
-                  <th className="bg-blue-50 dark:bg-blue-950 py-2 text-xs font-semibold border border-gray-200 px-2 w-24 text-left">
-                    Country
-                  </th>
-                  <th className="bg-blue-50 dark:bg-blue-950 py-2 text-xs font-semibold border border-gray-200 px-2 w-32 text-left">
-                    Contact Info
-                  </th>
-                  <th className="bg-blue-50 dark:bg-blue-950 py-2 text-xs font-semibold border border-gray-200 px-2 w-24 text-left">
-                    Lead Status
-                  </th>
-                  <th className="bg-blue-50 dark:bg-blue-950 py-2 text-xs font-semibold border border-gray-200 px-2 w-24 text-left">
-                    Deal Status
-                  </th>
-                  <th className="bg-blue-50 dark:bg-blue-950 py-2 text-xs font-semibold border border-gray-200 px-2 w-20 text-left">
-                    Meeting
-                  </th>
-                  <th className="bg-blue-50 dark:bg-blue-950 py-2 text-xs font-semibold border border-gray-200 px-2 w-24 text-left">
-                    Form Status
-                  </th>
-                  <th className="bg-blue-50 dark:bg-blue-950 py-2 text-xs font-semibold border border-gray-200 px-2 w-32 text-left">
-                    Extraction Status
-                  </th>
-                  <th className="bg-blue-50 dark:bg-blue-950 py-2 text-xs font-semibold border border-gray-200 px-2 w-24 text-left">
-                    Zoho Status
-                  </th>
-                  <th className="bg-blue-50 dark:bg-blue-950 py-2 text-xs font-semibold border border-gray-200 px-2 w-20 text-left">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredForms.length > 0 ? (
-                  filteredForms.map((form) => (
-                    <tr key={form.id} className="text-xs hover:bg-gray-50 dark:hover:bg-gray-900">
-                      <td className="py-1 px-2 border border-gray-200">
-                        {form.cardFrontPhoto ? (
-                          <button
-                            onClick={() => setZoomedImage(form.cardFrontPhoto!)}
-                            className="group"
-                          >
-                            <img
-                              src={form.cardFrontPhoto || "/placeholder.svg"}
-                              alt="Card"
-                              className="max-w-20 h-12 object-cover rounded border transition group-hover:opacity-80"
-                            />
-                          </button>
-                        ) : (
-                          <span className="text-[10px] text-muted-foreground">—</span>
-                        )}
-                      </td>
-                      <td className="py-1 px-2 border border-gray-200 truncate">{form.cardNo ?? "N/A"}</td>
-                      <td className="py-1 px-2 border border-gray-200 truncate">{form.salesPerson ?? "N/A"}</td>
-                      <td className="py-1 px-2 border border-gray-200 truncate">
-                        {form.date ? new Date(form.date).toLocaleDateString() : "N/A"}
-                      </td>
-                      <td className="py-1 px-2 border border-gray-200 truncate">
-                        {form.mergedData?.name || form.additionalData?.contactPerson || "N/A"}
-                      </td>
-                      <td className="py-1 px-2 border border-gray-200">
-                        <div className="w-full">
-                          <div className="font-medium truncate">{form.mergedData?.companyName || form.additionalData?.company || "N/A"}</div>
-                        </div>
-                      </td>
-                      <td className="py-1 px-2 border border-gray-200 truncate">
-                        {form.extractedData?.state || form.additionalData?.city || "N/A"}
-                      </td>
-                      <td className="py-1 px-2 border border-gray-200 truncate">
-                        {form.extractedData?.country || form.country || "N/A"}
-                      </td>
-                      <td className="py-1 px-2 border border-gray-200">
-                        <div className="w-full">
-                          {form.mergedData?.email && <div className="truncate">{form.mergedData.email}</div>}
-                          {form.mergedData?.contactNumbers && (
-                            <div className="text-[10px] text-muted-foreground truncate">
-                              {form.mergedData.contactNumbers.split(",")[0]}
-                            </div>
+        <CardContent className="p-0 mt-8">
+          <div className="w-full h-[30rem] flex flex-col">
+            <div className="w-full overflow-auto">
+              <table className="w-full text-sm border-collapse table-fixed min-w-[1350px]">
+                <thead className="sticky top-0 z-10">
+                  <tr>
+                    <th className="bg-blue-50 dark:bg-blue-950 py-2 text-xs font-semibold border border-gray-200 px-2 w-24 text-left">
+                      Card Image
+                    </th>
+                    <th className="bg-blue-50 dark:bg-blue-950 py-2 text-xs font-semibold border border-gray-200 px-2 w-24 text-left">
+                      Card No
+                    </th>
+                    <th className="bg-blue-50 dark:bg-blue-950 py-2 text-xs font-semibold border border-gray-200 px-2 w-28 text-left">
+                      Sales Person
+                    </th>
+                    <th className="bg-blue-50 dark:bg-blue-950 py-2 text-xs font-semibold border border-gray-200 px-2 w-24 text-left">
+                      Date
+                    </th>
+                    <th className="bg-blue-50 dark:bg-blue-950 py-2 text-xs font-semibold border border-gray-200 px-2 w-32 text-left">
+                      Person Name
+                    </th>
+                    <th className="bg-blue-50 dark:bg-blue-950 py-2 text-xs font-semibold border border-gray-200 px-2 w-32 text-left">
+                      Company
+                    </th>
+                    <th className="bg-blue-50 dark:bg-blue-950 py-2 text-xs font-semibold border border-gray-200 px-2 w-24 text-left">
+                      State
+                    </th>
+                    <th className="bg-blue-50 dark:bg-blue-950 py-2 text-xs font-semibold border border-gray-200 px-2 w-24 text-left">
+                      Country
+                    </th>
+                    <th className="bg-blue-50 dark:bg-blue-950 py-2 text-xs font-semibold border border-gray-200 px-2 w-32 text-left">
+                      Contact Info
+                    </th>
+                    <th className="bg-blue-50 dark:bg-blue-950 py-2 text-xs font-semibold border border-gray-200 px-2 w-24 text-left">
+                      Lead Status
+                    </th>
+                    <th className="bg-blue-50 dark:bg-blue-950 py-2 text-xs font-semibold border border-gray-200 px-2 w-24 text-left">
+                      Deal Status
+                    </th>
+                    <th className="bg-blue-50 dark:bg-blue-950 py-2 text-xs font-semibold border border-gray-200 px-2 w-20 text-left">
+                      Meeting
+                    </th>
+                    <th className="bg-blue-50 dark:bg-blue-950 py-2 text-xs font-semibold border border-gray-200 px-2 w-24 text-left">
+                      Form Status
+                    </th>
+                    <th className="bg-blue-50 dark:bg-blue-950 py-2 text-xs font-semibold border border-gray-200 px-2 w-32 text-left">
+                      Extraction Status
+                    </th>
+                    <th className="bg-blue-50 dark:bg-blue-950 py-2 text-xs font-semibold border border-gray-200 px-2 w-24 text-left">
+                      Zoho Status
+                    </th>
+                    <th className="bg-blue-50 dark:bg-blue-950 py-2 text-xs font-semibold border border-gray-200 px-2 w-20 text-left">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredForms.length > 0 ? (
+                    filteredForms.map((form) => (
+                      <tr key={form.id} className="text-xs hover:bg-gray-50 dark:hover:bg-gray-900">
+                        <td className="py-1 px-2 border border-gray-200">
+                          {form.cardFrontPhoto ? (
+                            <button
+                              onClick={() => setZoomedImage(form.cardFrontPhoto!)}
+                              className="group"
+                            >
+                              <img
+                                src={form.cardFrontPhoto || "/placeholder.svg"}
+                                alt="Card"
+                                className="max-w-20 h-12 object-cover rounded border transition group-hover:opacity-80"
+                              />
+                            </button>
+                          ) : (
+                            <span className="text-[10px] text-muted-foreground">—</span>
                           )}
-                        </div>
-                      </td>
-                      <td className="py-1 px-2 border border-gray-200 truncate">{form.leadStatus ?? "N/A"}</td>
-                      <td className="py-1 px-2 border border-gray-200 truncate">{form.dealStatus ?? "N/A"}</td>
-                      <td className="py-1 px-2 border border-gray-200 truncate">
-                        {form.meetingAfterExhibition ? "Yes" : "No"}
-                      </td>
-                      <td className="py-1 px-2 border border-gray-200 truncate">{form.status ?? "N/A"}</td>
-                      <td className="py-1 px-2 border border-gray-200 truncate">{form.extractionStatus ?? "N/A"}</td>
-                      <td className="py-1 px-2 border border-gray-200 truncate">{form.zohoStatus ?? "N/A"}</td>
-                      <td className="py-1 px-2 border border-gray-200">
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button variant="outline" size="sm" className="h-6 text-[10px]">
-                              <Eye className="h-3 w-3 mr-1" />
-                              View
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="max-w-4xl h-[90vh] overflow-hidden flex flex-col">
-                            <DialogHeader>
-                              <DialogTitle>Business Card Details - {form.cardNo || "N/A"}</DialogTitle>
-                            </DialogHeader>
-                            <div className="flex-grow overflow-y-auto">
-                              <Tabs defaultValue="merged" className="w-full">
-                                <TabsList className="grid w-full grid-cols-4 sticky top-0 bg-background z-10">
-                                  <TabsTrigger value="merged">Merged Data</TabsTrigger>
-                                  <TabsTrigger value="extracted">Extracted Data</TabsTrigger>
-                                  <TabsTrigger value="form">Form Data</TabsTrigger>
-                                  <TabsTrigger value="images">Images</TabsTrigger>
-                                </TabsList>
-                                <ScrollArea className="h-[calc(90vh-120px)]">
-                                  <TabsContent value="merged">
-                                    <Card>
-                                      <CardHeader>
-                                        <CardTitle>Merged Information</CardTitle>
-                                      </CardHeader>
-                                      <CardContent>
-                                        <pre className="whitespace-pre-wrap bg-muted p-4 rounded-md text-sm">
-                                          {formatData(form.mergedData)}
-                                        </pre>
-                                      </CardContent>
-                                    </Card>
-                                  </TabsContent>
-                                  <TabsContent value="extracted">
-                                    <Card>
-                                      <CardHeader>
-                                        <CardTitle>Extracted Information</CardTitle>
-                                      </CardHeader>
-                                      <CardContent>
-                                        <pre className="whitespace-pre-wrap bg-muted p-4 rounded-md text-sm">
-                                          {formatData(form.extractedData)}
-                                        </pre>
-                                      </CardContent>
-                                    </Card>
-                                  </TabsContent>
-                                  <TabsContent value="form">
-                                    <Card>
-                                      <CardHeader>
-                                        <CardTitle>Form Details</CardTitle>
-                                      </CardHeader>
-                                      <CardContent>
-                                        <pre className="whitespace-pre-wrap bg-muted p-4 rounded-md text-sm">
-                                          {formatData(form)}
-                                        </pre>
-                                      </CardContent>
-                                    </Card>
-                                  </TabsContent>
-                                  <TabsContent value="images">
-                                    <Card>
-                                      <CardHeader>
-                                        <CardTitle>Card Images</CardTitle>
-                                      </CardHeader>
-                                      <CardContent>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                          {form.cardFrontPhoto && (
-                                            <div>
-                                              <h4 className="font-medium mb-2">Front</h4>
-                                              <button
-                                                onClick={() => setZoomedImage(form.cardFrontPhoto!)}
-                                                className="block w-full"
-                                              >
-                                                <img
-                                                  src={form.cardFrontPhoto || "/placeholder.svg"}
-                                                  alt="Card Front"
-                                                  className="max-w-full max-h-96 object-contain rounded-md border hover:opacity-90 transition"
-                                                />
-                                              </button>
-                                            </div>
-                                          )}
-                                          {form.cardBackPhoto && (
-                                            <div>
-                                              <h4 className="font-medium mb-2">Back</h4>
-                                              <button
-                                                onClick={() => setZoomedImage(form.cardBackPhoto!)}
-                                                className="block w-full"
-                                              >
-                                                <img
-                                                  src={form.cardBackPhoto || "/placeholder.svg"}
-                                                  alt="Card Back"
-                                                  className="max-w-full max-h-96 object-contain rounded-md border hover:opacity-90 transition"
-                                                />
-                                              </button>
-                                            </div>
-                                          )}
-                                        </div>
-                                      </CardContent>
-                                    </Card>
-                                  </TabsContent>
-                                </ScrollArea>
-                              </Tabs>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
+                        </td>
+                        <td className="py-1 px-2 border border-gray-200 truncate">{form.cardNo ?? "N/A"}</td>
+                        <td className="py-1 px-2 border border-gray-200 truncate">{form.salesPerson ?? "N/A"}</td>
+                        <td className="py-1 px-2 border border-gray-200 truncate">
+                          {form.date ? new Date(form.date).toLocaleDateString() : "N/A"}
+                        </td>
+                        <td className="py-1 px-2 border border-gray-200 truncate">
+                          {form.mergedData?.name || form.additionalData?.contactPerson || "N/A"}
+                        </td>
+                        <td className="py-1 px-2 border border-gray-200">
+                          <div className="w-full">
+                            <div className="font-medium truncate">{form.mergedData?.companyName || form.additionalData?.company || "N/A"}</div>
+                          </div>
+                        </td>
+                        <td className="py-1 px-2 border border-gray-200 truncate">
+                          {form.extractedData?.state || form.additionalData?.city || "N/A"}
+                        </td>
+                        <td className="py-1 px-2 border border-gray-200 truncate">
+                          {form.extractedData?.country || form.country || "N/A"}
+                        </td>
+                        <td className="py-1 px-2 border border-gray-200">
+                          <div className="w-full">
+                            {form.mergedData?.email && <div className="truncate">{form.mergedData.email}</div>}
+                            {form.mergedData?.contactNumbers && (
+                              <div className="text-[10px] text-muted-foreground truncate">
+                                {form.mergedData.contactNumbers.split(",")[0]}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-1 px-2 border border-gray-200 truncate">{form.leadStatus ?? "N/A"}</td>
+                        <td className="py-1 px-2 border border-gray-200 truncate">{form.dealStatus ?? "N/A"}</td>
+                        <td className="py-1 px-2 border border-gray-200 truncate">
+                          {form.meetingAfterExhibition ? "Yes" : "No"}
+                        </td>
+                        <td className="py-1 px-2 border border-gray-200 truncate">{form.status ?? "N/A"}</td>
+                        <td className="py-1 px-2 border border-gray-200 truncate">{form.extractionStatus ?? "N/A"}</td>
+                        <td className="py-1 px-2 border border-gray-200 truncate">{form.zohoStatus ?? "N/A"}</td>
+                        <td className="py-1 px-2 border border-gray-200">
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button variant="outline" size="sm" className="h-6 text-[10px]">
+                                <Eye className="h-3 w-3 mr-1" />
+                                View
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-4xl h-[90vh] overflow-hidden flex flex-col">
+                              <DialogHeader>
+                                <DialogTitle>Business Card Details - {form.cardNo || "N/A"}</DialogTitle>
+                              </DialogHeader>
+                              <div className="flex-grow overflow-y-auto">
+                                <Tabs defaultValue="merged" className="w-full">
+                                  <TabsList className="grid w-full grid-cols-4 sticky top-0 bg-background z-10">
+                                    <TabsTrigger value="merged">Merged Data</TabsTrigger>
+                                    <TabsTrigger value="extracted">Extracted Data</TabsTrigger>
+                                    <TabsTrigger value="form">Form Data</TabsTrigger>
+                                    <TabsTrigger value="images">Images</TabsTrigger>
+                                  </TabsList>
+                                  <ScrollArea className="h-[calc(90vh-120px)]">
+                                    <TabsContent value="merged">
+                                      <Card>
+                                        <CardHeader>
+                                          <CardTitle>Merged Information</CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
+                                          <pre className="whitespace-pre-wrap bg-muted p-4 rounded-md text-sm">
+                                            {formatData(form.mergedData)}
+                                          </pre>
+                                        </CardContent>
+                                      </Card>
+                                    </TabsContent>
+                                    <TabsContent value="extracted">
+                                      <Card>
+                                        <CardHeader>
+                                          <CardTitle>Extracted Information</CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
+                                          <pre className="whitespace-pre-wrap bg-muted p-4 rounded-md text-sm">
+                                            {formatData(form.extractedData)}
+                                          </pre>
+                                        </CardContent>
+                                      </Card>
+                                    </TabsContent>
+                                    <TabsContent value="form">
+                                      <Card>
+                                        <CardHeader>
+                                          <CardTitle>Form Details</CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
+                                          <pre className="whitespace-pre-wrap bg-muted p-4 rounded-md text-sm">
+                                            {formatData(form)}
+                                          </pre>
+                                        </CardContent>
+                                      </Card>
+                                    </TabsContent>
+                                    <TabsContent value="images">
+                                      <Card>
+                                        <CardHeader>
+                                          <CardTitle>Card Images</CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
+                                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            {form.cardFrontPhoto && (
+                                              <div>
+                                                <h4 className="font-medium mb-2">Front</h4>
+                                                <button
+                                                  onClick={() => setZoomedImage(form.cardFrontPhoto!)}
+                                                  className="block w-full"
+                                                >
+                                                  <img
+                                                    src={form.cardFrontPhoto || "/placeholder.svg"}
+                                                    alt="Card Front"
+                                                    className="max-w-full max-h-96 object-contain rounded-md border hover:opacity-90 transition"
+                                                  />
+                                                </button>
+                                              </div>
+                                            )}
+                                            {form.cardBackPhoto && (
+                                              <div>
+                                                <h4 className="font-medium mb-2">Back</h4>
+                                                <button
+                                                  onClick={() => setZoomedImage(form.cardBackPhoto!)}
+                                                  className="block w-full"
+                                                >
+                                                  <img
+                                                    src={form.cardBackPhoto || "/placeholder.svg"}
+                                                    alt="Card Back"
+                                                    className="max-w-full max-h-96 object-contain rounded-md border hover:opacity-90 transition"
+                                                  />
+                                                </button>
+                                              </div>
+                                            )}
+                                          </div>
+                                        </CardContent>
+                                      </Card>
+                                    </TabsContent>
+                                  </ScrollArea>
+                                </Tabs>
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={16} className="py-4 text-center border border-gray-200">
+                        {isLoading ? "Loading..." : "No forms found matching your criteria"}
                       </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={16} className="py-4 text-center border border-gray-200">
-                      {isLoading ? "Loading..." : "No forms found matching your criteria"}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -645,5 +1009,5 @@ export function UserDashboard() {
         </Dialog>
       )}
     </div>
-  )
+  );
 }

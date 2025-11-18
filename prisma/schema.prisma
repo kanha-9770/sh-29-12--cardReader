@@ -6,114 +6,117 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
 model User {
-  id            String       @id @default(cuid())
-  name          String?
-  email         String       @unique
-  password      String
-  isAdmin       Boolean      @default(false)
+  id             String   @id @default(cuid())
+  name           String?
+  email          String   @unique
+  password       String
+  isAdmin        Boolean  @default(false)
   organizationId Int?
-  organization  Organization? @relation("OrganizationUsers", fields: [organizationId], references: [id])
-  isDeleted     Boolean      @default(false)
-  createdAt     DateTime     @default(now())
-  Form          Form[]
+  organization   Organization? @relation("OrganizationUsers", fields: [organizationId], references: [id])
+  isDeleted      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  forms          Form[]
   subscriptionPlan String? @default("FREE")
-  formLimit     Int?        @default(15)
+  formLimit      Int?     @default(15)
 }
 
 model Form {
-  id                    String       @id @default(cuid())
-  cardNo                String
-  salesPerson           String
-  date                  DateTime
-  country               String
-  cardFrontPhoto        String
-  cardBackPhoto         String?
-  leadStatus            String
-  dealStatus            String
+  id                     String   @id @default(cuid())
+  cardNo                 String
+  salesPerson            String
+  date                   DateTime
+  country                String
+  cardFrontPhoto         String
+  cardBackPhoto          String?
+  leadStatus             String
+  dealStatus             String
   meetingAfterExhibition Boolean
-  industryCategories    String
-  description           String       @db.Text
-  userId                String
-  user                  User         @relation(fields: [userId], references: [id])
-  /// ✅ Tenant-isolation
-  organizationId        Int?
-  organization          Organization? @relation(fields: [organizationId], references: [id])
-  createdAt             DateTime     @default(now())
-  updatedAt             DateTime     @updatedAt
-  extractedData         ExtractedData?
-  mergedData            MergedData?
-  status                String       @default("PENDING")
-  extractionStatus      String       @default("PENDING")
-  zohoStatus            String       @default("PENDING")
-  /// ✅ New field for dynamic/custom form data
-  additionalData        Json?        @db.Json
-  emailSent             Boolean  @default(false)
+  industryCategories     String
+  description            String   @db.Text
+  userId                 String
+  user                   User     @relation(fields: [userId], references: [id])
+  organizationId         Int?
+  organization           Organization? @relation(fields: [organizationId], references: [id])
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  extractedData          ExtractedData?
+  mergedData             MergedData?
+  status                 String   @default("PENDING")
+  extractionStatus       String   @default("PENDING")
+  zohoStatus             String   @default("PENDING")
+  additionalData         Json?    @db.Json
+  emailSent              Boolean  @default(false)
 }
 
 model ExtractedData {
-  id            String   @id @default(cuid())
-  formId        String   @unique
-  form          Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
-  name          String?
-  companyName   String?
-  website       String?
-  email         String?
-  address       String?
+  id             String   @id @default(cuid())
+  formId         String   @unique
+  form           Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
+  name           String?
+  companyName    String?
+  website        String?
+  email          String?
+  address        String?
   contactNumbers String?
-  state         String?
-  description   String?
-  country       String?
-  city          String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  status        String   @default("PENDING")
+  state          String?
+  description    String?
+  country        String?
+  city           String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  status         String   @default("PENDING")
 }
 
 model MergedData {
-  id                String   @id @default(cuid())
-  formId            String   @unique
-  form              Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
-  cardNo            String
-  salesPerson       String
-  date              DateTime
-  country           String
-  city              String?
-  cardFrontPhoto    String
-  cardBackPhoto     String?
-  leadStatus        String
-  dealStatus        String
+  id                     String   @id @default(cuid())
+  formId                 String   @unique
+  form                   Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
+  cardNo                 String
+  salesPerson            String
+  date                   DateTime
+  country                String
+  city                   String?
+  cardFrontPhoto         String
+  cardBackPhoto          String?
+  leadStatus             String
+  dealStatus             String
   meetingAfterExhibition Boolean
-  industryCategories String
-  description       String   @default("") @db.Text
-  name              String?
-  companyName       String?
-  website           String?
-  email             String?
-  address           String?
-  contactNumbers    String?
-  state             String?
-  extractedCountry  String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  status            String   @default("PENDING")
+  industryCategories     String
+  description            String   @default("") @db.Text
+  name                   String?
+  companyName            String?
+  website                String?
+  email                  String?
+  address                String?
+  contactNumbers         String?
+  state                  String?
+  extractedCountry       String?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  status                 String   @default("PENDING")
 }
 
 model Organization {
-  id        Int      @id @default(autoincrement())
-  uniqueOrgId String @unique
-  name      String?
-  createdBy String
-  createdAt DateTime @default(now())
-  /// existing user relation
-  users     User[]   @relation("OrganizationUsers")
-  /// ✅ add this relation back reference
-  forms     Form[]
+  id           Int      @id @default(autoincrement())
+  uniqueOrgId  String   @unique
+  name         String?
+  createdBy    String
+  createdAt    DateTime @default(now())
+
+  // Users in this organization
+  users        User[]   @relation("OrganizationUsers")
+
+  // Forms submitted under this org
+  forms        Form[]
+
+  // One form template per organization
+  formTemplate FormTemplate?
 }
 
 model EmailLog {
@@ -126,4 +129,19 @@ model EmailLog {
   createdAt DateTime @default(now())
 
   @@index([formId])
+}
+
+model FormTemplate {
+  id             String   @id @default(cuid())
+  organizationId Int?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+
+  // Stores your dynamic BuilderField[]
+  fields         Json     @default("[]")
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Only one template per org
+  @@unique([organizationId])
 }
