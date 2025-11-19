@@ -2343,56 +2343,56 @@
 // </AnimatePresence>
 
 //         {/* Camera Modal */}
-//         {isCameraOpen && (
-//           <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-6">
-//             <div className="bg-white rounded-xl shadow-2xl overflow-hidden max-w-lg w-full">
-//               <div className="p-4 bg-gray-200 border-b border-blue-100 flex justify-between items-center">
-//                 <h3 className="text-lg font-semibold text-gray-900">
-//                   Capture Photo
-//                 </h3>
-//                 <Button
-//                   variant="ghost"
-//                   size="sm"
-//                   onClick={closeCamera}
-//                   className="p-2 hover:bg-gray-100"
-//                 >
-//                   <X className="w-5 h-5 text-gray-600" />
-//                 </Button>
-//               </div>
-//               <div className="relative bg-black">
-//                 <video
-//                   ref={videoRef}
-//                   className="w-full h-auto"
-//                   autoPlay
-//                   playsInline
-//                   muted
-//                 />
-//                 <canvas ref={canvasRef} className="hidden" />
-//               </div>
-//               <div className="p-4 flex justify-between items-center bg-gray-200">
-//                 <Button
-//                   variant="outline"
-//                   onClick={toggleCamera}
-//                   className="flex items-center gap-2 border-gray-300 hover:bg-gray-100"
-//                 >
-//                   <RefreshCw className="w-4 h-4" />
-//                   Switch Camera
-//                 </Button>
-//                 <div className="flex gap-2">
-//                   <Button
-//                     onClick={captureImage}
-//                     className="bg-[#483d73] hover:bg-[#5a5570] text-white"
-//                   >
-//                     Capture Photo
-//                   </Button>
-//                   <Button variant="ghost" onClick={closeCamera}>
-//                     Close
-//                   </Button>
-//                 </div>
-//               </div>
-//             </div>
-//           </div>
-//         )}
+// {isCameraOpen && (
+//   <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-6">
+//     <div className="bg-white rounded-xl shadow-2xl overflow-hidden max-w-lg w-full">
+//       <div className="p-4 bg-gray-200 border-b border-blue-100 flex justify-between items-center">
+//         <h3 className="text-lg font-semibold text-gray-900">
+//           Capture Photo
+//         </h3>
+//         <Button
+//           variant="ghost"
+//           size="sm"
+//           onClick={closeCamera}
+//           className="p-2 hover:bg-gray-100"
+//         >
+//           <X className="w-5 h-5 text-gray-600" />
+//         </Button>
+//       </div>
+//       <div className="relative bg-black">
+//         <video
+//           ref={videoRef}
+//           className="w-full h-auto"
+//           autoPlay
+//           playsInline
+//           muted
+//         />
+//         <canvas ref={canvasRef} className="hidden" />
+//       </div>
+//       <div className="p-4 flex justify-between items-center bg-gray-200">
+//         <Button
+//           variant="outline"
+//           onClick={toggleCamera}
+//           className="flex items-center gap-2 border-gray-300 hover:bg-gray-100"
+//         >
+//           <RefreshCw className="w-4 h-4" />
+//           Switch Camera
+//         </Button>
+//         <div className="flex gap-2">
+//           <Button
+//             onClick={captureImage}
+//             className="bg-[#483d73] hover:bg-[#5a5570] text-white"
+//           >
+//             Capture Photo
+//           </Button>
+//           <Button variant="ghost" onClick={closeCamera}>
+//             Close
+//           </Button>
+//         </div>
+//       </div>
+//     </div>
+//   </div>
+// )}
 
 //         {/* All Modals */}
 //         {editingField && (
@@ -3388,6 +3388,122 @@ function uid(prefix = "") {
   return `${prefix}${Math.random().toString(36).slice(2, 9)}`;
 }
 
+/* ==================== CAMERA MODAL - MOBILE FRIENDLY ==================== */
+function CameraModal({
+  isOpen,
+  onClose,
+  onCapture,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onCapture: (file: File) => void;
+}) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [facingMode, setFacingMode] = useState<"user" | "environment">(
+    "environment"
+  );
+
+  const startStream = async () => {
+    if (!videoRef.current) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode },
+      });
+      videoRef.current.srcObject = stream;
+    } catch (err) {
+      toastify.error("Camera access denied");
+      onClose();
+    }
+  };
+
+  const capturePhoto = () => {
+    if (!videoRef.current || !canvasRef.current) return;
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext("2d");
+    if (ctx) {
+      ctx.drawImage(video, 0, 0);
+      canvas.toBlob(
+        (blob) => {
+          if (blob) {
+            const file = new File([blob], `capture-${Date.now()}.jpg`, {
+              type: "image/jpeg",
+            });
+            onCapture(file);
+          }
+        },
+        "image/jpeg",
+        0.92
+      );
+    }
+  };
+
+  const switchCamera = () => {
+    setFacingMode((prev) => (prev === "user" ? "environment" : "user"));
+  };
+
+  useEffect(() => {
+    if (isOpen) startStream();
+    return () => {
+      if (videoRef.current?.srcObject) {
+        (videoRef.current.srcObject as MediaStream)
+          .getTracks()
+          .forEach((t) => t.stop());
+      }
+    };
+  }, [isOpen, facingMode]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black z-50 flex flex-col">
+      {/* Header */}
+      <div className="bg-gray-900 text-white p-4 flex justify-between items-center shrink-0">
+        <h3 className="font-bold text-lg">Take Photo</h3>
+        <button
+          onClick={onClose}
+          className="p-2 hover:bg-white/20 rounded-full transition"
+        >
+          <X className="w-6 h-6" />
+        </button>
+      </div>
+
+      {/* Video - Takes most of the screen */}
+      <div className="flex-1 relative bg-black">
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          className="w-full h-full object-cover"
+        />
+        <canvas ref={canvasRef} className="hidden" />
+      </div>
+
+      {/* Controls - Fixed at bottom */}
+      <div className="bg-gray-900 p-6 flex justify-center items-center gap-6 shrink-0">
+        <Button size="lg" variant="outline" onClick={switchCamera}>
+          <RefreshCw className="w-5 h-5" />
+        </Button>
+
+        {/* Big Capture Button */}
+        <button
+          onClick={capturePhoto}
+          className="w-20 h-20 rounded-full bg-white border-4 border-gray-900 shadow-2xl active:scale-95 transition-transform"
+        >
+          <div className="w-16 h-16 bg-white rounded-full border-4 border-gray-300 m-auto" />
+        </button>
+
+        <Button size="lg" variant="ghost" onClick={onClose}>
+          Cancel
+        </Button>
+      </div>
+    </div>
+  );
+}
 /* ==================== Sidebar Draggable Block ==================== */
 function SidebarFieldBlock({
   type,
@@ -3477,14 +3593,12 @@ function SortableFormField({
           <div
             {...listeners}
             className="pt-3 cursor-grab active:cursor-grabbing select-none"
-          >
-          
-          </div>
+          ></div>
         )}
-        <div className="flex-1 bg-white border rounded-lg p-5 shadow-sm">
+        <div className="flex-1 bg-white border rounded-lg p-3 shadow-sm">
           {children}
           {isAdmin && (
-            <div className="flex justify-end gap-1 mt-4 -mb-2">
+            <div className="flex justify-end gap-1 mt-2 -mb-2">
               <Button size="icon" variant="ghost" onClick={() => onEdit(field)}>
                 <Settings className="w-4 h-4" />
               </Button>
@@ -3724,14 +3838,19 @@ export function ExhibitionForm() {
   const [frontImagePreview, setFrontImagePreview] = useState<string | null>(
     null
   );
+
   const [backImagePreview, setBackImagePreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Camera state
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [cameraSide, setCameraSide] = useState<"front" | "back">("front");
 
   const [formData, setFormData] = useState<Record<string, any>>({
     cardNo: searchParams?.get("cardNo") || "",
     salesPerson: searchParams?.get("salesPerson") || "",
     date: new Date().toISOString().split("T")[0],
-    country: searchParams?.get("exhibition") || "LABEL EXPO SPAIN 2025",
+    country: searchParams?.get("country") || "N/A",
     cardFrontPhoto: "",
     cardBackPhoto: "",
     leadStatus: "",
@@ -3991,55 +4110,161 @@ export function ExhibitionForm() {
   ];
 
   const renderFieldInput = (field: BuilderField) => {
-    const baseClass = "mt-2";
+  const value = formData[field.name] || "";
+  const baseClass = "mt-2";
 
-    switch (field.type) {
-      case "textarea":
-        return (
-          <Textarea
-            placeholder={field.placeholder || ""}
-            className={baseClass}
+  const onChange = (val: any) => {
+    setFormData(prev => ({ ...prev, [field.name]: val }));
+  };
+
+  switch (field.type) {
+    case "textarea":
+      return (
+        <Textarea
+          placeholder={field.placeholder || ""}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className={baseClass}
+        />
+      );
+    case "select":
+      return (
+        <Select value={value} onValueChange={onChange}>
+          <SelectTrigger className={baseClass}>
+            <SelectValue placeholder="Select an option" />
+          </SelectTrigger>
+          <SelectContent>
+            {(field.options || []).map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      );
+    case "checkbox":
+      return (
+        <div className="flex items-center mt-3">
+          <Checkbox
+            checked={!!value}
+            onCheckedChange={onChange}
           />
-        );
-      case "select":
-        return (
-          <Select>
-            <SelectTrigger className={baseClass}>
-              <SelectValue placeholder="Select an option" />
-            </SelectTrigger>
-            <SelectContent>
-              {(field.options || []).map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        );
-      case "checkbox":
-        return (
-          <div className="flex items-center mt-3">
-            <Checkbox />
-            <span className="ml-2">Option</span>
-          </div>
-        );
-      case "date":
-        return <Input type="date" className={baseClass} />;
-      case "file":
-        return (
-          <Input type="file" accept={field.accept} className={baseClass} />
-        );
-      default:
-        return (
-          <Input
-            placeholder={field.placeholder || "Enter value"}
-            className={baseClass}
-          />
-        );
+          <span className="ml-2">Yes</span>
+        </div>
+      );
+    case "date":
+      return (
+        <Input
+          type="date"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className={baseClass}
+        />
+      );
+    case "file":
+      return (
+        <Input
+          type="file"
+          accept={field.accept}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) onChange(file);
+          }}
+          className={baseClass}
+        />
+      );
+    default:
+      return (
+        <Input
+          placeholder={field.placeholder || "Enter value"}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className={baseClass}
+        />
+      );
+  }
+};
+
+  const handleRemoveImage = (side: "front" | "back") => {
+    if (side === "front") {
+      setFrontImagePreview(null);
+      setFormData((prev) => ({ ...prev, cardFrontPhoto: "" }));
+    } else {
+      setBackImagePreview(null);
+      setFormData((prev) => ({ ...prev, cardBackPhoto: "" }));
     }
   };
 
-  if (isLoading) {
+  const handleAddField = (type: FieldType) => {
+    const newField: BuilderField = {
+      uid: uid("f_"),
+      type,
+      label: type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, " "),
+      name: `${type}_${Date.now()}`,
+      required: false,
+      colSpan: 2,
+      options:
+        type === "select" || type === "radio"
+          ? [{ label: "Option 1", value: "1" }]
+          : undefined,
+    };
+
+    setFormFields((prev) => [...prev, newField]);
+    toastify.success("Field added!");
+    setMobileDrawerOpen(false);
+  };
+  const openCamera = (side: "front" | "back") => {
+    setCameraSide(side);
+    setCameraOpen(true);
+  };
+
+  const handleCapture = async (file: File) => {
+    const url = URL.createObjectURL(file);
+    if (cameraSide === "front") setFrontImagePreview(url);
+    else setBackImagePreview(url);
+
+    const fd = new FormData();
+    fd.append("image", file);
+    fd.append("type", cameraSide);
+
+    try {
+      const res = await fetch("/api/upload-image", {
+        method: "POST",
+        body: fd,
+      });
+      if (res.ok) {
+        const { imageUrl } = await res.json();
+        setFormData((prev) => ({
+          ...prev,
+          [cameraSide === "front" ? "cardFrontPhoto" : "cardBackPhoto"]:
+            imageUrl,
+        }));
+        toastify.success("Photo captured & uploaded!");
+      }
+    } catch (err) {
+      toastify.error("Upload failed");
+    }
+  };
+
+  // Form validation – disables submit until ALL required fields are filled
+  const isFormValid = useMemo(() => {
+    // Front photo is mandatory
+    if (!formData.cardFrontPhoto) return false;
+
+    // Check every dynamic field that is marked as required
+    for (const field of formFields) {
+      if (field.required) {
+        const value = formData[field.name];
+        if (!value || (typeof value === "string" && value.trim() === "")) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }, [formData, formFields]);
+
+   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center">
         <div className="text-center">
@@ -4048,42 +4273,6 @@ export function ExhibitionForm() {
         </div>
       </div>
     );
-  }
-
-  function handleRemoveImage(side: "front" | "back") {
-    if (side === "front") {
-      setFrontImagePreview(null);
-      setFormData((prev) => ({
-        ...prev,
-        front: null,
-      }));
-    }
-
-    if (side === "back") {
-      setBackImagePreview(null);
-      setFormData((prev) => ({
-        ...prev,
-        back: null,
-      }));
-    }
-  }
-
-  function handleAddField(type: FieldType) {
-    const newField = {
-      id: Date.now(),
-      type,
-      label: type.charAt(0).toUpperCase() + type.slice(1),
-      value: "",
-    };
-
-    setFormFields((prev) => [...prev, newField]);
-
-    toastify.success(`${newField.label} added successfully!`, {
-      style: {
-        background: "linear-gradient(to right, #483d73, #352c55)",
-        color: "#fff",
-      },
-    });
   }
 
   return (
@@ -4141,7 +4330,7 @@ export function ExhibitionForm() {
                           damping: 25,
                           stiffness: 300,
                         }}
-                        className="fixed left-0 top-0 bottom-0 w-80 max-w-[90vw] bg-white shadow-2xl z-50 lg:hidden overflow-y-auto"
+                        className="fixed left-0 top-0 w-80 max-w-[90vw] bg-white shadow-2xl z-50 lg:hidden overflow-y-auto max-h-screen"
                       >
                         {/* Header */}
                         <div className="p-6 border-b bg-gradient-to-r from-[#483d73] to-[#352c55] text-white">
@@ -4224,6 +4413,9 @@ export function ExhibitionForm() {
                       type={item.type}
                       label={item.label}
                       handleAddField={handleAddField}
+                      setMobileDrawerOpen={function (open: boolean): void {
+                        throw new Error("Function not implemented.");
+                      }}
                     />
                   ))}
                 </div>
@@ -4277,7 +4469,6 @@ export function ExhibitionForm() {
                         id="front"
                         onChange={(e) => handleImageChange(e, "front")}
                       />
-
                       <label
                         htmlFor="front"
                         className="
@@ -4315,6 +4506,13 @@ export function ExhibitionForm() {
                         ) : (
                           <Upload className="w-10 h-10 md:w-12 md:h-12 text-gray-400" />
                         )}
+                        <Button
+                          onClick={() => openCamera("front")}
+                          size="sm"
+                          className="absolute bottom-1 right-1 bg-[#3a325e] backdrop-blur hover:bg-[#2e274b] text-white shadow-lg"
+                        >
+                          <Camera className="w-5 h-5" />
+                        </Button>
                       </label>
                     </div>
 
@@ -4367,6 +4565,13 @@ export function ExhibitionForm() {
                         ) : (
                           <Upload className="w-10 h-10 md:w-12 md:h-12 text-gray-400" />
                         )}
+                        <Button
+                          onClick={() => openCamera("back")}
+                          size="sm"
+                          className="absolute bottom-1 right-1 bg-[#3a325e] backdrop-blur hover:bg-[#2e274b] text-white shadow-lg"
+                        >
+                          <Camera className="w-5 h-5" />
+                        </Button>
                       </label>
                     </div>
                   </div>
@@ -4414,7 +4619,7 @@ export function ExhibitionForm() {
                   </div>
 
                   {/* Dynamic Fields Area - 4 Column Grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 p-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                     <SortableContext
                       items={formFields.map((f) => f.uid)}
                       strategy={verticalListSortingStrategy}
@@ -4468,18 +4673,25 @@ export function ExhibitionForm() {
                   </div>
                 </CardContent>
                 <CardFooter>
+                  
                   <Button
                     onClick={handleSubmit}
-                    disabled={
-                      isSubmitting || limitReached || !formData.cardFrontPhoto
-                    }
+                    disabled={isSubmitting || limitReached || !isFormValid}
                     className="w-full bg-gradient-to-r from-[#483d73] to-[#352c55] text-white"
                   >
                     {isSubmitting ? "Submitting..." : "Submit Lead"}
                   </Button>
+                  
                 </CardFooter>
               </Card>
             </div>
+
+            {/* Camera Modal */}
+            <CameraModal
+              isOpen={cameraOpen}
+              onClose={() => setCameraOpen(false)}
+              onCapture={handleCapture}
+            />
 
             <DragOverlay>
               {activeDragId &&

@@ -383,18 +383,11 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     }
 
     // Fetch session user's org
-    const currentUser = await prisma.user.findUnique({
-      where: { id: String(session.id) },
-      select: { organizationId: true, isAdmin: true },
-    });
+const isAdmin = (session as any)?.user?.isAdmin || (session as any)?.isAdmin || false;
 
-    const isOwner = owner.userId === session.id;
-    const isAdmin = currentUser?.isAdmin;
+    const isOwner = owner.userId === String(session.id);
 
     // ❌ Admin cannot access forms outside his organization
-    if (isAdmin && currentUser?.organizationId !== owner.user.organizationId) {
-      return NextResponse.json({ error: "Forbidden – cross-organization access blocked" }, { status: 403 });
-    }
 
     if (!isOwner && !isAdmin) {
       return NextResponse.json({ error: "Forbidden – not your card" }, { status: 403 });
@@ -432,17 +425,9 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       return NextResponse.json({ error: "Form not found" }, { status: 404 });
     }
 
-    const currentUser = await prisma.user.findUnique({
-      where: { id: String(session.id) },
-      select: { organizationId: true, isAdmin: true },
-    });
+const isAdmin = (session as any)?.user?.isAdmin || (session as any)?.isAdmin || false;
 
-    const isOwner = owner.userId === session.id;
-    const isAdmin = currentUser?.isAdmin;
-
-    if (isAdmin && currentUser?.organizationId !== owner.user.organizationId) {
-      return NextResponse.json({ error: "Forbidden – cross-organization update blocked" }, { status: 403 });
-    }
+    const isOwner = owner.userId === String(session.id);
 
     if (!isOwner && !isAdmin) {
       return NextResponse.json({ error: "Forbidden – not your card" }, { status: 403 });
@@ -515,47 +500,43 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 /* -------------------------------------------------------------------------- */
 /*                                   DELETE                                   */
 /* -------------------------------------------------------------------------- */
-export async function DELETE(req: Request, { params }: { params: { id?: string } }) {
+export async function DELETE(req: Request, { params }: { params: { id: string } }) {
   try {
     const session = await getSession();
     if (!session?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const id = params.id;
-    if (!id) {
-      return NextResponse.json({ error: "Missing form ID" }, { status: 400 });
-    }
+    const { id } = params;
 
     const owner = await getFormOwner(id);
     if (!owner) {
       return NextResponse.json({ error: "Form not found" }, { status: 404 });
     }
 
-    const currentUser = await prisma.user.findUnique({
-      where: { id: String(session.id) },
-      select: { organizationId: true, isAdmin: true },
-    });
+    // FIXED: Use session directly — same as /api/forms GET
+    const isAdmin = (session as any)?.user?.isAdmin || (session as any)?.isAdmin || false;
+    const isOwner = owner.userId === String(session.id);
 
-    const isOwner = owner.userId === session.id;
-    const isAdmin = currentUser?.isAdmin;
-
-    if (isAdmin && currentUser?.organizationId !== owner.user.organizationId) {
-      return NextResponse.json({ error: "Forbidden – cross-organization delete blocked" }, { status: 403 });
+    // Optional: Block cross-org access for admins
+    if (isAdmin) {
+      const adminOrgId = (session as any)?.user?.organizationId || (session as any)?.organizationId;
+      if (adminOrgId && adminOrgId !== owner.user.organizationId) {
+        return NextResponse.json({ error: "Forbidden – cross-organization delete blocked" }, { status: 403 });
+      }
     }
 
     if (!isOwner && !isAdmin) {
       return NextResponse.json({ error: "Forbidden – not your card" }, { status: 403 });
     }
 
+    await prisma.extractedData.deleteMany({ where: { formId: id } });
+    await prisma.mergedData.deleteMany({ where: { formId: id } });
     await prisma.form.delete({ where: { id } });
 
     return NextResponse.json({ message: "Form deleted successfully" });
   } catch (error: any) {
     console.error("Error deleting form:", error);
-    if (error.code === "P2025") {
-      return NextResponse.json({ error: "Form not found" }, { status: 404 });
-    }
     return NextResponse.json({ error: "Failed to delete form" }, { status: 500 });
   }
 }

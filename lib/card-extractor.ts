@@ -192,21 +192,27 @@ export async function extractCardDetails(
     const extractedData = JSON.parse(jsonString);
     console.log("Parsed extracted data:", extractedData);
 
-    const mappedData = {
-      name: extractedData.Name || null,
-      companyName: extractedData.Company || null,
-      website: extractedData.Website || null,
-      email: extractedData.Email || null,
-      address: extractedData.Address !== null ? extractedData.Address : null,
-      contactNumbers:
-        [extractedData.Mobile, extractedData.Mobile_2, extractedData.Phone]
-          .filter(Boolean)
-          .join(", ") || null,
-      state: extractedData.State !== null ? extractedData.State : null,
-      country: extractedData.Country !== null ? extractedData.Country : null,
-      city: extractedData.city !== null ? extractedData.city : null,
-      description: extractedData.description !== null ? extractedData.description : null
-    };
+   const mappedData = {
+  name: extractedData.Name || extractedData.name || null,
+  companyName: extractedData.Company || extractedData.companyName || null,
+  website: extractedData.Website || extractedData.website || null,
+  email: extractedData.Email || extractedData.email || null,
+  address: extractedData.Address || extractedData.address || null,
+  contactNumbers: [
+    extractedData.Mobile,
+    extractedData.Mobile_2,
+    extractedData.Phone,
+    extractedData.mobile,
+    extractedData.mobile_2,
+    extractedData.phone,
+  ]
+    .filter(Boolean)
+    .join(", ") || null,
+  state: extractedData.State || extractedData.state || null,
+  country: extractedData.Country || extractedData.country || null,
+  city: extractedData.City || extractedData.city || null,  // ← Now works!
+  description: extractedData.description || null,
+};
     console.log("here is mapped data", mappedData);
     
     return ExtractedDataSchema.parse(mappedData);

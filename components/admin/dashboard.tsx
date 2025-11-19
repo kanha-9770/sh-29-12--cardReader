@@ -1219,7 +1219,6 @@
 
 // export default AdminDashboard;
 
-
 "use client";
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
@@ -1278,18 +1277,19 @@ export function AdminDashboardEnhanced() {
   const [openEdit, setOpenEdit] = useState<string | null>(null);
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
   const [showManage, setShowManage] = useState(false);
-  const [visibleColumns, setVisibleColumns] = useState<string[]>([
-    "cardImage",
-    "cardNo",
-    "date",
-    "user",
-    "personName",
-    "company",
-    "state",
-    "country",
-    "leadStatus",
-    "meeting",
-  ]);
+const [visibleColumns, setVisibleColumns] = useState<string[]>([
+  "cardImage",
+  "cardNo",
+  "date",
+  "user",
+  "personName",
+  "company",
+  "city",
+  "state",
+  "country",
+  "leadStatus",
+  "meeting",
+]);
 
   const possibleColumns = useMemo(() => {
     const fixedColumns = [
@@ -1352,6 +1352,12 @@ export function AdminDashboardEnhanced() {
         render: (form: FormData) =>
           form.mergedData?.companyName || form.additionalData?.company || "N/A",
       },
+      {
+  id: "city",
+  label: "City",
+  width: "w-28",
+  render: (form: FormData) => form.extractedData?.city || "N/A",
+},
       {
         id: "state",
         label: "State",
@@ -1456,38 +1462,36 @@ export function AdminDashboardEnhanced() {
       },
     ];
 
-    // Dynamic columns from additionalData
-    const allAdditionalKeys = forms.flatMap((f) =>
-      Object.keys(f.additionalData || {})
-    );
-    const uniqueAdditional = [...new Set(allAdditionalKeys)].slice(0, 10); // Limit to 10
-    const additionalColumns = uniqueAdditional.map((key) => ({
-      id: `add_${key}`,
-      label: key
-        .replace(/_/g, " ")
-        .replace(/\b\w/g, (l: string) => l.toUpperCase()),
-      width: "w-32",
-      render: (form: FormData) => form.additionalData?.[key] || "N/A",
-    }));
+// Dynamic additionalData columns
+  const allAdditionalKeys = forms.flatMap((f) =>
+    Object.keys(f.additionalData || {})
+  );
+  const uniqueAdditional = [...new Set(allAdditionalKeys)].slice(0, 10);
+  const additionalColumns = uniqueAdditional.map((key) => ({
+    id: `add_${key}`,
+    label: key.replace(/_/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase()),
+    width: "w-32",
+    render: (form: FormData) => form.additionalData?.[key] || "N/A",
+  }));
 
-    // Dynamic columns from extractedData
-    const allExtractedKeys = forms.flatMap((f) =>
-      Object.keys(f.extractedData || {})
-    );
-    const uniqueExtracted = [...new Set(allExtractedKeys)]
-      .filter((key) => !fixedColumns.some((c) => c.id.includes(key)))
-      .slice(0, 10);
-    const extractedColumns = uniqueExtracted.map((key) => ({
-      id: `ext_${key}`,
-      label: key
-        .replace(/_/g, " ")
-        .replace(/\b\w/g, (l: string) => l.toUpperCase()),
-      width: "w-32",
-      render: (form: FormData) => form.extractedData?.[key] || "N/A",
-    }));
+  // FIXED: Dynamic extractedData columns — ONLY block exact matches
+  const allExtractedKeys = forms.flatMap((f) =>
+    Object.keys(f.extractedData || {})
+  );
+  const blockedKeys = ["companyName", "name", "email", "contactNumbers", "city" , "state", "country","website", "address"];
+  const uniqueExtracted = [...new Set(allExtractedKeys)]
+    .filter((key) => !blockedKeys.includes(key))  // ← Only block exact keys
+    .slice(0, 15);
 
-    return [...fixedColumns, ...additionalColumns, ...extractedColumns];
-  }, [forms]);
+  const extractedColumns = uniqueExtracted.map((key) => ({
+    id: `ext_${key}`,
+    label: key.replace(/_/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase()),
+    width: "w-36",
+    render: (form: FormData) => form.extractedData?.[key] || "—",
+  }));
+
+  return [...fixedColumns, ...additionalColumns, ...extractedColumns];
+}, [forms]);
 
   const displayColumns = useMemo(
     () => [...visibleColumns, "actions"],
@@ -1696,9 +1700,8 @@ export function AdminDashboardEnhanced() {
       return;
     try {
       setIsLoading(true);
-      const res = await fetch(`/api/forms/${encodeURIComponent(id)}`, {
-        method: "DELETE",
-      });
+      const res = await fetch(`/api/forms/${id}`, { 
+});
       if (!res.ok) {
         const errorData = await res.text();
         throw new Error(
@@ -2288,205 +2291,284 @@ export function AdminDashboardEnhanced() {
           <DashboardOverview forms={forms} />
         </TabsContent>
 
-        <TabsContent value="data" className="space-y-4">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <Input
-              placeholder="Search forms..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full sm:w-64"
-            />
-            <div className="flex items-center gap-2">
-              <Select value={selectedUser} onValueChange={setSelectedUser}>
-                <SelectTrigger className="w-full sm:w-[200px]">
-                  <SelectValue placeholder="Filter by user" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Users</SelectItem>
-                  {users.map((u) => (
-                    <SelectItem key={u.id} value={u.id}>
-                      {u.email}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+       <TabsContent value="data" className="space-y-4">
 
-              <Button
-                onClick={handleDownloadExcel}
-                disabled={isDownloading || filteredForms.length === 0}
-                className="bg-[#483d73] hover:bg-[#31294e] text-white"
-              >
-                {isDownloading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Exporting...
-                  </>
-                ) : (
-                  <>
-                    <Download className="h-4 w-4 mr-2" />
-                    Download Excel ({filteredForms.length})
-                  </>
-                )}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setShowManage(true)}
-                className="bg-[#483d73] hover:bg-[#31294e] text-white hover:text-white"
-              >
-                Manage Columns
-              </Button>
-            </div>
+  {/* ------------------- MOBILE VERSION ------------------- */}
+  <div className="sm:hidden flex flex-col gap-3">
+
+    {/* Row 1: Search + User Filter */}
+    <div className="flex w-full gap-2">
+      <Input
+        placeholder="Search forms..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        className="flex-1 h-9 px-2 text-sm"
+      />
+
+      <Select value={selectedUser} onValueChange={setSelectedUser}>
+        <SelectTrigger className="h-9 px-2 text-sm w-32">
+          <SelectValue placeholder="Users" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Users</SelectItem>
+          {users.map((u) => (
+            <SelectItem key={u.id} value={u.id}>
+              {u.email}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+
+    {/* Row 2: Excel + Manage Columns */}
+    <div className="flex w-full gap-2">
+      <Button
+        onClick={handleDownloadExcel}
+        disabled={isDownloading || filteredForms.length === 0}
+        className="flex-1 h-9 px-2 text-xs bg-[#483d73] hover:bg-[#352c55]"
+      >
+        {isDownloading ? (
+          <>
+            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+            Export
+          </>
+        ) : (
+          <>
+            <Download className="h-3.5 w-3.5 mr-1" />
+            Download Excel ({filteredForms.length})
+          </>
+        )}
+      </Button>
+
+      <Button
+        variant="outline"
+        onClick={() => setShowManage(true)}
+        className="flex-1 h-9 px-2 text-xs border-[#483d73] text-[#483d73] hover:bg-[#483d73]/10"
+      >
+        Manage Columns
+      </Button>
+    </div>
+  </div>
+
+  {/* ------------------- DESKTOP VERSION ------------------- */}
+  <div className="hidden sm:flex flex-row justify-between items-center gap-3">
+
+    {/* Search */}
+    <Input
+      placeholder="Search forms..."
+      value={search}
+      onChange={(e) => setSearch(e.target.value)}
+      className="w-64 h-9"
+    />
+
+    {/* Filter + Buttons */}
+    <div className="flex items-center gap-2">
+      <Select value={selectedUser} onValueChange={setSelectedUser}>
+        <SelectTrigger className="w-48 text-xs h-9">
+          <SelectValue placeholder="All Users" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Users</SelectItem>
+          {users.map((u) => (
+            <SelectItem key={u.id} value={u.id}>
+              {u.email}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      <Button
+        onClick={handleDownloadExcel}
+        disabled={isDownloading || filteredForms.length === 0}
+        size="sm"
+        className="h-9 px-3 text-xs bg-[#483d73] hover:bg-[#352c55]"
+      >
+        {isDownloading ? (
+          <>
+            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+            Exporting...
+          </>
+        ) : (
+          <>
+            <Download className="h-3.5 w-3.5 mr-1" />
+            Download Excel ({filteredForms.length})
+          </>
+        )}
+      </Button>
+
+      <Button
+        variant="outline"
+        onClick={() => setShowManage(true)}
+        className="bg-[#483d73] hover:bg-[#31294e] text-white hover:text-white h-9 px-3 text-xs"
+      >
+        Manage Columns
+      </Button>
+    </div>
+  </div>
+
+  {/* ------------------- TABLE + PAGINATION (unchanged) ------------------- */}
+  <Card>
+    <CardContent className="p-0 mt-8">
+      <div className="w-full h-[30rem] flex flex-col">
+        <div className="w-full overflow-auto">
+          <table className="w-full text-sm border-collapse table-fixed min-w-[1350px]">
+            <thead className="sticky top-0 z-10">
+              <tr>
+                {displayColumns.map((colId) => {
+                  const col = possibleColumns.find((c) => c.id === colId);
+                  if (!col) return null;
+                  return (
+                    <th
+                      key={colId}
+                      className={`bg-gray-100 py-2 px-2 border ${col.width}`}
+                    >
+                      {col.label}
+                    </th>
+                  );
+                })}
+              </tr>
+            </thead>
+            <tbody>
+              {currentItems.length > 0 ? (
+                currentItems
+                  .filter((form) => form.id)
+                  .map((form) => (
+                    <tr key={form.id!} className="text-xs hover:bg-gray-50">
+                      {displayColumns.map((colId) => {
+                        const col = possibleColumns.find(
+                          (c) => c.id === colId
+                        );
+                        if (!col) return null;
+                        return (
+                          <td
+                            key={colId}
+                            className={`py-1 px-2 border ${col.width}`}
+                          >
+                            {col.render(form)}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))
+              ) : (
+                <tr>
+                  <td
+                    colSpan={displayColumns.length}
+                    className="py-4 text-center border"
+                  >
+                    {isLoading ? "Loading..." : "No forms found"}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="flex justify-between items-center mt-2">
+          <div className="flex gap-2 items-center">
+            <Button
+              className="bg-[#483d73] hover:bg-[#31294e]"
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+            >
+              Prev
+            </Button>
+            <span>
+              Page {currentPage} of {totalPages}
+            </span>
+            <Button
+              className="bg-[#483d73] hover:bg-[#31294e]"
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </Button>
           </div>
 
-          <Card>
-            <CardContent className="p-0 mt-8">
-              <div className="w-full h-[30rem] flex flex-col">
-                <div className="w-full overflow-auto">
-                  <table className="w-full text-sm border-collapse table-fixed min-w-[1350px]">
-                    <thead className="sticky top-0 z-10">
-                      <tr>
-                        {displayColumns.map((colId) => {
-                          const col = possibleColumns.find(
-                            (c) => c.id === colId
-                          );
-                          if (!col) return null;
-                          return (
-                            <th
-                              key={colId}
-                              className={`bg-gray-100 py-2 px-2 border ${col.width}`}
-                            >
-                              {col.label}
-                            </th>
-                          );
-                        })}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {currentItems.length > 0 ? (
-                        currentItems
-                          .filter((form) => form.id)
-                          .map((form) => (
-                            <tr
-                              key={form.id!}
-                              className="text-xs hover:bg-gray-50"
-                            >
-                              {displayColumns.map((colId) => {
-                                const col = possibleColumns.find(
-                                  (c) => c.id === colId
-                                );
-                                if (!col) return null;
-                                return (
-                                  <td
-                                    key={colId}
-                                    className={`py-1 px-2 border ${col.width}`}
-                                  >
-                                    {col.render(form)}
-                                  </td>
-                                );
-                              })}
-                            </tr>
-                          ))
-                      ) : (
-                        <tr>
-                          <td
-                            colSpan={displayColumns.length}
-                            className="py-4 text-center border"
-                          >
-                            {isLoading ? "Loading..." : "No forms found"}
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+          <Select
+            value={String(itemsPerPage)}
+            onValueChange={handleItemsPerPageChange}
+          >
+            <SelectTrigger className="w-[80px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {[5, 10, 20, 50].map((num) => (
+                <SelectItem key={num} value={String(num)}>
+                  {num}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+</TabsContent>
 
-                <div className="flex justify-between items-center mt-2">
-                  <div className="flex gap-2 items-center">
-                    <Button
-                      className="bg-[#483d73] hover:bg-[#31294e]"
-                      onClick={() => handlePageChange(currentPage - 1)}
-                      disabled={currentPage === 1}
-                    >
-                      Prev
-                    </Button>
-                    <span>
-                      Page {currentPage} of {totalPages}
-                    </span>
-                    <Button
-                      className="bg-[#483d73] hover:bg-[#31294e]"
-                      onClick={() => handlePageChange(currentPage + 1)}
-                      disabled={currentPage === totalPages}
-                    >
-                      Next
-                    </Button>
-                  </div>
-                  <Select
-                    value={String(itemsPerPage)}
-                    onValueChange={handleItemsPerPageChange}
-                  >
-                    <SelectTrigger className="w-[80px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {[5, 10, 20, 50].map((num) => (
-                        <SelectItem key={num} value={String(num)}>
-                          {num}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
 
-      {/* Manage Columns Dialog */}
-      <Dialog open={showManage} onOpenChange={setShowManage}>
-        <DialogContent className="max-h-[500px] max-w-md">
-          <DialogHeader>
-            <DialogTitle>Manage Dashboard Columns</DialogTitle>
-          </DialogHeader>
-          <div className="max-h-[300px] overflow-y-auto space-y-3">
+     {/* Manage Columns Dialog - Improved & Grouped */}
+<Dialog open={showManage} onOpenChange={setShowManage}>
+  <DialogContent className="max-h-[80vh] max-w-lg">
+    <DialogHeader>
+      <DialogTitle>Manage Dashboard Columns</DialogTitle>
+    </DialogHeader>
+    <ScrollArea className="max-h-[60vh] pr-4">
+      <div className="space-y-6 py-4">
+
+        {/* Optional Extracted Fields */}
+        <div className="border-t pt-4">
+          <h4 className="font-semibold text-sm mb-3 text-blue-700">Optional Extracted Fields</h4>
+          {possibleColumns
+            .filter(col => col.id.startsWith("ext_"))
+            .sort((a, b) => a.label.localeCompare(b.label))
+            .map(col => (
+              <div key={col.id} className="flex items-center space-x-2 py-1">
+                <Checkbox
+                  checked={visibleColumns.includes(col.id)}
+                  onCheckedChange={(checked) => {
+                    setVisibleColumns(prev =>
+                      checked ? [...prev, col.id] : prev.filter(id => id !== col.id)
+                    );
+                  }}
+                />
+                <Label className="text-sm">{col.label}</Label>
+              </div>
+            ))}
+        </div>
+
+        {/* Custom Additional Fields */}
+        {possibleColumns.some(col => col.id.startsWith("add_")) && (
+          <div className="border-t pt-4">
+            <h4 className="font-semibold text-sm mb-3 text-purple-700">Custom Fields</h4>
             {possibleColumns
-              .filter(
-                (col) =>
-                  col.id !== "actions" &&
-                  !col.id.startsWith("add_") &&
-                  !col.id.startsWith("ext_")
-              )
-              .map((col) => (
-                <div key={col.id} className="flex items-center space-x-2">
+              .filter(col => col.id.startsWith("add_"))
+              .map(col => (
+                <div key={col.id} className="flex items-center space-x-2 py-1">
                   <Checkbox
-                    id={col.id}
-                    className="data-[state=checked]:bg-[#483d73] data-[state=checked]:border-[#483d73]"
                     checked={visibleColumns.includes(col.id)}
                     onCheckedChange={(checked) => {
-                      setVisibleColumns((prev) =>
-                        checked
-                          ? [...new Set([...prev, col.id])]
-                          : prev.filter((id) => id !== col.id)
+                      setVisibleColumns(prev =>
+                        checked ? [...prev, col.id] : prev.filter(id => id !== col.id)
                       );
                     }}
                   />
-
-                  <Label htmlFor={col.id} className="text-sm flex-1">
-                    {col.label}
-                  </Label>
+                  <Label className="text-sm">{col.label}</Label>
                 </div>
               ))}
           </div>
-          <div className="flex justify-end pt-4">
-            <Button
-              className="bg-[#483d73] hover:bg-[#31294e] text-white"
-              onClick={() => setShowManage(false)}
-            >
-              Close
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+        )}
+      </div>
+    </ScrollArea>
+
+    <div className="flex justify-end pt-2  border-t">
+      <Button onClick={() => setShowManage(false)} className="bg-[#483d73] hover:bg-[#31294e]">
+        Done
+      </Button>
+    </div>
+  </DialogContent>
+</Dialog>
 
       {/* View Dialog */}
       {selectedViewForm && selectedViewForm.id && (
@@ -2520,18 +2602,18 @@ export function AdminDashboardEnhanced() {
                     })()}
                   </TabsContent>
                   <TabsContent value="extracted">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Extracted Information</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <ExtractedDataForm
-                          form={selectedViewForm}
-                          closeDialog={() => setOpenView(null)}
-                        />
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
+  <Card>
+    <CardHeader>
+      <CardTitle>Extracted Information</CardTitle>
+    </CardHeader>
+    <CardContent>
+      <ExtractedDataForm
+        form={selectedViewForm}
+        closeDialog={() => setOpenView(null)}
+      />
+    </CardContent>
+  </Card>
+</TabsContent>
                   <TabsContent value="form">
                     <FormDataView data={selectedViewForm} />
                   </TabsContent>
@@ -2635,7 +2717,7 @@ export function AdminDashboardEnhanced() {
                   selectedEditForm.extractionStatus || "PENDING",
               }}
               additionalData={selectedEditForm.additionalData || {}}
-              onSubmit={(updatedData) =>
+              onSubmit={(updatedData: any) =>
                 handleUpdate(updatedData, selectedEditForm.id!, () => {
                   setOpenEdit(null);
                 })
