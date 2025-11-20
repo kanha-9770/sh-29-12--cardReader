@@ -465,7 +465,7 @@ export async function POST(req: Request) {
     });
 
     // Trigger background job (fire and forget)
-    fetch(`${process.env.NEXT_PUBLIC_URL || "https://exhibition-lead-generator-nu.vercel.app"}/api/background-job`, {
+    fetch(`${process.env.NEXT_PUBLIC_APP_URL || "https://exhibition-lead-generator-nu.vercel.app"}/api/background-job`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ formId: form.id }),
