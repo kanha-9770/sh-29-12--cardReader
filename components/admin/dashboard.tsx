@@ -4102,7 +4102,7 @@ const [visibleColumns, setVisibleColumns] = useState<string[]>([
       {/* View Dialog */}
       {selectedViewForm && selectedViewForm.id && (
         <Dialog open={true} onOpenChange={() => setOpenView(null)}>
-          <DialogContent className="max-w-4xl h-[90vh] overflow-hidden flex flex-col">
+          <DialogContent className="w-[95vw] max-w-md sm:max-w-4xl h-[90vh] overflow-hidden flex flex-col">
             <DialogHeader>
               <DialogTitle>
                 Business Card - {selectedViewForm.cardNo || "N/A"}
@@ -4110,13 +4110,13 @@ const [visibleColumns, setVisibleColumns] = useState<string[]>([
             </DialogHeader>
             <div className="flex-grow overflow-y-auto">
               <Tabs defaultValue="merged" className="w-full">
-                <TabsList className="grid w-full grid-cols-4 sticky top-0 bg-background z-10">
+                <TabsList className="flex overflow-x-auto whitespace-nowrap sticky top-0 bg-background z-10">
                   <TabsTrigger value="merged">Merged Data</TabsTrigger>
                   <TabsTrigger value="extracted">Extracted Data</TabsTrigger>
                   <TabsTrigger value="form">Form Data</TabsTrigger>
                   <TabsTrigger value="images">Card Image</TabsTrigger>
                 </TabsList>
-                <ScrollArea className="h-[calc(90vh-120px)]">
+                <ScrollArea className="h-[calc(80vh-100px)] sm:h-[calc(90vh-120px)]">
                   <TabsContent value="merged">
                     {(() => {
                       const merged = {

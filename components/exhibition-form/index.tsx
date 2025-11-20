@@ -3333,7 +3333,7 @@ import {
 } from "lucide-react";
 import { toast as toastify, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-
+import { rectSortingStrategy } from "@dnd-kit/sortable";
 import {
   DndContext,
   closestCenter,
@@ -3389,6 +3389,7 @@ function uid(prefix = "") {
 }
 
 /* ==================== CAMERA MODAL - MOBILE FRIENDLY ==================== */
+/* ==================== BEAUTIFUL CAMERA MODAL ==================== */
 function CameraModal({
   isOpen,
   onClose,
@@ -3400,19 +3401,17 @@ function CameraModal({
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [facingMode, setFacingMode] = useState<"user" | "environment">(
-    "environment"
-  );
+  const [facingMode, setFacingMode] = useState<"user" | "environment">("environment");
 
   const startStream = async () => {
     if (!videoRef.current) return;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode },
+        video: { facingMode, width: { ideal: 1280 }, height: { ideal: 1280 } },
       });
       videoRef.current.srcObject = stream;
     } catch (err) {
-      toastify.error("Camera access denied");
+      toastify.error("Camera access denied or unavailable");
       onClose();
     }
   };
@@ -3421,23 +3420,22 @@ function CameraModal({
     if (!videoRef.current || !canvasRef.current) return;
     const video = videoRef.current;
     const canvas = canvasRef.current;
+
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
+
     const ctx = canvas.getContext("2d");
     if (ctx) {
       ctx.drawImage(video, 0, 0);
-      canvas.toBlob(
-        (blob) => {
-          if (blob) {
-            const file = new File([blob], `capture-${Date.now()}.jpg`, {
-              type: "image/jpeg",
-            });
-            onCapture(file);
-          }
-        },
-        "image/jpeg",
-        0.92
-      );
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const file = new File([blob], `capture-${Date.now()}.jpg`, {
+            type: "image/jpeg",
+          });
+          onCapture(file);
+          onClose(); // Auto-close after capture
+        }
+      }, "image/jpeg", 0.95);
     }
   };
 
@@ -3447,11 +3445,12 @@ function CameraModal({
 
   useEffect(() => {
     if (isOpen) startStream();
+
     return () => {
       if (videoRef.current?.srcObject) {
         (videoRef.current.srcObject as MediaStream)
           .getTracks()
-          .forEach((t) => t.stop());
+          .forEach((track) => track.stop());
       }
     };
   }, [isOpen, facingMode]);
@@ -3459,48 +3458,70 @@ function CameraModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black z-50 flex flex-col">
-      {/* Header */}
-      <div className="bg-gray-900 text-white p-4 flex justify-between items-center shrink-0">
-        <h3 className="font-bold text-lg">Take Photo</h3>
-        <button
-          onClick={onClose}
-          className="p-2 hover:bg-white/20 rounded-full transition"
-        >
-          <X className="w-6 h-6" />
-        </button>
-      </div>
+    <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4">
+      <motion.div
+        initial={{ scale: 0.85, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        className="relative bg-white rounded-3xl shadow-2xl overflow-hidden max-w-lg w-full"
+      >
+        {/* Header */}
+        <div className="absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/70 to-transparent p-5 flex justify-between items-start">
+          <h3 className="text-white text-xl font-bold">Take Photo</h3>
+          <button
+            onClick={onClose}
+            className="bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white p-3 rounded-full transition"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
 
-      {/* Video - Takes most of the screen */}
-      <div className="flex-1 relative bg-black">
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted
-          className="w-full h-full object-cover"
-        />
-        <canvas ref={canvasRef} className="hidden" />
-      </div>
+        {/* Video Feed - Perfect square with letterboxing */}
+        <div className="relative bg-black aspect-square flex items-center justify-center overflow-hidden">
+          <div className="absolute inset-0 bg-black/60" />
 
-      {/* Controls - Fixed at bottom */}
-      <div className="bg-gray-900 p-6 flex justify-center items-center gap-6 shrink-0">
-        <Button size="lg" variant="outline" onClick={switchCamera}>
-          <RefreshCw className="w-5 h-5" />
-        </Button>
+          <div className="relative w-full h-full flex items-center justify-center">
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              className="min-w-full min-h-full object-cover rounded-2xl"
+            />
+            {/* Subtle camera frame overlay */}
+            <div className="absolute inset-4 border-4 border-white/20 rounded-2xl pointer-events-none" />
+            <div className="absolute inset-8 border-2 border-white/10 rounded-xl pointer-events-none" />
+          </div>
 
-        {/* Big Capture Button */}
-        <button
-          onClick={capturePhoto}
-          className="w-20 h-20 rounded-full bg-white border-4 border-gray-900 shadow-2xl active:scale-95 transition-transform"
-        >
-          <div className="w-16 h-16 bg-white rounded-full border-4 border-gray-300 m-auto" />
-        </button>
+          <canvas ref={canvasRef} className="hidden" />
+        </div>
 
-        <Button size="lg" variant="ghost" onClick={onClose}>
-          Cancel
-        </Button>
-      </div>
+        {/* Bottom Controls */}
+        <div className="bg-white p-6 flex justify-center items-center gap-8">
+          {/* Switch Camera */}
+          <button
+            onClick={switchCamera}
+            className="p-4 bg-gray-100 hover:bg-gray-200 rounded-full transition"
+          >
+            <RefreshCw className="w-6 h-6" />
+          </button>
+
+          {/* Big Shutter Button */}
+          <button
+            onClick={capturePhoto}
+            className="relative w-20 h-20 bg-white rounded-full shadow-2xl border-8 border-gray-200 active:scale-95 transition-transform"
+          >
+            <div className="absolute inset-2 bg-white rounded-full border-4 border-gray-400" />
+          </button>
+
+          {/* Cancel */}
+          <button
+            onClick={onClose}
+            className="px-6 py-3 text-gray-700 font-medium hover:bg-gray-100 rounded-full transition"
+          >
+            Cancel
+          </button>
+        </div>
+      </motion.div>
     </div>
   );
 }
@@ -3917,7 +3938,7 @@ export function ExhibitionForm() {
           ...f,
           uid: f.uid || uid("f_"),
         }));
-        setFormFields(loaded.length > 0 ? loaded : freshDefaults);
+        setFormFields(loaded.length > 0 ? loaded : []);
 
         const sessionRes = await fetch("/api/auth/me");
         if (sessionRes.ok) {
@@ -3932,7 +3953,7 @@ export function ExhibitionForm() {
           setLimitReached(count >= LIMIT);
         }
       } catch (err) {
-        setFormFields(freshDefaults);
+        setFormFields([]);
       } finally {
         setIsLoading(false);
         setIsLoadingCount(false);
@@ -4596,6 +4617,18 @@ export function ExhibitionForm() {
                     </Select>
                   </div>
 
+                  <div className="space-y-1">
+  <Label className="text-xs">Description</Label>
+  <textarea
+    value={formData.description}
+    onChange={(e) =>
+      setFormData((prev) => ({ ...prev, description: e.target.value }))
+    }
+    placeholder="Enter description..."
+    className="w-full min-h-24 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+  />
+</div>
+
                   {/* Meeting Switch */}
                   <div className="flex items-center space-x-3">
                     <Switch
@@ -4618,59 +4651,69 @@ export function ExhibitionForm() {
                     </Label>
                   </div>
 
-                  {/* Dynamic Fields Area - 4 Column Grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <SortableContext
-                      items={formFields.map((f) => f.uid)}
-                      strategy={verticalListSortingStrategy}
-                    >
-                      <AnimatePresence>
-                        {formFields.length === 0 ? (
-                          <div className="col-span-full text-center py-12 text-gray-500 text-lg">
-                            {isAdmin
-                              ? "Drag fields from the sidebar to build your form"
-                              : "No additional fields"}
-                          </div>
-                        ) : (
-                          formFields.map((field) => (
-                            <div
-                              key={field.uid}
-                              className={`${
-                                field.colSpan === 1
-                                  ? "sm:col-span-1"
-                                  : field.colSpan === 2
-                                  ? "sm:col-span-2"
-                                  : field.colSpan === 3
-                                  ? "sm:col-span-3"
-                                  : "sm:col-span-full lg:col-span-4"
-                              }`}
-                            >
-                              <SortableFormField
-                                field={field}
-                                isAdmin={isAdmin}
-                                onEdit={setEditingField}
-                                onDelete={(uid) =>
-                                  setFormFields((prev) =>
-                                    prev.filter((f) => f.uid !== uid)
-                                  )
-                                }
-                              >
-                                <div>
-                                  <Label className="text-sm font-medium">
-                                    {field.label}{" "}
-                                    {field.required && (
-                                      <span className="text-red-500">*</span>
-                                    )}
-                                  </Label>
-                                  {renderFieldInput(field)}
-                                </div>
-                              </SortableFormField>
-                            </div>
-                          ))
-                        )}
-                      </AnimatePresence>
-                    </SortableContext>
-                  </div>
+                  {/* Dynamic Fields Area - ONLY DROP ZONE, NO FIELDS EVER SHOW UNLESS ADMIN ADDS THEM */}
+<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+  <SortableContext
+    items={formFields.map((f) => f.uid)}
+    strategy={rectSortingStrategy} 
+  >
+    <AnimatePresence>
+      {formFields.length === 0 ? (
+        <div className="col-span-full text-center py-20 text-gray-500 bg-gray-50/50 rounded-2xl border-2 border-dashed border-gray-300">
+          {isAdmin ? (
+            <div className="space-y-4">
+              <p className="text-xl font-semibold text-gray-700">
+                Start building your form
+              </p>
+              <p className="text-sm text-gray-600 max-w-md mx-auto">
+                Drag fields from the sidebar to add them, or tap the ⚡ button on mobile
+              </p>
+              <p className="text-sm text-gray-600 max-w-md mx-auto">
+                You have to Publish the form to save changes
+              </p>
+            </div>
+          ) : (
+            <p className="text-lg font-medium text-gray-600">
+              No additional fields required
+            </p>
+          )}
+        </div>
+      ) : (
+        formFields.map((field) => (
+          <div
+            key={field.uid}
+            className={`${
+              field.colSpan === 1
+                ? "sm:col-span-1"
+                : field.colSpan === 2
+                ? "sm:col-span-2"
+                : field.colSpan === 3
+                ? "sm:col-span-3"
+                : "sm:col-span-full lg:col-span-4"
+            }`}
+          >
+            <SortableFormField
+              field={field}
+              isAdmin={isAdmin}
+              onEdit={setEditingField}
+              onDelete={(uid) =>
+                setFormFields((prev) => prev.filter((f) => f.uid !== uid))
+              }
+            >
+              <div>
+                <Label className="text-sm font-medium">
+                  {field.label}{" "}
+                  {field.required && <span className="text-red-500">*</span>}
+                </Label>
+                {renderFieldInput(field)}
+              </div>
+            </SortableFormField>
+          </div>
+        ))
+      )}
+    </AnimatePresence>
+  </SortableContext>
+</div>
                 </CardContent>
                 <CardFooter>
                   
