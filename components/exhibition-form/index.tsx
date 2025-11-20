@@ -2423,868 +2423,6 @@
 
 // export default ExhibitionForm;
 
-// "use client";
-
-// import React, {
-//   useCallback,
-//   useEffect,
-//   useMemo,
-//   useRef,
-//   useState,
-// } from "react";
-// import { Button } from "@/components/ui/button";
-// import {
-//   Card,
-//   CardContent,
-//   CardFooter,
-//   CardHeader,
-//   CardTitle,
-// } from "@/components/ui/card";
-// import { Input } from "@/components/ui/input";
-// import { Label } from "@/components/ui/label";
-// import { Textarea } from "@/components/ui/textarea";
-// import {
-//   Select,
-//   SelectContent,
-//   SelectItem,
-//   SelectTrigger,
-//   SelectValue,
-// } from "@/components/ui/select";
-// import { Switch } from "@/components/ui/switch";
-// import { Checkbox } from "@/components/ui/checkbox";
-// import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-// import Image from "next/image";
-// import {
-//   Upload,
-//   X,
-//   Camera,
-//   RefreshCw,
-//   GripVertical,
-//   Trash2,
-//   Settings,
-//   ChevronDown,
-//   Calendar,
-//   Zap,
-//   Globe,
-//   Columns,
-// } from "lucide-react";
-// import { toast as toastify, ToastContainer } from "react-toastify";
-// import "react-toastify/dist/ReactToastify.css";
-
-// import {
-//   DndContext,
-//   closestCenter,
-//   PointerSensor,
-//   useSensor,
-//   useSensors,
-//   DragOverlay,
-//   useDroppable,
-//   useDraggable,
-// } from "@dnd-kit/core";
-// import {
-//   SortableContext,
-//   verticalListSortingStrategy,
-//   useSortable,
-//   arrayMove,
-// } from "@dnd-kit/sortable";
-// import { CSS } from "@dnd-kit/utilities";
-// import { motion, AnimatePresence } from "framer-motion";
-// import { useRouter, useSearchParams } from "next/navigation";
-
-// type FieldType =
-//   | "text"
-//   | "email"
-//   | "number"
-//   | "textarea"
-//   | "select"
-//   | "checkbox"
-//   | "radio"
-//   | "date"
-//   | "file";
-
-// interface FieldOption {
-//   label: string;
-//   value: string;
-// }
-
-// interface BuilderField {
-//   uid: string;
-//   type: FieldType;
-//   label: string;
-//   name: string;
-//   placeholder?: string;
-//   required?: boolean;
-//   options?: FieldOption[];
-//   accept?: string;
-//   colSpan?: 1 | 2 | 3 | 4;
-// }
-
-// function uid(prefix = "") {
-//   return `${prefix}${Math.random().toString(36).slice(2, 9)}`;
-// }
-
-// /* ==================== Reusable Components ==================== */
-// function SortableFieldItem({
-//   id,
-//   children,
-//   sortable = true,
-// }: {
-//   id: string;
-//   children: React.ReactNode;
-//   sortable?: boolean;
-// }) {
-//   const {
-//     attributes,
-//     listeners,
-//     setNodeRef,
-//     transform,
-//     transition,
-//     isDragging,
-//   } = useSortable({ id });
-//   const style = {
-//     transform: CSS.Transform.toString(transform),
-//     transition,
-//     opacity: isDragging ? 0.8 : 1,
-//     cursor: sortable ? "grab" : "default",
-//   } as React.CSSProperties;
-
-//   return (
-//     <motion.div
-//       ref={setNodeRef}
-//       style={style}
-//       {...attributes}
-//       initial={{ opacity: 0, y: 20 }}
-//       animate={{ opacity: 1, y: 0 }}
-//       exit={{ opacity: 0, y: -20, scale: 0.95 }}
-//       className="overflow-hidden"
-//     >
-//       {sortable ? (
-//         <div className="flex items-start gap-3">
-//           <motion.div
-//             {...listeners}
-//             className="pt-2 cursor-grab active:cursor-grabbing"
-//             whileHover={{ scale: 1.05 }}
-//             whileTap={{ scale: 0.95 }}
-//           >
-//             <div className="p-2 rounded-md bg-gray-100 border border-gray-200">
-//               <GripVertical className="w-4 h-4 text-gray-600" />
-//             </div>
-//           </motion.div>
-//           <div className="flex-1">{children}</div>
-//         </div>
-//       ) : (
-//         <div>{children}</div>
-//       )}
-//     </motion.div>
-//   );
-// }
-
-// function DraggableBlock({
-//   id,
-//   children,
-// }: {
-//   id: string;
-//   children: React.ReactNode;
-// }) {
-//   const { attributes, listeners, setNodeRef, transform, isDragging } =
-//     useDraggable({ id });
-//   const style = {
-//     transform: CSS.Transform.toString(transform),
-//   } as React.CSSProperties;
-
-//   return (
-//     <motion.div
-//       ref={setNodeRef}
-//       style={style}
-//       {...attributes}
-//       {...listeners}
-//       className={`flex items-center justify-between p-3 border rounded-lg cursor-grab hover:bg-gray-50 transition-all duration-200 ${
-//         isDragging ? "opacity-50 scale-105 shadow-lg" : ""
-//       }`}
-//       whileHover={{ scale: 1.02 }}
-//       whileTap={{ scale: 0.98 }}
-//     >
-//       {children}
-//     </motion.div>
-//   );
-// }
-
-// function DroppableFormArea({ children }: { children: React.ReactNode }) {
-//   const { setNodeRef, isOver } = useDroppable({ id: "form-drop" });
-//   return (
-//     <motion.div
-//       ref={setNodeRef}
-//       className={`border border-dashed rounded-md p-2 sm:p-4 transition-all duration-300 min-h-64 sm:min-h-96 ${
-//         isOver
-//           ? "border-blue-400 bg-blue-50 shadow-md"
-//           : "border-gray-200 bg-gray-50"
-//       }`}
-//       initial={{ opacity: 0 }}
-//       animate={{ opacity: 1 }}
-//       whileHover={{ scale: 1.005 }}
-//     >
-//       <AnimatePresence>
-//         {isOver && (
-//           <motion.div
-//             initial={{ opacity: 0, scale: 0.9 }}
-//             animate={{ opacity: 1, scale: 1 }}
-//             exit={{ opacity: 0, scale: 0.9 }}
-//             className="text-center text-blue-600 text-sm mb-4 p-2 bg-blue-100 rounded"
-//           >
-//             Drop here to add field
-//           </motion.div>
-//         )}
-//       </AnimatePresence>
-//       {children}
-//     </motion.div>
-//   );
-// }
-
-// function DroppableFieldSlot({ id }: { id: string }) {
-//   const { setNodeRef, isOver } = useDroppable({ id });
-//   return (
-//     <div
-//       ref={setNodeRef}
-//       className={`w-full transition-all duration-200 ${
-//         isOver
-//           ? "h-4 bg-blue-50 border-2 border-dashed border-blue-400 rounded-md flex items-center justify-center"
-//           : "h-0"
-//       }`}
-//     >
-//       {isOver && <span className="text-xs text-blue-600">Drop field here</span>}
-//     </div>
-//   );
-// }
-
-// function FieldEditor({
-//   field,
-//   onSave,
-//   onClose,
-// }: {
-//   field: BuilderField;
-//   onSave: (updated: BuilderField) => void;
-//   onClose: () => void;
-// }) {
-//   const [edited, setEdited] = useState(field);
-
-//   const addOption = () => {
-//     setEdited({
-//       ...edited,
-//       options: [...(edited.options || []), { label: "", value: "" }],
-//     });
-//   };
-
-//   const updateOption = (idx: number, key: "label" | "value", val: string) => {
-//     const opts = [...(edited.options || [])];
-//     opts[idx] = { ...opts[idx], [key]: val };
-//     setEdited({ ...edited, options: opts });
-//   };
-
-//   const removeOption = (idx: number) => {
-//     setEdited({
-//       ...edited,
-//       options: (edited.options || []).filter((_, i) => i !== idx),
-//     });
-//   };
-
-//   return (
-//     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-//       <motion.div
-//         initial={{ scale: 0.9, opacity: 0 }}
-//         animate={{ scale: 1, opacity: 1 }}
-//         className="bg-white rounded-xl shadow-xl max-w-lg w-full p-6 max-h-screen overflow-y-auto"
-//       >
-//         <h3 className="text-lg font-semibold mb-4">Edit Field</h3>
-//         <div className="space-y-4">
-//           <div>
-//             <Label>Field Label *</Label>
-//             <Input
-//               value={edited.label}
-//               onChange={(e) => setEdited({ ...edited, label: e.target.value })}
-//             />
-//           </div>
-//           <div>
-//             <Label>Field Name (key) *</Label>
-//             <Input
-//               value={edited.name}
-//               onChange={(e) => setEdited({ ...edited, name: e.target.value })}
-//               placeholder="e.g. phone, company"
-//             />
-//           </div>
-//           {["text", "email", "textarea"].includes(edited.type) && (
-//             <div>
-//               <Label>Placeholder</Label>
-//               <Input
-//                 value={edited.placeholder || ""}
-//                 onChange={(e) =>
-//                   setEdited({ ...edited, placeholder: e.target.value })
-//                 }
-//               />
-//             </div>
-//           )}
-//           {(edited.type === "select" || edited.type === "radio") && (
-//             <div>
-//               <Label>Options</Label>
-//               <div className="space-y-2">
-//                 {(edited.options || []).map((opt, idx) => (
-//                   <div key={idx} className="flex gap-2">
-//                     <Input
-//                       placeholder="Label"
-//                       value={opt.label}
-//                       onChange={(e) =>
-//                         updateOption(idx, "label", e.target.value)
-//                       }
-//                     />
-//                     <Input
-//                       placeholder="Value"
-//                       value={opt.value}
-//                       onChange={(e) =>
-//                         updateOption(idx, "value", e.target.value)
-//                       }
-//                     />
-//                     <Button
-//                       size="icon"
-//                       variant="ghost"
-//                       onClick={() => removeOption(idx)}
-//                     >
-//                       <X className="w-4 h-4" />
-//                     </Button>
-//                   </div>
-//                 ))}
-//                 <Button size="sm" variant="outline" onClick={addOption}>
-//                   Add Option
-//                 </Button>
-//               </div>
-//             </div>
-//           )}
-//           {edited.type === "file" && (
-//             <div>
-//               <Label>Accept (MIME types)</Label>
-//               <Input
-//                 value={edited.accept || ""}
-//                 onChange={(e) =>
-//                   setEdited({ ...edited, accept: e.target.value })
-//                 }
-//                 placeholder="e.g. image/*, .pdf"
-//               />
-//             </div>
-//           )}
-//           <div className="flex items-center gap-2">
-//             <Switch
-//               checked={edited.required || false}
-//               onCheckedChange={(c) => setEdited({ ...edited, required: c })}
-//               className="data-[state=checked]:bg-[#483d73]"
-//             />
-//             <Label>Required</Label>
-//           </div>
-//           <div>
-//             <Label>Width in Row</Label>
-//             <div className="grid grid-cols-4 gap-2 mt-2">
-//               {[1, 2, 3, 4].map((span) => {
-//                 const active = edited.colSpan === span;
-//                 return (
-//                   <Button
-//                     key={span}
-//                     size="sm"
-//                     variant={active ? "default" : "outline"}
-//                     onClick={() =>
-//                       setEdited({ ...edited, colSpan: span as 1 | 2 | 3 | 4 })
-//                     }
-//                     className={`flex items-center gap-1 ${
-//                       active
-//                         ? "bg-gradient-to-r from-[#483d73] to-[#352c55] text-white"
-//                         : ""
-//                     }`}
-//                   >
-//                     <Columns className="w-3 h-3" />
-//                     {span}
-//                   </Button>
-//                 );
-//               })}
-//             </div>
-//           </div>
-//         </div>
-//         <div className="flex justify-end gap-2 mt-6">
-//           <Button variant="outline" onClick={onClose}>
-//             Cancel
-//           </Button>
-//           <Button
-//             className="text-white bg-[#483d73] hover:bg-[#352c55]"
-//             onClick={() => {
-//               if (!edited.label || !edited.name) {
-//                 toastify.error("Label and Name are required");
-//                 return;
-//               }
-//               onSave(edited);
-//               onClose();
-//             }}
-//           >
-//             Save
-//           </Button>
-//         </div>
-//       </motion.div>
-//     </div>
-//   );
-// }
-
-// /* ==================== MAIN COMPONENT ==================== */
-// export function ExhibitionForm() {
-//   const searchParams = useSearchParams();
-//   const router = useRouter();
-
-//   const LIMIT = 15;
-//   const [submissionCount, setSubmissionCount] = useState<number>(0);
-//   const [isLoadingCount, setIsLoadingCount] = useState<boolean>(true);
-//   const [limitReached, setLimitReached] = useState<boolean>(false);
-
-//   // Default fields
-//   const defaultDynamicFields: Omit<BuilderField, "uid">[] = [
-//     { type: "text", label: "Company", name: "company", required: true, colSpan: 2 },
-//     { type: "text", label: "Contact Person", name: "contactPerson", required: true, colSpan: 2 },
-//     { type: "text", label: "Phone", name: "phone", required: true, colSpan: 2, placeholder: "+91 98765 43210" },
-//     { type: "email", label: "Email", name: "email", required: true, colSpan: 2, placeholder: "name@company.com" },
-//   ];
-
-//   const freshDefaults = useMemo(
-//     () => defaultDynamicFields.map((f) => ({ ...f, uid: uid("f_") })),
-//     []
-//   );
-
-//   // State
-//   const [formFields, setFormFields] = useState<BuilderField[]>([]);
-//   const [isAdmin, setIsAdmin] = useState<boolean>(false);
-//   const [isLoading, setIsLoading] = useState<boolean>(true);
-//   const [editingField, setEditingField] = useState<BuilderField | null>(null);
-//   const [pendingInsertIndex, setPendingInsertIndex] = useState<number | null>(null);
-//   const [activeDragId, setActiveDragId] = useState<string | null>(null);
-
-//   const [frontImagePreview, setFrontImagePreview] = useState<string | null>(null);
-//   const [backImagePreview, setBackImagePreview] = useState<string | null>(null);
-//   const [isCameraOpen, setIsCameraOpen] = useState(false);
-//   const [currentImageType, setCurrentImageType] = useState<"front" | "back" | null>(null);
-//   const [facingMode, setFacingMode] = useState<"user" | "environment">("environment");
-//   const [isSubmitting, setIsSubmitting] = useState(false);
-
-//   const videoRef = useRef<HTMLVideoElement>(null);
-//   const canvasRef = useRef<HTMLCanvasElement>(null);
-
-//   const [formData, setFormData] = useState<Record<string, any>>({
-//     cardNo: searchParams?.get("cardNo") || "",
-//     salesPerson: searchParams?.get("salesPerson") || "",
-//     date: new Date().toISOString().split("T")[0],
-//     country: searchParams?.get("exhibition") || "LABEL EXPO SPAIN 2025",
-//     cardFrontPhoto: "",
-//     cardBackPhoto: "",
-//     leadStatus: "",
-//     dealStatus: "",
-//     meetingAfterExhibition: false,
-//     description: "",
-//   });
-
-//   // DND sensors
-//   const sensors = useSensors(
-//     useSensor(PointerSensor, {
-//       activationConstraint: { distance: 6 },
-//     })
-//   );
-
-//   // Load template + admin status + form count
-//   useEffect(() => {
-//     async function loadEverything() {
-//       try {
-//         // Load form template
-//         const templateRes = await fetch("/api/form-template");
-//         const templateData = templateRes.ok ? await templateRes.json() : { fields: [] };
-//         const loaded = (templateData.fields || []).map((f: any) => ({
-//           ...f,
-//           uid: f.uid || uid("f_"),
-//         }));
-//         setFormFields(loaded.length > 0 ? loaded : freshDefaults);
-
-//         // Load session
-//         const sessionRes = await fetch("/api/auth/me");
-//         if (sessionRes.ok) {
-//           const session = await sessionRes.json();
-//           setIsAdmin(session?.user?.isAdmin === true);
-//         }
-
-//         // Load submission count
-//         const countRes = await fetch("/api/form-count");
-//         if (countRes.ok) {
-//           const { count } = await countRes.json();
-//           setSubmissionCount(count);
-//           if (count >= LIMIT) setLimitReached(true);
-//         }
-//       } catch (err) {
-//         setFormFields(freshDefaults);
-//       } finally {
-//         setIsLoading(false);
-//         setIsLoadingCount(false);
-//       }
-//     }
-//     loadEverything();
-//   }, [freshDefaults]);
-
-//   // Auto-generate card number
-//   useEffect(() => {
-//     if (!formData.cardNo && !isLoadingCount) {
-//       const generateCardNo = async () => {
-//         try {
-//           const countRes = await fetch("/api/form-count");
-//           if (countRes.ok) {
-//             const { count } = await countRes.json();
-//             const nextNo = String(count + 1).padStart(3, "0");
-//             setFormData(prev => ({ ...prev, cardNo: nextNo }));
-//           }
-//         } catch (err) {
-//           console.error("Failed to generate card number");
-//         }
-//       };
-//       generateCardNo();
-//     }
-//   }, [isLoadingCount, formData.cardNo]);
-
-//   // Publish
-//   const publishToAll = async () => {
-//     if (!confirm("Publish this form to all users?")) return;
-
-//     try {
-//       const res = await fetch("/api/form-template", {
-//         method: "POST",
-//         headers: { "Content-Type": "application/json" },
-//         body: JSON.stringify({ fields: formFields }),
-//       });
-
-//       if (res.ok) {
-//         toastify.success("Form published successfully!");
-//       } else {
-//         const err = await res.json();
-//         toastify.error(err.error || "Failed to publish");
-//       }
-//     } catch {
-//       toastify.error("Network error");
-//     }
-//   };
-
-//   // Image upload
-//   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>, type: "front" | "back") => {
-//     const file = e.target.files?.[0];
-//     if (!file) return;
-
-//     const reader = new FileReader();
-//     reader.onload = () => {
-//       const preview = reader.result as string;
-//       if (type === "front") setFrontImagePreview(preview);
-//       else setBackImagePreview(preview);
-//     };
-//     reader.readAsDataURL(file);
-
-//     const fd = new FormData();
-//     fd.append("image", file);
-//     fd.append("type", type);
-
-//     const res = await fetch("/api/upload-image", { method: "POST", body: fd });
-//     if (res.ok) {
-//       const data = await res.json();
-//       const url = data.imageUrl || data.url;
-//       setFormData(prev => ({ ...prev, [type === "front" ? "cardFrontPhoto" : "cardBackPhoto"]: url }));
-//       toastify.success("Image uploaded!");
-//     } else {
-//       toastify.error("Upload failed");
-//     }
-//   };
-
-//   // Submit form
-//   const handleSubmit = async () => {
-//     if (!formData.cardFrontPhoto) {
-//       toastify.error("Please upload card front image");
-//       return;
-//     }
-
-//     if (limitReached) {
-//       toastify.error("Submission limit reached. Upgrade your plan.");
-//       return;
-//     }
-
-//     setIsSubmitting(true);
-//     try {
-//       const submission = {
-//         ...formData,
-//         additionalData: Object.fromEntries(
-//           Object.entries(formData).filter(([key]) => ![
-//             "cardNo", "salesPerson", "date", "country", "cardFrontPhoto", "cardBackPhoto",
-//             "leadStatus", "dealStatus", "meetingAfterExhibition", "description"
-//           ].includes(key))
-//         ),
-//       };
-
-//       const res = await fetch("/api/submit-form", {
-//         method: "POST",
-//         headers: { "Content-Type": "application/json" },
-//         body: JSON.stringify(submission),
-//       });
-
-//       if (res.ok) {
-//         toastify.success("Form submitted successfully!");
-//         router.push("/dashboard");
-//       } else {
-//         const err = await res.json();
-//         toastify.error(err.message || "Submission failed");
-//       }
-//     } catch (err) {
-//       toastify.error("Network error");
-//     } finally {
-//       setIsSubmitting(false);
-//     }
-//   };
-
-//   const canBuildForm = isAdmin;
-
-//   if (isLoading) {
-//     return (
-//       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center">
-//         <div className="text-center">
-//           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#483d73] mx-auto mb-4" />
-//           <p>Loading form...</p>
-//         </div>
-//       </div>
-//     );
-//   }
-
-//   return (
-//     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-6 sm:py-12">
-//       <div className="max-w-7xl mx-auto grid grid-cols-12 gap-3 sm:gap-6 px-3 sm:px-4">
-//         <DndContext sensors={sensors} collisionDetection={closestCenter}>
-//           {canBuildForm && (
-//             <div className="col-span-3 bg-white rounded-xl p-5 shadow-sm sticky top-6 h-fit hidden lg:block">
-//               <h3 className="font-bold text-lg mb-3">Form Builder</h3>
-//               <div className="space-y-2">
-//                 <Button
-//                   onClick={() => setFormFields(prev => [...prev, ...freshDefaults])}
-//                   className="w-full justify-start bg-gradient-to-r from-[#483d73] to-[#352c55] text-white hover:from-[#352c55] hover:to-[#483d73]"
-//                 >
-//                   <Zap className="w-4 h-4 mr-2" />
-//                   Add Default Form Fields
-//                 </Button>
-
-//                 <div className="h-px bg-gray-200 my-3" />
-
-//                 {[
-//                   { type: "text", label: "Single line text" },
-//                   { type: "email", label: "Email" },
-//                   { type: "number", label: "Number" },
-//                   { type: "textarea", label: "Multi line text" },
-//                   { type: "select", label: "Dropdown" },
-//                   { type: "checkbox", label: "Checkbox" },
-//                   { type: "radio", label: "Radio Group" },
-//                   { type: "date", label: "Date" },
-//                 ].map((f) => (
-//                   <DraggableBlock key={f.type} id={`block-${f.type}`}>
-//                     <div className="flex items-center gap-2">
-//                       <div className="w-5 h-5 border rounded" />
-//                       <span className="text-sm">{f.label}</span>
-//                     </div>
-//                   </DraggableBlock>
-//                 ))}
-
-//                 <div className="border-t pt-4 mt-4">
-//                   <Button
-//                     onClick={publishToAll}
-//                     className="w-full justify-start bg-gradient-to-r from-[#483d73] to-[#352c55] text-white hover:from-[#352c55] hover:to-[#483d73]"
-//                     size="lg"
-//                   >
-//                     <Globe className="w-5 h-5 mr-2" />
-//                     Publish to All Users
-//                   </Button>
-//                   <p className="text-xs text-gray-500 text-center mt-2">
-//                     Users see this version after publishing
-//                   </p>
-//                 </div>
-//               </div>
-//             </div>
-//           )}
-
-//           <div className={`col-span-12 ${canBuildForm ? "lg:col-span-9" : "col-span-12"}`}>
-//             <Card className="shadow-xl">
-//               <CardHeader className="p-3 sm:p-6">
-//                 <CardTitle className="text-base sm:text-xl">Exhibition Lead Capture</CardTitle>
-//                 <p className="text-xs text-gray-600">
-//                   Submissions used: {submissionCount} / {LIMIT} {limitReached && " (Limit reached)"}
-//                 </p>
-//               </CardHeader>
-//               <CardContent className="p-3 sm:p-6 space-y-3 sm:space-y-6">
-//                 {/* Card Number */}
-//                 <div className="space-y-1">
-//                   <Label className="text-xs">
-//                     Card Number <span className="text-red-500">*</span>
-//                   </Label>
-//                   <Input
-//                     value={formData.cardNo}
-//                     readOnly
-//                     className="bg-gray-100"
-//                   />
-//                 </div>
-//                 {/* Card Images */}
-//                 <div className="grid grid-cols-2 gap-4">
-//                   <div className="space-y-1">
-//                     <Label className="text-xs">Card Front *</Label>
-//                     <div className="relative">
-//                       <input
-//                         id="front"
-//                         type="file"
-//                         accept="image/*"
-//                         className="hidden"
-//                         onChange={(e) => handleImageChange(e, "front")}
-//                       />
-//                       <label
-//                         htmlFor="front"
-//                         className="block h-48 border-2 border-dashed rounded-lg cursor-pointer flex items-center justify-center overflow-hidden"
-//                       >
-//                         {frontImagePreview ? (
-//                           <Image src={frontImagePreview} alt="" fill className="object-cover" />
-//                         ) : (
-//                           <Upload className="w-10 h-10 text-gray-400" />
-//                         )}
-//                       </label>
-//                     </div>
-//                   </div>
-//                   <div className="space-y-1">
-//                     <Label className="text-xs">Card Back</Label>
-//                     <div className="relative">
-//                       <input
-//                         id="back"
-//                         type="file"
-//                         accept="image/*"
-//                         className="hidden"
-//                         onChange={(e) => handleImageChange(e, "back")}
-//                       />
-//                       <label
-//                         htmlFor="back"
-//                         className="block h-48 border-2 border-dashed rounded-lg cursor-pointer flex items-center justify-center overflow-hidden"
-//                       >
-//                         {backImagePreview ? (
-//                           <Image src={backImagePreview} alt="" fill className="object-cover" />
-//                         ) : (
-//                           <Upload className="w-10 h-10 text-gray-400" />
-//                         )}
-//                       </label>
-//                     </div>
-//                   </div>
-//                 </div>
-
-//                                 {/* Lead Status */}
-//                 <div className="space-y-1">
-//                   <Label className="text-xs">Lead Status</Label>
-//                   <Select
-//                     value={formData.leadStatus}
-//                     onValueChange={(val) => setFormData(prev => ({ ...prev, leadStatus: val }))}
-//                   >
-//                     <SelectTrigger>
-//                       <SelectValue placeholder="Select lead status" />
-//                     </SelectTrigger>
-//                     <SelectContent>
-//                       <SelectItem value="Hot">Hot</SelectItem>
-//                       <SelectItem value="Warm">Warm</SelectItem>
-//                       <SelectItem value="Cold">Cold</SelectItem>
-//                     </SelectContent>
-//                   </Select>
-//                 </div>
-
-//                 {/* Meeting Switch */}
-//                 <div className="flex items-center space-x-3">
-//                   <Switch
-//                     id="meeting"
-//                     checked={formData.meetingAfterExhibition}
-//                     onCheckedChange={(checked) =>
-//                       setFormData(prev => ({ ...prev, meetingAfterExhibition: checked }))
-//                     }
-//                   />
-//                   <Label htmlFor="meeting" className="text-sm">
-//                     Meeting After Exhibition
-//                   </Label>
-//                 </div>
-
-//                 {/* Dynamic Fields */}
-//                 <DroppableFormArea>
-//                   <SortableContext items={formFields.map(f => f.uid)} strategy={verticalListSortingStrategy}>
-//                     <div className="space-y-4 sm:space-y-6">
-//                       {formFields.length === 0 ? (
-//                         <div className="p-10 text-center text-gray-500 border-2 border-dashed rounded-lg">
-//                           No custom fields
-//                         </div>
-//                       ) : (
-//                         <>
-//                           <DroppableFieldSlot id="slot-start" />
-//                           <AnimatePresence>
-//                             {formFields.map((field) => (
-//                               <motion.div key={field.uid} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-//                                 <SortableFieldItem id={field.uid} sortable={canBuildForm}>
-//                                   <div className="bg-gray-50 p-4 rounded-lg border">
-//                                     <div className="flex justify-between items-start mb-2">
-//                                       <div>
-//                                         <h4 className="font-medium">{field.label}</h4>
-//                                         <p className="text-xs text-gray-500">{field.type}</p>
-//                                       </div>
-//                                       {canBuildForm && (
-//                                         <div className="flex gap-1">
-//                                           <Button size="icon" variant="ghost" onClick={() => setEditingField(field)}>
-//                                             <Settings className="w-3 h-3" />
-//                                           </Button>
-//                                           <Button size="icon" variant="ghost" onClick={() => setFormFields(prev => prev.filter(f => f.uid !== field.uid))}>
-//                                             <Trash2 className="w-3 h-3" />
-//                                           </Button>
-//                                         </div>
-//                                       )}
-//                                     </div>
-//                                     <Label>{field.label} {field.required && "*"}</Label>
-//                                     <Input
-//                                       placeholder={field.placeholder}
-//                                       value={formData[field.name] || ""}
-//                                       onChange={(e) => setFormData(prev => ({ ...prev, [field.name]: e.target.value }))}
-//                                       className="mt-1"
-//                                     />
-//                                   </div>
-//                                 </SortableFieldItem>
-//                               </motion.div>
-//                             ))}
-//                           </AnimatePresence>
-//                         </>
-//                       )}
-//                     </div>
-//                   </SortableContext>
-//                 </DroppableFormArea>
-//               </CardContent>
-//               <CardFooter className="p-3 sm:p-6">
-//                 <Button
-//                   onClick={handleSubmit}
-//                   disabled={isSubmitting || limitReached || !formData.cardFrontPhoto}
-//                   className="w-full justify-center bg-gradient-to-r from-[#483d73] to-[#352c55] text-white hover:from-[#352c55] hover:to-[#483d73]"
-//                 >
-//                   {isSubmitting ? "Submitting..." : "Submit Form"}
-//                 </Button>
-//               </CardFooter>
-//             </Card>
-//           </div>
-//         </DndContext>
-
-//         {editingField && (
-//           <FieldEditor
-//             field={editingField}
-//             onSave={(f) => {
-//               setFormFields(prev => prev.map(old => old.uid === f.uid ? f : old));
-//               setEditingField(null);
-//             }}
-//             onClose={() => setEditingField(null)}
-//           />
-//         )}
-
-//         <ToastContainer position="bottom-right" />
-//       </div>
-//     </div>
-//   );
-// }
-
-// export default ExhibitionForm;
 
 "use client";
 
@@ -3389,7 +2527,6 @@ function uid(prefix = "") {
 }
 
 /* ==================== CAMERA MODAL - MOBILE FRIENDLY ==================== */
-/* ==================== BEAUTIFUL CAMERA MODAL ==================== */
 function CameraModal({
   isOpen,
   onClose,
@@ -3411,7 +2548,7 @@ function CameraModal({
       });
       videoRef.current.srcObject = stream;
     } catch (err) {
-      toastify.error("Camera access denied or unavailable");
+      toastify.error("Camera access denied");
       onClose();
     }
   };
@@ -3440,17 +2577,16 @@ function CameraModal({
   };
 
   const switchCamera = () => {
-    setFacingMode((prev) => (prev === "user" ? "environment" : "user"));
+    setFacingMode(prev => prev === "user" ? "environment" : "user");
   };
 
   useEffect(() => {
     if (isOpen) startStream();
-
     return () => {
       if (videoRef.current?.srcObject) {
         (videoRef.current.srcObject as MediaStream)
           .getTracks()
-          .forEach((track) => track.stop());
+          .forEach(track => track.stop());
       }
     };
   }, [isOpen, facingMode]);
@@ -3458,68 +2594,54 @@ function CameraModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-6">
       <motion.div
-        initial={{ scale: 0.85, opacity: 0 }}
+        initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="relative bg-white rounded-3xl shadow-2xl overflow-hidden max-w-lg w-full"
+        className="bg-white rounded-xl shadow-2xl overflow-hidden max-w-lg w-full"
       >
         {/* Header */}
-        <div className="absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/70 to-transparent p-5 flex justify-between items-start">
-          <h3 className="text-white text-xl font-bold">Take Photo</h3>
-          <button
-            onClick={onClose}
-            className="bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white p-3 rounded-full transition"
-          >
-            <X className="w-6 h-6" />
-          </button>
+        <div className="p-4 bg-gray-200 border-b border-gray-300 flex justify-between items-center">
+          <h3 className="text-lg font-semibold text-gray-900">Capture Photo</h3>
+          <Button variant="ghost" size="sm" onClick={onClose} className="p-2 hover:bg-gray-300">
+            <X className="w-5 h-5 text-gray-700" />
+          </Button>
         </div>
 
-        {/* Video Feed - Perfect square with letterboxing */}
-        <div className="relative bg-black aspect-square flex items-center justify-center overflow-hidden">
-          <div className="absolute inset-0 bg-black/60" />
-
-          <div className="relative w-full h-full flex items-center justify-center">
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              muted
-              className="min-w-full min-h-full object-cover rounded-2xl"
-            />
-            {/* Subtle camera frame overlay */}
-            <div className="absolute inset-4 border-4 border-white/20 rounded-2xl pointer-events-none" />
-            <div className="absolute inset-8 border-2 border-white/10 rounded-xl pointer-events-none" />
-          </div>
-
+        {/* Video Feed - Full width, natural aspect ratio */}
+        <div className="relative bg-black">
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            className="w-full h-auto max-h-96 object-cover"
+          />
           <canvas ref={canvasRef} className="hidden" />
         </div>
 
         {/* Bottom Controls */}
-        <div className="bg-white p-6 flex justify-center items-center gap-8">
-          {/* Switch Camera */}
-          <button
+        <div className="p-4 bg-gray-200 flex justify-between items-center gap-4">
+          <Button
+            variant="outline"
             onClick={switchCamera}
-            className="p-4 bg-gray-100 hover:bg-gray-200 rounded-full transition"
+            className="flex items-center gap-2 border-gray-400 hover:bg-gray-300"
           >
-            <RefreshCw className="w-6 h-6" />
-          </button>
+            <RefreshCw className="w-4 h-4" />
+            Switch Camera
+          </Button>
 
-          {/* Big Shutter Button */}
-          <button
-            onClick={capturePhoto}
-            className="relative w-20 h-20 bg-white rounded-full shadow-2xl border-8 border-gray-200 active:scale-95 transition-transform"
-          >
-            <div className="absolute inset-2 bg-white rounded-full border-4 border-gray-400" />
-          </button>
-
-          {/* Cancel */}
-          <button
-            onClick={onClose}
-            className="px-6 py-3 text-gray-700 font-medium hover:bg-gray-100 rounded-full transition"
-          >
-            Cancel
-          </button>
+          <div className="flex gap-3">
+            <Button
+              onClick={capturePhoto}
+              className="bg-[#483d73] hover:bg-[#5a5570] text-white font-medium px-6"
+            >
+              Capture Photo
+            </Button>
+            <Button variant="ghost" onClick={onClose}>
+              Close
+            </Button>
+          </div>
         </div>
       </motion.div>
     </div>
@@ -4239,33 +3361,35 @@ export function ExhibitionForm() {
     setCameraOpen(true);
   };
 
-  const handleCapture = async (file: File) => {
-    const url = URL.createObjectURL(file);
-    if (cameraSide === "front") setFrontImagePreview(url);
-    else setBackImagePreview(url);
+const handleCapture = async (file: File) => {
+  const url = URL.createObjectURL(file);
+  if (cameraSide === "front") setFrontImagePreview(url);
+  else setBackImagePreview(url);
 
-    const fd = new FormData();
-    fd.append("image", file);
-    fd.append("type", cameraSide);
+  const fd = new FormData();
+  fd.append("image", file, `card-${cameraSide}.jpg`);
+  fd.append("type", cameraSide);
 
-    try {
-      const res = await fetch("/api/upload-image", {
-        method: "POST",
-        body: fd,
-      });
-      if (res.ok) {
-        const { imageUrl } = await res.json();
-        setFormData((prev) => ({
-          ...prev,
-          [cameraSide === "front" ? "cardFrontPhoto" : "cardBackPhoto"]:
-            imageUrl,
-        }));
-        toastify.success("Photo captured & uploaded!");
-      }
-    } catch (err) {
-      toastify.error("Upload failed");
-    }
-  };
+  try {
+    const res = await fetch("/api/upload-image", {
+      method: "POST",
+      body: fd,
+      // ← No headers! Browser sets correct boundary
+    });
+
+    if (!res.ok) throw new Error(`Server error: ${res.status}`);
+
+    const data = await res.json();
+    setFormData(prev => ({
+      ...prev,
+      [cameraSide === "front" ? "cardFrontPhoto" : "cardBackPhoto"]: data.imageUrl || data.url
+    }));
+    toastify.success("Photo captured & uploaded!");
+  } catch (err) {
+    console.error("Upload error:", err);
+    toastify.error("Upload failed - check internet connection");
+  }
+};
 
   // Form validation – disables submit until ALL required fields are filled
   const isFormValid = useMemo(() => {
