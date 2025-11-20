@@ -4066,28 +4066,6 @@ const [visibleColumns, setVisibleColumns] = useState<string[]>([
               </div>
             ))}
         </div>
-
-        {/* Custom Additional Fields */}
-        {possibleColumns.some(col => col.id.startsWith("add_")) && (
-          <div className="border-t pt-4">
-            <h4 className="font-semibold text-sm mb-3 text-purple-700">Custom Fields</h4>
-            {possibleColumns
-              .filter(col => col.id.startsWith("add_"))
-              .map(col => (
-                <div key={col.id} className="flex items-center space-x-2 py-1">
-                  <Checkbox
-                    checked={visibleColumns.includes(col.id)}
-                    onCheckedChange={(checked) => {
-                      setVisibleColumns(prev =>
-                        checked ? [...prev, col.id] : prev.filter(id => id !== col.id)
-                      );
-                    }}
-                  />
-                  <Label className="text-sm">{col.label}</Label>
-                </div>
-              ))}
-          </div>
-        )}
       </div>
     </ScrollArea>
 
