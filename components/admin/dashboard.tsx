@@ -2879,7 +2879,7 @@ const [visibleColumns, setVisibleColumns] = useState<string[]>([
         label: "Company Name",
         width: "w-32",
         render: (form: FormData) =>
-          form.mergedData?.companyName || form.additionalData?.company || "N/A",
+          form.extractedData?.companyName || form.additionalData?.company || "N/A",
       },
       {
   id: "city",
@@ -2892,7 +2892,7 @@ const [visibleColumns, setVisibleColumns] = useState<string[]>([
         label: "State",
         width: "w-24",
         render: (form: FormData) =>
-          form.extractedData?.state || form.additionalData?.city || "N/A",
+          form.extractedData?.state || form.additionalData?.state || "N/A",
       },
       {
         id: "country",
@@ -4116,7 +4116,7 @@ const [visibleColumns, setVisibleColumns] = useState<string[]>([
                   <TabsTrigger value="form">Form Data</TabsTrigger>
                   <TabsTrigger value="images">Card Image</TabsTrigger>
                 </TabsList>
-                <ScrollArea className="h-[calc(80vh-100px)] sm:h-[calc(90vh-120px)]">
+                <ScrollArea className="h-[calc(90vh-120px)]">
                   <TabsContent value="merged">
                     {(() => {
                       const merged = {
