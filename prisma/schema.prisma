@@ -1,15 +1,16 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  directUrl  = env("DIRECT_URL")
+}
+
 generator client {
   provider = "prisma-client-js"
 }
 
-datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
-}
 
 model User {
   id             String   @id @default(cuid())
@@ -108,14 +109,8 @@ model Organization {
   name         String?
   createdBy    String
   createdAt    DateTime @default(now())
-
-  // Users in this organization
   users        User[]   @relation("OrganizationUsers")
-
-  // Forms submitted under this org
   forms        Form[]
-
-  // One form template per organization
   formTemplate FormTemplate?
 }
 
@@ -135,13 +130,9 @@ model FormTemplate {
   id             String   @id @default(cuid())
   organizationId Int?
   organization   Organization? @relation(fields: [organizationId], references: [id])
-
-  // Stores your dynamic BuilderField[]
   fields         Json     @default("[]")
-
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  // Only one template per org
   @@unique([organizationId])
 }

@@ -4080,162 +4080,168 @@ const [visibleColumns, setVisibleColumns] = useState<string[]>([
       {/* View Dialog */}
       {selectedViewForm && selectedViewForm.id && (
         <Dialog open={true} onOpenChange={() => setOpenView(null)}>
-          <DialogContent className="w-[95vw] max-w-md sm:max-w-4xl h-[90vh] overflow-hidden flex flex-col">
-            <DialogHeader>
-              <DialogTitle>
-                Business Card - {selectedViewForm.cardNo || "N/A"}
-              </DialogTitle>
-            </DialogHeader>
-            <div className="flex-grow overflow-y-auto">
-              <Tabs defaultValue="merged" className="w-full">
-                <TabsList className="flex overflow-x-auto whitespace-nowrap sticky top-0 bg-background z-10">
-                  <TabsTrigger value="merged">Merged Data</TabsTrigger>
-                  <TabsTrigger value="extracted">Extracted Data</TabsTrigger>
-                  <TabsTrigger value="form">Form Data</TabsTrigger>
-                  <TabsTrigger value="images">Card Image</TabsTrigger>
-                </TabsList>
-                <ScrollArea className="h-[calc(90vh-120px)]">
-                  <TabsContent value="merged">
-                    {(() => {
-                      const merged = {
-                        ...selectedViewForm,
-                        ...(selectedViewForm.extractedData || {}),
-                        description:
-                          (selectedViewForm.description || "") +
-                          "\nImg Desc: " +
-                          (selectedViewForm.extractedData?.description || ""),
-                      };
-                      return <MergedDataView data={merged} />;
-                    })()}
-                  </TabsContent>
-                  <TabsContent value="extracted">
-  <Card>
-    <CardHeader>
-      <CardTitle>Extracted Information</CardTitle>
-    </CardHeader>
-    <CardContent>
-      <ExtractedDataForm
-        form={selectedViewForm}
-        closeDialog={() => setOpenView(null)}
-      />
-    </CardContent>
-  </Card>
-</TabsContent>
-                  <TabsContent value="form">
-                    <FormDataView data={selectedViewForm} />
-                  </TabsContent>
-                  <TabsContent value="images">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Card Image</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <ScrollArea className="h-[calc(90vh-200px)]">
-                          <div className="space-y-6">
-                            <div>
-                              <h4 className="text-sm font-medium mb-3">
-                                Front Side
-                              </h4>
-                              {selectedViewForm.cardFrontPhoto ? (
-                                <button
-                                  onClick={() =>
-                                    setZoomedImage(
-                                      selectedViewForm.cardFrontPhoto!
-                                    )
-                                  }
-                                  className="block w-full"
-                                >
-                                  <img
-                                    src={
-                                      selectedViewForm.cardFrontPhoto ||
-                                      "/placeholder.svg"
-                                    }
-                                    alt="Card Front"
-                                    className="max-w-full max-h-96 object-contain rounded-md border hover:opacity-90 transition"
-                                  />
-                                </button>
-                              ) : (
-                                <div className="text-sm text-muted-foreground">
-                                  No front image available
-                                </div>
-                              )}
-                            </div>
-                            {selectedViewForm.cardBackPhoto && (
-                              <div>
-                                <h4 className="text-sm font-medium mb-3">
-                                  Back Side
-                                </h4>
-                                <button
-                                  onClick={() =>
-                                    setZoomedImage(
-                                      selectedViewForm.cardBackPhoto!
-                                    )
-                                  }
-                                  className="block w-full"
-                                >
-                                  <img
-                                    src={
-                                      selectedViewForm.cardBackPhoto ||
-                                      "/placeholder.svg"
-                                    }
-                                    alt="Card Back"
-                                    className="max-w-full max-h-96 object-contain rounded-md border hover:opacity-90 transition"
-                                  />
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        </ScrollArea>
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-                </ScrollArea>
-              </Tabs>
-            </div>
-          </DialogContent>
+          <DialogContent className="w-[95vw] max-w-lg sm:max-w-3xl lg:max-w-4xl h-[90vh] p-3 sm:p-6 overflow-hidden flex flex-col">
+  <DialogHeader>
+    <DialogTitle className="text-base sm:text-lg">
+      Business Card - {selectedViewForm.cardNo || "N/A"}
+    </DialogTitle>
+  </DialogHeader>
+
+  {/* Main Scroll Area */}
+  <div className="flex-grow overflow-y-auto">
+    <Tabs defaultValue="merged" className="w-full">
+
+      {/* Mobile-friendly Tabs */}
+      <TabsList className="flex overflow-x-auto whitespace-nowrap sticky top-0 bg-background z-20 border-b">
+        <TabsTrigger className="flex-shrink-0" value="merged">Merged Data</TabsTrigger>
+        <TabsTrigger className="flex-shrink-0" value="extracted">Extracted</TabsTrigger>
+        <TabsTrigger className="flex-shrink-0" value="form">Form</TabsTrigger>
+        <TabsTrigger className="flex-shrink-0" value="images">Images</TabsTrigger>
+      </TabsList>
+
+      {/* Content Scroll Area */}
+      <ScrollArea className="h-[calc(90vh-140px)] sm:h-[calc(90vh-150px)]">
+
+        {/* Merged Data */}
+        <TabsContent value="merged">
+          {(() => {
+            const merged = {
+              ...selectedViewForm,
+              ...(selectedViewForm.extractedData || {}),
+              description:
+                (selectedViewForm.description || "") +
+                "\nImg Desc: " +
+                (selectedViewForm.extractedData?.description || ""),
+            };
+            return <MergedDataView data={merged} />;
+          })()}
+        </TabsContent>
+
+        {/* Extracted Data */}
+        <TabsContent value="extracted">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm sm:text-base">Extracted Information</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ExtractedDataForm
+                form={selectedViewForm}
+                closeDialog={() => setOpenView(null)}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Form Data */}
+        <TabsContent value="form">
+          <FormDataView data={selectedViewForm} />
+        </TabsContent>
+
+        {/* Images Tab */}
+        <TabsContent value="images">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm sm:text-base">Card Images</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className="h-[calc(90vh-220px)] sm:h-[calc(90vh-240px)]">
+
+                <div className="space-y-6">
+
+                  {/* Front Image */}
+                  <div>
+                    <h4 className="text-sm font-medium mb-3">Front Side</h4>
+                    {selectedViewForm.cardFrontPhoto ? (
+                      <button
+                        onClick={() => setZoomedImage(selectedViewForm.cardFrontPhoto!)}
+                        className="block w-full"
+                      >
+                        <img
+                          src={selectedViewForm.cardFrontPhoto}
+                          alt="Card Front"
+                          className="w-full max-h-64 sm:max-h-80 object-contain rounded-md border"
+                        />
+                      </button>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">No front image available</p>
+                    )}
+                  </div>
+
+                  {/* Back Image */}
+                  {selectedViewForm.cardBackPhoto && (
+                    <div>
+                      <h4 className="text-sm font-medium mb-3">Back Side</h4>
+                      <button
+                        onClick={() => setZoomedImage(selectedViewForm.cardBackPhoto!)}
+                        className="block w-full"
+                      >
+                        <img
+                          src={selectedViewForm.cardBackPhoto}
+                          alt="Card Back"
+                          className="w-full max-h-64 sm:max-h-80 object-contain rounded-md border"
+                        />
+                      </button>
+                    </div>
+                  )}
+
+                </div>
+
+              </ScrollArea>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+      </ScrollArea>
+    </Tabs>
+  </div>
+</DialogContent>
+
         </Dialog>
       )}
 
-      {/* Edit Dialog */}
-      {selectedEditForm && selectedEditForm.id && (
-        <Dialog open={true} onOpenChange={() => setOpenEdit(null)}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>
-                Edit Form - {selectedEditForm.cardNo || "N/A"}
-              </DialogTitle>
-            </DialogHeader>
-            <ExhibitionForm
-              initialData={{
-                cardNo: selectedEditForm.cardNo || "",
-                salesPerson: selectedEditForm.salesPerson || "",
-                date: selectedEditForm.date
-                  ? new Date(selectedEditForm.date).toISOString().split("T")[0]
-                  : "",
-                country: selectedEditForm.country || "",
-                cardFrontPhoto: selectedEditForm.cardFrontPhoto || "",
-                cardBackPhoto: selectedEditForm.cardBackPhoto || "",
-                leadStatus: selectedEditForm.leadStatus || "",
-                dealStatus: selectedEditForm.dealStatus || "",
-                meetingAfterExhibition:
-                  selectedEditForm.meetingAfterExhibition || false,
-                description: selectedEditForm.description || "",
-                extractionStatus:
-                  selectedEditForm.extractionStatus || "PENDING",
-              }}
-              additionalData={selectedEditForm.additionalData || {}}
-              onSubmit={(updatedData: any) =>
-                handleUpdate(updatedData, selectedEditForm.id!, () => {
-                  setOpenEdit(null);
-                })
-              }
-              isEdit={true}
-              formId={selectedEditForm.id!}
-              disabledFields={["cardNo", "date"]}
-            />
-          </DialogContent>
-        </Dialog>
-      )}
+     {/* Edit Dialog - FIXED: All fields now fill correctly */}
+{selectedEditForm && selectedEditForm.id && (
+  <Dialog open={true} onOpenChange={() => setOpenEdit(null)}>
+    <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogHeader>
+        <DialogTitle>
+          Edit Form - {selectedEditForm.cardNo || "N/A"}
+        </DialogTitle>
+      </DialogHeader>
+
+      <ExhibitionForm
+        initialData={{
+          // Fixed fields
+          cardNo: selectedEditForm.cardNo || "",
+          salesPerson: selectedEditForm.salesPerson || "",
+          date: selectedEditForm.date
+            ? new Date(selectedEditForm.date).toISOString().split("T")[0]
+            : "",
+          country: selectedEditForm.country || "",
+          cardFrontPhoto: selectedEditForm.cardFrontPhoto || "",
+          cardBackPhoto: selectedEditForm.cardBackPhoto || "",
+          leadStatus: selectedEditForm.leadStatus || "",
+          dealStatus: selectedEditForm.dealStatus || "",
+          meetingAfterExhibition: selectedEditForm.meetingAfterExhibition || false,
+          description: selectedEditForm.description || "",
+          extractionStatus: selectedEditForm.extractionStatus || "PENDING",
+
+          // ← THIS IS THE KEY FIX: Include ALL dynamic fields from additionalData
+          ...(selectedEditForm.additionalData || {}),
+        }}
+        onSubmit={(updatedData: any) =>
+          handleUpdate(updatedData, selectedEditForm.id!, () => {
+            setOpenEdit(null);
+          })
+        }
+        isEdit={true}
+        formId={selectedEditForm.id!}
+        disabledFields={["cardNo", "date"]}
+        // Remove the separate additionalData prop — no longer needed!
+      />
+    </DialogContent>
+  </Dialog>
+)}
 
       {/* Zoomed Image */}
       {zoomedImage && (

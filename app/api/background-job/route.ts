@@ -135,16 +135,15 @@ async function processFormInBackground(form: any) {
 
     console.log("Merged data (in memory):", mergedData);
 
-    // Do NOT save merged data to DB
-    
-    // await prisma.mergedData.upsert({ 
-    // where: { formId: form.id }, 
-    // update: mergedData, 
-    // create: { 
-    // ...mergedData, 
-    // form: { connect: { id: form.id } }, 
-    // }, 
-    // });
+    // ← UNCOMMENT AND USE THIS
+await prisma.mergedData.upsert({
+  where: { formId: form.id },
+  update: mergedData,
+  create: {
+    ...mergedData,
+    formId: form.id,   // This matches your schema perfectly
+  },
+});
 
     await prisma.form.update({
       where: { id: form.id },
