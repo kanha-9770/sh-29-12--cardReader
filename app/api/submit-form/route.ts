@@ -1,389 +1,4 @@
-// import { NextResponse } from "next/server";
-// import { prisma } from "@/lib/prisma";
-// import { getSession } from "@/lib/auth";
-// import { parseISO, isValid } from "date-fns";
-
-// export async function POST(req: Request) {
-//   try {
-//     // Check session
-//     const session = await getSession();
-//     if (!session || !session.id) {
-//       console.error("[Submit Form] Unauthorized access attempt: No valid session");
-//       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-//     }
-
-//     const userId = String(session.id);
-//     const user = await prisma.user.findUnique({ where: { id: userId } });
-
-//     if (!user) {
-//       console.error(`[Submit Form] User not found for ID: ${userId}`);
-//       return NextResponse.json({ error: "User not found" }, { status: 404 });
-//     }
-
-//     // ✅ LIMIT CHECK (max 15 submissions per user)
-//     const formCount = await prisma.form.count({
-//       where: { userId },
-//     });
-
-//     if (formCount >= 15) {
-//       return NextResponse.json(
-//         {
-//           error: "LIMIT_REACHED",
-//           message: "You have reached your free submission limit (15). Please upgrade your plan.",
-//         },
-//         { status: 403 }
-//       );
-//     }
-
-//     // Parse form data
-//     const formData = await req.json();
-//     console.log("[Submit Form] Received form data:", JSON.stringify(formData, null, 2));
-
-//     const {
-//       cardNo = "",
-//       salesPerson = "",
-//       date,
-//       country = "",
-//       cardFrontPhoto = "",
-//       cardBackPhoto = null,
-//       leadStatus = "",
-//       dealStatus = "",
-//       meetingAfterExhibition = false,
-//       industryCategories = "",
-//       description = "",
-//     } = formData;
-
-//     // Validate date
-//     if (!date || !isValid(parseISO(date))) {
-//       console.error("[Submit Form] Invalid date provided:", date);
-//       return NextResponse.json({ error: "Invalid date format" }, { status: 400 });
-//     }
-
-//     const parsedDate = parseISO(date);
-
-//     // Save form in a transaction
-//     const form = await prisma.$transaction(async (tx: typeof prisma) => {
-//       const newForm = await tx.form.create({
-//         data: {
-//           cardNo,
-//           salesPerson,
-//           date: parsedDate,
-//           country,
-//           cardFrontPhoto,
-//           cardBackPhoto,
-//           leadStatus,
-//           dealStatus,
-//           meetingAfterExhibition,
-//           industryCategories,
-//           description,
-//           status: "SUBMITTED",
-//           extractionStatus: "PENDING",
-//           zohoStatus: "PENDING",
-//           user: { connect: { id: userId } },
-//         },
-//         select: { id: true },
-//       });
-
-//       console.log(`[Submit Form] Form created with ID: ${newForm.id}`);
-
-//       return newForm;
-//     });
-
-//     // Background job
-//     try {
-//       console.log("[Submit Form] Triggering background job for form ID:", form.id);
-//       const bgResp = await fetch("https://cardsync-hazel.vercel.app/api/background-job", {
-//         method: "POST",
-//         headers: { "Content-Type": "application/json" },
-//         body: JSON.stringify({ formId: form.id }),
-//       });
-
-//       if (!bgResp.ok) {
-//         console.error("[Submit Form] Background job failed");
-//       }
-//     } catch (error) {
-//       console.error("[Submit Form] Background job error:", error);
-//     }
-
-//     return NextResponse.json({ success: true, formId: form.id });
-//   } catch (error) {
-//     console.error("[Submit Form] Error submitting form:", error);
-//     return NextResponse.json(
-//       {
-//         error: "Failed to submit form",
-//         details: error instanceof Error ? error.message : "Unknown error",
-//       },
-//       { status: 500 }
-//     );
-//   }
-// }
-
-// import { NextResponse } from "next/server";
-// import { prisma } from "@/lib/prisma";
-// import { getSession } from "@/lib/auth";
-// import { parseISO, isValid } from "date-fns";
-
-// interface SubmitFormData {
-//   cardNo?: string;
-//   salesPerson?: string;
-//   date: string;
-//   country?: string;
-//   cardFrontPhoto?: string;
-//   cardBackPhoto?: string | null;
-//   leadStatus?: string;
-//   dealStatus?: string;
-//   meetingAfterExhibition?: boolean;
-//   industryCategories?: string;
-//   description?: string;
-// }
-
-// export async function POST(req: Request) {
-//   try {
-//     // Check session
-//     const session = await getSession();
-//     if (!session || !session.id) {
-//       console.error("[Submit Form] Unauthorized access attempt: No valid session");
-//       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-//     }
-
-//     const userId = String(session.id);
-//     const user = await prisma.user.findUnique({ where: { id: userId } });
-
-//     if (!user) {
-//       console.error(`[Submit Form] User not found for ID: ${userId}`);
-//       return NextResponse.json({ error: "User not found" }, { status: 404 });
-//     }
-
-//     // ✅ LIMIT CHECK (max 15 submissions per user)
-//     const formCount = await prisma.form.count({
-//       where: { userId },
-//     });
-
-//     if (formCount >= 15) {
-//       return NextResponse.json(
-//         {
-//           error: "LIMIT_REACHED",
-//           message: "You have reached your free submission limit (15). Please upgrade your plan.",
-//         },
-//         { status: 403 }
-//       );
-//     }
-
-//     // Parse form data
-//     const formData = (await req.json()) as SubmitFormData;
-//     console.log("[Submit Form] Received form data:", JSON.stringify(formData, null, 2));
-
-//     const {
-//       cardNo = "",
-//       salesPerson = "",
-//       date,
-//       country = "",
-//       cardFrontPhoto = "",
-//       cardBackPhoto = null,
-//       leadStatus = "",
-//       dealStatus = "",
-//       meetingAfterExhibition = false,
-//       industryCategories = "",
-//       description = "",
-//     } = formData;
-
-//     // Validate date
-//     if (!date || !isValid(parseISO(date))) {
-//       console.error("[Submit Form] Invalid date provided:", date);
-//       return NextResponse.json({ error: "Invalid date format" }, { status: 400 });
-//     }
-
-//     const parsedDate = parseISO(date);
-
-//     // Save form in a transaction
-//     const form = await prisma.$transaction(async (tx) => {
-//       const newForm = await tx.form.create({
-//         data: {
-//           cardNo,
-//           salesPerson,
-//           date: parsedDate,
-//           country,
-//           cardFrontPhoto,
-//           cardBackPhoto,
-//           leadStatus,
-//           dealStatus,
-//           meetingAfterExhibition,
-//           industryCategories,
-//           description,
-//           status: "SUBMITTED",
-//           extractionStatus: "PENDING",
-//           zohoStatus: "PENDING",
-//           user: { connect: { id: userId } },
-//         },
-//         select: { id: true },
-//       });
-
-//       console.log(`[Submit Form] Form created with ID: ${newForm.id}`);
-
-//       return newForm;
-//     });
-
-//     // Background job
-//     try {
-//       console.log("[Submit Form] Triggering background job for form ID:", form.id);
-//       const bgResp = await fetch("https://cardsync-hazel.vercel.app/api/background-job", {
-//         method: "POST",
-//         headers: { "Content-Type": "application/json" },
-//         body: JSON.stringify({ formId: form.id }),
-//       });
-
-//       if (!bgResp.ok) {
-//         console.error("[Submit Form] Background job failed");
-//       }
-//     } catch (error) {
-//       console.error("[Submit Form] Background job error:", error);
-//     }
-
-//     return NextResponse.json({ success: true, formId: form.id });
-//   } catch (error) {
-//     console.error("[Submit Form] Error submitting form:", error);
-//     return NextResponse.json(
-//       {
-//         error: "Failed to submit form",
-//         details: error instanceof Error ? error.message : "Unknown error",
-//       },
-//       { status: 500 }
-//     );
-//   }
-// }
-
-
-  // import { NextResponse } from "next/server";
-  // import { prisma } from "@/lib/prisma";
-  // import { getSession } from "@/lib/auth";
-  // import { parseISO, isValid } from "date-fns";
-
-  // export async function POST(req: Request) {
-  //   try {
-  //     // Check session
-  //     const session = await getSession();
-  //     if (!session || !session.id) {
-  //       console.error("[Submit Form] Unauthorized access attempt: No valid session");
-  //       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  //     }
-
-  //     const userId = String(session.id);
-  //     const user = await prisma.user.findUnique({ where: { id: userId } });
-
-  //     if (!user) {
-  //       console.error(`[Submit Form] User not found for ID: ${userId}`);
-  //       return NextResponse.json({ error: "User not found" }, { status: 404 });
-  //     }
-
-  //     // ✅ LIMIT CHECK (max 15 submissions per user)
-  //     const formCount = await prisma.form.count({
-  //       where: { userId },
-  //     });
-
-  //     if (formCount >= 15) {
-  //       return NextResponse.json(
-  //         {
-  //           error: "LIMIT_REACHED",
-  //           message: "You have reached your free submission limit (15). Please upgrade your plan.",
-  //         },
-  //         { status: 403 }
-  //       );
-  //     }
-
-  //     // Parse form data (no strict interface to allow dynamic fields)
-  //     const body = await req.json();
-  //     console.log("[Submit Form] Received form data:", JSON.stringify(body, null, 2));
-
-  //     // Destructure fixed fields, capture dynamic ones in rest
-  //     const {
-  //       cardNo = "",
-  //       salesPerson = "",
-  //       date,
-  //       country = "",
-  //       cardFrontPhoto = "",
-  //       cardBackPhoto = null,
-  //       leadStatus = "",
-  //       dealStatus = "",
-  //       meetingAfterExhibition = false,
-  //       industryCategories = "",
-  //       description = "",
-  //       status = "PENDING", // Allow client to send, but default to PENDING
-  //       extractionStatus = "PENDING",
-  //       zohoStatus = "PENDING",
-  //       ...rest // ✅ Captures all dynamic fields (e.g., { company: "...", phone: "...", interestLevel: "hot" })
-  //     } = body;
-
-  //     // Validate date
-  //     if (!date || !isValid(parseISO(date))) {
-  //       console.error("[Submit Form] Invalid date provided:", date);
-  //       return NextResponse.json({ error: "Invalid date format" }, { status: 400 });
-  //     }
-
-  //     const parsedDate = parseISO(date);
-
-  //     // Save form in a transaction
-  //     const form = await prisma.$transaction(async (tx) => {
-  //       const newForm = await tx.form.create({
-  //         data: {
-  //           cardNo,
-  //           salesPerson,
-  //           date: parsedDate,
-  //           country,
-  //           cardFrontPhoto,
-  //           cardBackPhoto,
-  //           leadStatus,
-  //           dealStatus,
-  //           meetingAfterExhibition,
-  //           industryCategories,
-  //           description,
-  //           // ✅ Use client-provided statuses if valid, else defaults
-  //           status,
-  //           extractionStatus,
-  //           zohoStatus,
-  //           // ✅ Store dynamic fields as JSON (only if present)
-  //           additionalData: Object.keys(rest).length > 0 ? rest : undefined,
-  //           user: { connect: { id: userId } },
-  //         },
-  //         select: { id: true },
-  //       });
-
-  //       console.log(`[Submit Form] Form created with ID: ${newForm.id}`);
-  //       console.log(`[Submit Form] Dynamic data saved:`, JSON.stringify(rest, null, 2));
-
-  //       return newForm;
-  //     });
-
-  //     // Background job
-  //     try {
-  //       console.log("[Submit Form] Triggering background job for form ID:", form.id);
-  //       const bgResp = await fetch("https://cardsync-hazel.vercel.app/api/background-job", {
-  //         method: "POST",
-  //         headers: { "Content-Type": "application/json" },
-  //         body: JSON.stringify({ formId: form.id }),
-  //       });
-
-  //       if (!bgResp.ok) {
-  //         console.error("[Submit Form] Background job failed");
-  //       }
-  //     } catch (error) {
-  //       console.error("[Submit Form] Background job error:", error);
-  //     }
-
-  //     return NextResponse.json({ success: true, formId: form.id });
-  //   } catch (error) {
-  //     console.error("[Submit Form] Error submitting form:", error);
-  //     return NextResponse.json(
-  //       {
-  //         error: "Failed to submit form",
-  //         details: error instanceof Error ? error.message : "Unknown error",
-  //       },
-  //       { status: 500 }
-  //     );
-  //   }
-  // }
-
-
-  // app/api/submit-form/route.ts
+// app/api/submit-form/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
@@ -394,21 +9,36 @@ export async function POST(req: Request) {
   try {
     const session = await getSession();
 
-    // This matches your current getSession() shape
-    if (!session?.user?.email) {
+    // Use session.id directly — no email lookup needed!
+    if (!session?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const userEmail = session.user.email;
+    const userId = session.id;
 
-    // Find the user by email
+    // Optional: Early fetch user with limit check (still safe)
     const user = await prisma.user.findUnique({
-      where: { email: userEmail },
-      select: { id: true },
+      where: { id: userId },
+      select: { id: true, formCount: true, formLimit: true, isAdmin: true },
     });
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    const maxLimit = user.formLimit ?? 15;
+
+    // Check limit BEFORE creating form
+    if (!user.isAdmin && user.formCount >= maxLimit) {
+      return NextResponse.json(
+        {
+          error: "LIMIT_REACHED",
+          message: `You have reached your limit of ${maxLimit} submissions.`,
+          current: user.formCount,
+          limit: maxLimit,
+        },
+        { status: 403 }
+      );
     }
 
     const body = await req.json();
@@ -425,12 +55,15 @@ export async function POST(req: Request) {
       meetingAfterExhibition = false,
       description = "",
       industryCategories = "",
-      ...additionalData // All dynamic fields
+      ...additionalData
     } = body;
 
     // Validation
     if (!cardFrontPhoto) {
-      return NextResponse.json({ error: "Card front image is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Card front image is required" },
+        { status: 400 }
+      );
     }
 
     if (!dateStr) {
@@ -442,36 +75,68 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid date" }, { status: 400 });
     }
 
-    // Create form
-    const form = await prisma.form.create({
-      data: {
-        cardNo,
-        salesPerson,
-        date,
-        country,
-        cardFrontPhoto,
-        cardBackPhoto,
-        leadStatus,
-        dealStatus,
-        meetingAfterExhibition: Boolean(meetingAfterExhibition),
-        industryCategories: industryCategories || "",
-        description: description || "",
-        status: "SUBMITTED",
-        extractionStatus: "PENDING",
-        zohoStatus: "PENDING",
-        additionalData: Object.keys(additionalData).length > 0 ? additionalData : null,
-        user: { connect: { id: user.id } },
-      },
+    // Atomic transaction: create form + increment count
+    const result = await prisma.$transaction(async (tx) => {
+      const newForm = await tx.form.create({
+        data: {
+          cardNo,
+          salesPerson,
+          date,
+          country,
+          cardFrontPhoto,
+          cardBackPhoto,
+          leadStatus,
+          dealStatus,
+          meetingAfterExhibition: Boolean(meetingAfterExhibition),
+          industryCategories: industryCategories || "",
+          description: description || "",
+          status: "SUBMITTED",
+          extractionStatus: "PENDING",
+          zohoStatus: "PENDING",
+          additionalData:
+            Object.keys(additionalData).length > 0 ? additionalData : null,
+          user: { connect: { id: userId } },
+        },
+        select: { id: true, cardNo: true },
+      });
+
+      // This is the ONLY place formCount should ever be incremented
+      await tx.user.update({
+        where: { id: userId },
+        data: { formCount: { increment: 1 } },
+      });
+
+      return newForm;
     });
 
-    // Trigger background job (fire and forget)
-    fetch(`${process.env.NEXT_PUBLIC_APP_URL || "https://cardsync-hazel.vercel.app"}/api/background-job`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ formId: form.id }),
-    }).catch(() => {});
+    // Fire and forget background job
+    fetch(
+      `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/background-job`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ formId: result.id }),
+      }
+    ).catch((err) => {
+      console.error("Background job trigger failed:", err);
+    });
 
-    return NextResponse.json({ success: true, formId: form.id }, { status: 201 });
+    console.log("Form submitted successfully", {
+      userId,
+      formId: result.id,
+      cardNo: result.cardNo,
+      newCount: user.formCount + 1,
+    });
+
+    return NextResponse.json(
+      {
+        success: true,
+        message: "Form submitted successfully",
+        formId: result.id,
+        cardNo: result.cardNo,
+      },
+      { status: 201 }
+    );
   } catch (error: any) {
     console.error("Submit form error:", error);
     return NextResponse.json(
@@ -480,4 +145,3 @@ export async function POST(req: Request) {
     );
   }
 }
-

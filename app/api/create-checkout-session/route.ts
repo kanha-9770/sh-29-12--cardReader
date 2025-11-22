@@ -3,7 +3,7 @@ import Stripe from "stripe";
 import { getSession } from "@/lib/auth";
 
 const stripeSecret = process.env.STRIPE_SECRET_KEY;
-const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://cardsync-hazel.vercel.app";
+const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
 if (!stripeSecret) {
   console.error("❌ STRIPE_SECRET_KEY missing in .env.local");

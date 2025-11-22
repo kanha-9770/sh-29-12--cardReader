@@ -25,6 +25,8 @@ model User {
   forms          Form[]
   subscriptionPlan String? @default("FREE")
   formLimit      Int?     @default(15)
+    formCount        Int      @default(0) // 🔥 Stores number of forms submitted
+
 }
 
 model Form {
