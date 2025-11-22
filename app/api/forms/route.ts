@@ -540,7 +540,7 @@ export async function POST(req: Request) {
     // ================================================
     // THIS IS THE FIX: Trigger background job properly
     // ================================================
-    const backgroundUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/background-job`;
+    const backgroundUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/background-job`;
 
     setTimeout(() => {
       fetch(backgroundUrl, {
