@@ -92,7 +92,7 @@
 //     // Background job
 //     try {
 //       console.log("[Submit Form] Triggering background job for form ID:", form.id);
-//       const bgResp = await fetch("http://localhost:3000/api/background-job", {
+//       const bgResp = await fetch("https://cardsync.vercel.app/api/background-job", {
 //         method: "POST",
 //         headers: { "Content-Type": "application/json" },
 //         body: JSON.stringify({ formId: form.id }),
@@ -226,7 +226,7 @@
 //     // Background job
 //     try {
 //       console.log("[Submit Form] Triggering background job for form ID:", form.id);
-//       const bgResp = await fetch("http://localhost:3000/api/background-job", {
+//       const bgResp = await fetch("https://cardsync.vercel.app/api/background-job", {
 //         method: "POST",
 //         headers: { "Content-Type": "application/json" },
 //         body: JSON.stringify({ formId: form.id }),
@@ -356,7 +356,7 @@
   //     // Background job
   //     try {
   //       console.log("[Submit Form] Triggering background job for form ID:", form.id);
-  //       const bgResp = await fetch("http://localhost:3000/api/background-job", {
+  //       const bgResp = await fetch("https://cardsync.vercel.app/api/background-job", {
   //         method: "POST",
   //         headers: { "Content-Type": "application/json" },
   //         body: JSON.stringify({ formId: form.id }),
@@ -465,7 +465,7 @@ export async function POST(req: Request) {
     });
 
     // Trigger background job (fire and forget)
-    fetch(`https://exhibition-lead-generator-nu.vercel.app/api/background-job`, {
+    fetch(`${process.env.NEXT_PUBLIC_APP_URL || "https://cardsync.vercel.app"}/api/background-job`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ formId: form.id }),

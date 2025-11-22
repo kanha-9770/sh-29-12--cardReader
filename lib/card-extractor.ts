@@ -58,31 +58,31 @@ async function tryApiKeys(
   throw new AggregateError(errors, "All API keys failed");
 }
 
-// export async function extractCardDetails(
-//   frontImageUrl: string,
-//   backImageUrl: string | null
-// ): Promise<ExtractedData> {
-//   try {
-//     console.log("Starting card detail extraction...");
-
 export async function extractCardDetails(
-  frontImageBase64: string,      // ← Now base64 string
-  backImageBase64: string | null // ← Now base64 string
+  frontImageUrl: string,
+  backImageUrl: string | null
 ): Promise<ExtractedData> {
   try {
     console.log("Starting card detail extraction...");
 
-    const cleanFront = frontImageBase64.replace(/^data:image\/[a-z]+;base64,/, "");
-    const cleanBack = backImageBase64 ? backImageBase64.replace(/^data:image\/[a-z]+;base64,/, "") : null;
+// export async function extractCardDetails(
+//   frontImageBase64: string,      // ← Now base64 string
+//   backImageBase64: string | null // ← Now base64 string
+// ): Promise<ExtractedData> {
+//   try {
+//     console.log("Starting card detail extraction...");
 
-    // if (!frontImageUrl) {
-    //   throw new Error("Front image URL is required");
-    // }
+//     const cleanFront = frontImageBase64.replace(/^data:image\/[a-z]+;base64,/, "");
+//     const cleanBack = backImageBase64 ? backImageBase64.replace(/^data:image\/[a-z]+;base64,/, "") : null;
 
-    // const frontImageBase64 = await fetchAndEncodeImage(frontImageUrl);
-    // const backImageBase64 = backImageUrl
-    //   ? await fetchAndEncodeImage(backImageUrl)
-    //   : null;
+    if (!frontImageUrl) {
+      throw new Error("Front image URL is required");
+    }
+
+    const frontImageBase64 = await fetchAndEncodeImage(frontImageUrl);
+    const backImageBase64 = backImageUrl
+      ? await fetchAndEncodeImage(backImageUrl)
+      : null;
 
     const prompt = `
       Analyze the provided front and back images of a business card. Extract the following information and format it into a JSON object according to these specifications:
@@ -128,22 +128,6 @@ export async function extractCardDetails(
       }
     `;
 
-    // const data = {
-    //   contents: [
-    //     {
-    //       parts: [
-    //         { text: prompt },
-    //         {
-    //           inline_data: {
-    //             mime_type: "image/jpeg",
-    //             data: frontImageBase64,
-    //           },
-    //         },
-    //       ],
-    //     },
-    //   ],
-    // };
-
     const data = {
       contents: [
         {
@@ -152,7 +136,7 @@ export async function extractCardDetails(
             {
               inline_data: {
                 mime_type: "image/jpeg",
-                data: cleanFront,
+                data: frontImageBase64,
               },
             },
           ],
@@ -160,23 +144,39 @@ export async function extractCardDetails(
       ],
     };
 
-    // if (backImageBase64) {
-    //   data.contents[0].parts.push({
-    //     inline_data: {
-    //       mime_type: "image/jpeg",
-    //       data: backImageBase64,
+    // const data = {
+    //   contents: [
+    //     {
+    //       parts: [
+    //         { text: prompt },
+    //         {
+    //           inline_data: {
+    //             mime_type: "image/jpeg",
+    //             data: cleanFront,
+    //           },
+    //         },
+    //       ],
     //     },
-    //   });
-    // }
+    //   ],
+    // };
 
-    if (cleanBack) {
+    if (backImageBase64) {
       data.contents[0].parts.push({
         inline_data: {
           mime_type: "image/jpeg",
-          data: cleanBack,
+          data: backImageBase64,
         },
       });
     }
+
+    // if (cleanBack) {
+    //   data.contents[0].parts.push({
+    //     inline_data: {
+    //       mime_type: "image/jpeg",
+    //       data: cleanBack,
+    //     },
+    //   });
+    // }
 
     let response: Response;
 
