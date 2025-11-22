@@ -465,7 +465,7 @@ export async function POST(req: Request) {
     });
 
     // Trigger background job (fire and forget)
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/api/background-job`, {
+    fetch(`${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/background-job`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ formId: form.id }),
