@@ -1,6 +1,11 @@
+// extractCardDetails.ts
 import { z } from "zod";
 import { API_KEYS, GEMINI_2_API_URL, GEMINI_1_5_API_URL } from "./apiConfig";
 
+// Polyfill Buffer for Vercel / Serverless / Workers
+import { Buffer } from "buffer";
+
+// Zod schema
 const ExtractedDataSchema = z.object({
   name: z.string().nullable(),
   companyName: z.string().nullable(),
@@ -16,31 +21,50 @@ const ExtractedDataSchema = z.object({
 
 type ExtractedData = z.infer<typeof ExtractedDataSchema>;
 
+// Safe fetch + base64 encoder (works everywhere in 2025)
+async function fetchAndEncodeImage(url: string): Promise<string> {
+  console.log(`[Image] Fetching → ${url}`);
+
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    console.error(`[Image] Failed → ${response.status} ${response.statusText} | ${text}`);
+    throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+  }
+
+  console.log(`[Image] Downloaded → ${response.headers.get("content-length") || "?"} bytes`);
+  const arrayBuffer = await response.arrayBuffer();
+  const base64 = Buffer.from(arrayBuffer).toString("base64");
+
+  console.log(`[Image] Encoded → ${base64.length.toLocaleString()} chars`);
+  return base64;
+}
+
 async function makeApiRequest(
   apiUrl: string,
   apiKey: string,
   data: any
 ): Promise<Response> {
-  console.log(`Making API request to: ${apiUrl} (key ending in ...${apiKey.slice(-6)})`);
-  
+  const keySuffix = apiKey.slice(-6);
+  console.log(`[API] POST → ${apiUrl}?key=...${keySuffix}`);
+
   const url = `${apiUrl}?key=${apiKey}`;
   const response = await fetch(url, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
 
-  console.log(`Response status: ${response.status} ${response.statusText}`);
+  console.log(`[API] Response → ${response.status} ${response.statusText}`);
 
   if (!response.ok) {
-    const errorText = await response.text().catch(() => "Unknown error");
-    console.error(`API request failed with status ${response.status}: ${errorText}`);
-    throw new Error(`API request failed: ${response.status} - ${errorText}`);
+    const errorBody = await response.text().catch(() => "");
+    console.error(`[API] Failed → ${response.status} | ${errorBody}`);
+    throw new Error(`API request failed: ${response.status}`);
   }
 
-  console.log("API request successful");
+  console.log(`[API] Success with key ...${keySuffix}`);
   return response;
 }
 
@@ -49,100 +73,70 @@ async function tryApiKeys(
   apiUrl: string,
   data: any
 ): Promise<Response> {
-  console.log(`Trying ${apiKeys.length} API keys for ${apiUrl}`);
-  const errors: Error[] = [];
+  console.log(`[API] Trying ${apiKeys.length} keys on ${apiUrl.split("/").pop()}`);
 
-  for (const apiKey of apiKeys) {
-    console.log(`Attempting with API key ending in ...${apiKey.slice(-6)}`);
+  const errors: Error[] = [];
+  for (const key of apiKeys) {
     try {
-      const response = await makeApiRequest(apiUrl, apiKey, data);
-      console.log(`Success with key ending in ...${apiKey.slice(-6)}`);
-      return response;
-    } catch (error: any) {
-      console.error(`API key failed: ...${apiKey.slice(-6)}. Error: ${error.message}`);
-      errors.push(error as Error);
+      return await makeApiRequest(apiUrl, key, data);
+    } catch (err: any) {
+      console.warn(`[API] Key failed → ...${key.slice(-6)} | ${err.message}`);
+      errors.push(err);
     }
   }
 
-  console.error("All API keys failed for this endpoint");
   throw new AggregateError(errors, "All API keys failed");
 }
 
 export async function extractCardDetails(
   frontImageUrl: string,
-  backImageUrl: string | null
+  backImageUrl: string | null = null
 ): Promise<ExtractedData> {
   console.log("extractCardDetails() called");
-  console.log("Front image URL:", frontImageUrl);
-  console.log("Back image URL:", backImageUrl || "none");
+  console.log("Front URL:", frontImageUrl);
+  console.log("Back URL:", backImageUrl || "none");
 
   try {
-    console.log("Starting card detail extraction...");
+    if (!frontImageUrl) throw new Error("Front image URL is required");
 
-    if (!frontImageUrl) {
-      console.error("Front image URL is missing!");
-      throw new Error("Front image URL is required");
-    }
-
-    console.log("Fetching and encoding front image...");
+    // Fetch and encode images
+    console.log("Fetching front image...");
     const frontImageBase64 = await fetchAndEncodeImage(frontImageUrl);
-    console.log(`Front image fetched and encoded (size: ${frontImageBase64.length} chars)`);
 
     let backImageBase64: string | null = null;
     if (backImageUrl) {
-      console.log("Fetching and encoding back image...");
+      console.log("Fetching back image...");
       backImageBase64 = await fetchAndEncodeImage(backImageUrl);
-      console.log(`Back image fetched and encoded (size: ${backImageBase64.length} chars)`);
     } else {
       console.log("No back image provided");
     }
 
-    console.log("Building prompt and request payload...");
-    const prompt = `
-      Analyze the provided front and back images of a business card. Extract the following information and format it into a JSON object according to these specifications:
+    // Build prompt
+    const prompt = `You are an expert at reading business cards. Extract ALL visible text and return ONLY a valid JSON object with these exact keys (case-sensitive). Use null if missing.
 
-      *   **Name:** The name of the individual.
-      *   **Company:** The name of the company.
-      *   **Mobile:** The primary contact number.
-      *   **Mobile_2:** The second contact number (if present).
-      *   **Phone:** A third contact number (if present).
-      *   **Address:** The full street address.
-      *   **City:** The city within the address.
-      *   **State:** The state within the address.
-      *   **Country:** The country within the address. Ensure the country name is spelled correctly and uses its full proper name. Correct any spelling errors.
-      *   **Email:** The primary email address.
-      *   **Secondary_Email:** A secondary email address (if present).
-      *   **Website:** The company website.
-      *   **description:** Any additional information that doesn't fit into the above categories, such as a fourth phone number, a second website, a third email, or any unidentifiable text. If no extra information is found, set this to an empty string. If the information is not clear, put in description.
+{
+  "Name": "John Doe",
+  "Company": "ABC Corp",
+  "Mobile": "+1 234-567-8900",
+  "Mobile_2": null,
+  "Phone": null,
+  "Address": "123 Main St, Suite 100",
+  "City": "New York",
+  "State": "NY",
+  "Country": "United States",
+  "Email": "john@abc.com",
+  "Secondary_Email": null,
+  "Website": "www.abc.com",
+  "description": ""
+}
 
-      Follow these rules strictly:
+Rules:
+- Fix spelling of Country (e.g. "USA" → "United States")
+- Put extra phone/email/website in "description" if more than allowed
+- Never add explanations or markdown
+- Return only the JSON`;
 
-      1.  Extract ALL text visible in the image. Do not omit any text.
-      2.  Include ALL contact numbers found, populating \`Mobile\`, \`Mobile_2\`, and \`Phone\` accordingly.
-      3.  Include ALL email addresses found, populating \`Email\` and \`Secondary_Email\` accordingly.
-      4.  If a field is not found, set it to null.
-      5.  Do not add any explanations or markdown. Return ONLY the JSON object.
-     
-      Output the information in a JSON object with the keys exactly as specified above.
-
-      {
-        "Name": null,
-        "Company": null,
-        "Mobile": null,
-        "Mobile_2": null,
-        "Phone": null,
-        "Address": null,
-        "State": null,
-        "City": null,
-        "Country": null,
-        "Email": null,
-        "Secondary_Email": null,
-        "Website": null,
-        "description": null
-      }
-    `;
-
-    const data = {
+    const payload: any = {
       contents: [
         {
           parts: [
@@ -159,97 +153,74 @@ export async function extractCardDetails(
     };
 
     if (backImageBase64) {
-      console.log("Adding back image to request payload");
-      data.contents[0].parts.push({
-        inline_data: {
-          mime_type: "image/jpeg",
-          data: backImageBase64,
-        },
+      console.log("Adding back image to payload");
+      payload.contents[0].parts.push({
+        inline_data: { mime_type: "image/jpeg", data: backImageBase64 },
       });
     }
 
-    console.log("Final request payload ready (contains front + back image:", !!backImageBase64, ")");
+    console.log("Payload ready → sending to Gemini...");
 
+    // Try Gemini 2.0 → fallback to 1.5
     let response: Response;
-
-    console.log("Attempting Gemini 2.0 API...");
     try {
-      response = await tryApiKeys(API_KEYS, GEMINI_2_API_URL, data);
-      console.log("Gemini 2.0 request succeeded");
-    } catch (error) {
-      console.warn("Gemini 2.0 failed entirely. Falling back to Gemini 1.5...");
-      try {
-        response = await tryApiKeys(API_KEYS, GEMINI_1_5_API_URL, data);
-        console.log("Gemini 1.5 request succeeded");
-      } catch (fallbackError) {
-        console.error("Both Gemini 2.0 and 1.5 failed");
-        throw new Error("All API keys failed for both Gemini 2.0 and 1.5");
-      }
+      response = await tryApiKeys(API_KEYS, GEMINI_2_API_URL, payload);
+      console.log("Gemini 2.0 succeeded");
+    } catch {
+      console.warn("Gemini 2.0 failed → trying 1.5");
+      response = await tryApiKeys(API_KEYS, GEMINI_1_5_API_URL, payload);
+      console.log("Gemini 1.5 succeeded");
     }
 
-    console.log("Parsing API response...");
     const result = await response.json();
-    console.log("Raw API Response:", JSON.stringify(result, null, 2));
+    console.log("Raw Gemini response:", JSON.stringify(result, null, 2));
 
-    if (!result.candidates?.[0]?.content?.parts?.[0]?.text) {
-      console.error("Invalid or empty response from Gemini:", JSON.stringify(result, null, 2));
-      throw new Error("Invalid API response structure - no text in candidates");
-    }
+    const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!text) throw new Error("No text returned from Gemini");
 
-    const extractedText = result.candidates[0].content.parts[0].text;
-    console.log("Extracted text from Gemini:", extractedText);
+    console.log("Gemini text output:", text.trim());
 
-    const jsonStartIndex = extractedText.indexOf("{");
-    const jsonEndIndex = extractedText.lastIndexOf("}") + 1;
+    // Extract JSON block
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error("No JSON found in Gemini response");
 
-    if (jsonStartIndex === -1 || jsonEndIndex === 0) {
-      console.error("Could not find JSON object in response");
-      throw new Error("No valid JSON found in Gemini response");
-    }
+    const jsonString = jsonMatch[0];
+    console.log("Extracted JSON:", jsonString);
 
-    const jsonString = extractedText.slice(jsonStartIndex, jsonEndIndex);
-    console.log("Extracted JSON string:", jsonString);
+    const rawData = JSON.parse(jsonString);
+    console.log("Parsed data:", rawData);
 
-    let extractedData: any;
-    try {
-      extractedData = JSON.parse(jsonString);
-      console.log("Successfully parsed JSON:", extractedData);
-    } catch (parseError) {
-      console.error("Failed to parse JSON from Gemini response:", parseError);
-      throw new Error("Invalid JSON returned by Gemini");
-    }
-
-    console.log("Mapping extracted data to final schema...");
+    // Map to our schema
     const mappedData = {
-      name: extractedData.Name || extractedData.name || null,
-      companyName: extractedData.Company || extractedData.companyName || null,
-      website: extractedData.Website || extractedData.website || null,
-      email: extractedData.Email || extractedData.email || null,
-      address: extractedData.Address || extractedData.address || null,
+      name: rawData.Name || rawData.name || null,
+      companyName: rawData.Company || rawData.companyName || null,
+      website: rawData.Website || rawData.website || null,
+      email: rawData.Email || rawData.email || null,
+      address: rawData.Address || rawData.address || null,
       contactNumbers: [
-        extractedData.Mobile,
-        extractedData.Mobile_2,
-        extractedData.Phone,
-        extractedData.mobile,
-        extractedData.mobile_2,
-        extractedData.phone,
+        rawData.Mobile,
+        rawData.Mobile_2,
+        rawData.Phone,
+        rawData.mobile,
+        rawData.mobile_2,
+        rawData.phone,
       ]
         .filter(Boolean)
         .join(", ") || null,
-      state: extractedData.State || extractedData.state || null,
-      country: extractedData.Country || extractedData.country || null,
-      city: extractedData.City || extractedData.city || null,
-      description: extractedData.description || null,
+      state: rawData.State || rawData.state || null,
+      country: rawData.Country || rawData.country || null,
+      city: rawData.City || rawData.city || null,
+      description: rawData.description || null,
     };
 
-    console.log("Final mapped data before validation:", mappedData);
+    console.log("Final mapped data:", mappedData);
 
-    const validatedData = ExtractedDataSchema.parse(mappedData);
-    console.log("Zod validation passed. Returning result.");
-    return validatedData;
-  } catch (error) {
-    console.error("extractCardDetails failed with error:", error);
-    console.error("Stack trace:", error instanceof Error ? error.stack : "No stack");
+    const validated = ExtractedDataSchema.parse(mappedData);
+    console.log("Zod validation passed → returning result");
+    return validated;
+  } catch (error: any) {
+    console.error("extractCardDetails FAILED:", error.message);
+    console.error("Stack:", error.stack);
 
     return {
       name: null,
@@ -264,20 +235,4 @@ export async function extractCardDetails(
       description: null,
     };
   }
-}
-
-async function fetchAndEncodeImage(url: string): Promise<string> {
-  console.log(`Fetching image from URL: ${url}`);
-  const response = await fetch(url);
-
-  if (!response.ok) {
-    console.error(`Failed to fetch image. Status: ${response.status} ${response.statusText}`);
-    throw new Error(`Failed to fetch image: ${response.statusText}`);
-  }
-
-  console.log("Image fetched successfully, converting to base64...");
-  const arrayBuffer = await response.arrayBuffer();
-  const base64 = Buffer.from(arrayBuffer).toString("base64");
-  console.log(`Image converted to base64 (length: ${base64.length} chars)`);
-  return base64;
 }
