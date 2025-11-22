@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { API_KEYS, GEMINI_2_API_URL, GEMINI_1_5_API_URL } from "./apiConfig";
 
-
 const ExtractedDataSchema = z.object({
   name: z.string().nullable(),
   companyName: z.string().nullable(),
@@ -22,6 +21,8 @@ async function makeApiRequest(
   apiKey: string,
   data: any
 ): Promise<Response> {
+  console.log(`Making API request to: ${apiUrl} (key ending in ...${apiKey.slice(-6)})`);
+  
   const url = `${apiUrl}?key=${apiKey}`;
   const response = await fetch(url, {
     method: "POST",
@@ -31,10 +32,15 @@ async function makeApiRequest(
     body: JSON.stringify(data),
   });
 
+  console.log(`Response status: ${response.status} ${response.statusText}`);
+
   if (!response.ok) {
-    throw new Error(`API request failed: ${response.status}`);
+    const errorText = await response.text().catch(() => "Unknown error");
+    console.error(`API request failed with status ${response.status}: ${errorText}`);
+    throw new Error(`API request failed: ${response.status} - ${errorText}`);
   }
 
+  console.log("API request successful");
   return response;
 }
 
@@ -43,18 +49,22 @@ async function tryApiKeys(
   apiUrl: string,
   data: any
 ): Promise<Response> {
+  console.log(`Trying ${apiKeys.length} API keys for ${apiUrl}`);
   const errors: Error[] = [];
 
   for (const apiKey of apiKeys) {
+    console.log(`Attempting with API key ending in ...${apiKey.slice(-6)}`);
     try {
       const response = await makeApiRequest(apiUrl, apiKey, data);
+      console.log(`Success with key ending in ...${apiKey.slice(-6)}`);
       return response;
     } catch (error: any) {
-      console.error(`API key failed: ${apiKey}. Error: ${error.message}`);
+      console.error(`API key failed: ...${apiKey.slice(-6)}. Error: ${error.message}`);
       errors.push(error as Error);
     }
   }
 
+  console.error("All API keys failed for this endpoint");
   throw new AggregateError(errors, "All API keys failed");
 }
 
@@ -62,28 +72,32 @@ export async function extractCardDetails(
   frontImageUrl: string,
   backImageUrl: string | null
 ): Promise<ExtractedData> {
+  console.log("extractCardDetails() called");
+  console.log("Front image URL:", frontImageUrl);
+  console.log("Back image URL:", backImageUrl || "none");
+
   try {
     console.log("Starting card detail extraction...");
 
-// export async function extractCardDetails(
-//   frontImageBase64: string,      // ← Now base64 string
-//   backImageBase64: string | null // ← Now base64 string
-// ): Promise<ExtractedData> {
-//   try {
-//     console.log("Starting card detail extraction...");
-
-//     const cleanFront = frontImageBase64.replace(/^data:image\/[a-z]+;base64,/, "");
-//     const cleanBack = backImageBase64 ? backImageBase64.replace(/^data:image\/[a-z]+;base64,/, "") : null;
-
     if (!frontImageUrl) {
+      console.error("Front image URL is missing!");
       throw new Error("Front image URL is required");
     }
 
+    console.log("Fetching and encoding front image...");
     const frontImageBase64 = await fetchAndEncodeImage(frontImageUrl);
-    const backImageBase64 = backImageUrl
-      ? await fetchAndEncodeImage(backImageUrl)
-      : null;
+    console.log(`Front image fetched and encoded (size: ${frontImageBase64.length} chars)`);
 
+    let backImageBase64: string | null = null;
+    if (backImageUrl) {
+      console.log("Fetching and encoding back image...");
+      backImageBase64 = await fetchAndEncodeImage(backImageUrl);
+      console.log(`Back image fetched and encoded (size: ${backImageBase64.length} chars)`);
+    } else {
+      console.log("No back image provided");
+    }
+
+    console.log("Building prompt and request payload...");
     const prompt = `
       Analyze the provided front and back images of a business card. Extract the following information and format it into a JSON object according to these specifications:
 
@@ -144,23 +158,8 @@ export async function extractCardDetails(
       ],
     };
 
-    // const data = {
-    //   contents: [
-    //     {
-    //       parts: [
-    //         { text: prompt },
-    //         {
-    //           inline_data: {
-    //             mime_type: "image/jpeg",
-    //             data: cleanFront,
-    //           },
-    //         },
-    //       ],
-    //     },
-    //   ],
-    // };
-
     if (backImageBase64) {
+      console.log("Adding back image to request payload");
       data.contents[0].parts.push({
         inline_data: {
           mime_type: "image/jpeg",
@@ -169,91 +168,89 @@ export async function extractCardDetails(
       });
     }
 
-    // if (cleanBack) {
-    //   data.contents[0].parts.push({
-    //     inline_data: {
-    //       mime_type: "image/jpeg",
-    //       data: cleanBack,
-    //     },
-    //   });
-    // }
+    console.log("Final request payload ready (contains front + back image:", !!backImageBase64, ")");
 
     let response: Response;
 
+    console.log("Attempting Gemini 2.0 API...");
     try {
       response = await tryApiKeys(API_KEYS, GEMINI_2_API_URL, data);
+      console.log("Gemini 2.0 request succeeded");
     } catch (error) {
-      console.log("All Gemini 2.0 API keys failed. Trying Gemini 1.5...");
+      console.warn("Gemini 2.0 failed entirely. Falling back to Gemini 1.5...");
       try {
         response = await tryApiKeys(API_KEYS, GEMINI_1_5_API_URL, data);
-      } catch (error) {
+        console.log("Gemini 1.5 request succeeded");
+      } catch (fallbackError) {
+        console.error("Both Gemini 2.0 and 1.5 failed");
         throw new Error("All API keys failed for both Gemini 2.0 and 1.5");
       }
     }
 
+    console.log("Parsing API response...");
     const result = await response.json();
-    console.log("API Response:", JSON.stringify(result, null, 2));
+    console.log("Raw API Response:", JSON.stringify(result, null, 2));
 
     if (!result.candidates?.[0]?.content?.parts?.[0]?.text) {
-      console.error(
-        "Invalid API response structure:",
-        JSON.stringify(result, null, 2)
-      );
-      throw new Error("Invalid API response structure");
+      console.error("Invalid or empty response from Gemini:", JSON.stringify(result, null, 2));
+      throw new Error("Invalid API response structure - no text in candidates");
     }
 
-    // Submit raw Gemini response to Zoho
-    // try {
-    //   console.log("Submitting to Zoho...");
-    //   const zohoResponse = await submitToZoho(result);
-
-    //   if ("error" in zohoResponse) {
-    //     throw new Error(`Zoho API Error: ${zohoResponse.error}`);
-    //   }
-
-    //   console.log("Zoho submission successful");
-    // } catch (error) {
-    //   console.error("Error submitting to Zoho:", error);
-    //   throw error;
-    // }
-
     const extractedText = result.candidates[0].content.parts[0].text;
+    console.log("Extracted text from Gemini:", extractedText);
+
     const jsonStartIndex = extractedText.indexOf("{");
     const jsonEndIndex = extractedText.lastIndexOf("}") + 1;
-    const jsonString = extractedText.slice(jsonStartIndex, jsonEndIndex);
 
+    if (jsonStartIndex === -1 || jsonEndIndex === 0) {
+      console.error("Could not find JSON object in response");
+      throw new Error("No valid JSON found in Gemini response");
+    }
+
+    const jsonString = extractedText.slice(jsonStartIndex, jsonEndIndex);
     console.log("Extracted JSON string:", jsonString);
 
-    const extractedData = JSON.parse(jsonString);
-    console.log("Parsed extracted data:", extractedData);
+    let extractedData: any;
+    try {
+      extractedData = JSON.parse(jsonString);
+      console.log("Successfully parsed JSON:", extractedData);
+    } catch (parseError) {
+      console.error("Failed to parse JSON from Gemini response:", parseError);
+      throw new Error("Invalid JSON returned by Gemini");
+    }
 
-   const mappedData = {
-  name: extractedData.Name || extractedData.name || null,
-  companyName: extractedData.Company || extractedData.companyName || null,
-  website: extractedData.Website || extractedData.website || null,
-  email: extractedData.Email || extractedData.email || null,
-  address: extractedData.Address || extractedData.address || null,
-  contactNumbers: [
-    extractedData.Mobile,
-    extractedData.Mobile_2,
-    extractedData.Phone,
-    extractedData.mobile,
-    extractedData.mobile_2,
-    extractedData.phone,
-  ]
-    .filter(Boolean)
-    .join(", ") || null,
-  state: extractedData.State || extractedData.state || null,
-  country: extractedData.Country || extractedData.country || null,
-  city: extractedData.City || extractedData.city || null,  // ← Now works!
-  description: extractedData.description || null,
-};
-    console.log("here is mapped data", mappedData);
-    
-    return ExtractedDataSchema.parse(mappedData);
+    console.log("Mapping extracted data to final schema...");
+    const mappedData = {
+      name: extractedData.Name || extractedData.name || null,
+      companyName: extractedData.Company || extractedData.companyName || null,
+      website: extractedData.Website || extractedData.website || null,
+      email: extractedData.Email || extractedData.email || null,
+      address: extractedData.Address || extractedData.address || null,
+      contactNumbers: [
+        extractedData.Mobile,
+        extractedData.Mobile_2,
+        extractedData.Phone,
+        extractedData.mobile,
+        extractedData.mobile_2,
+        extractedData.phone,
+      ]
+        .filter(Boolean)
+        .join(", ") || null,
+      state: extractedData.State || extractedData.state || null,
+      country: extractedData.Country || extractedData.country || null,
+      city: extractedData.City || extractedData.city || null,
+      description: extractedData.description || null,
+    };
+
+    console.log("Final mapped data before validation:", mappedData);
+
+    const validatedData = ExtractedDataSchema.parse(mappedData);
+    console.log("Zod validation passed. Returning result.");
+    return validatedData;
   } catch (error) {
-    console.error("Error in extractCardDetails:", error);
-    // Return a default ExtractedData object with all fields set to empty strings
+    console.error("extractCardDetails failed with error:", error);
+    console.error("Stack trace:", error instanceof Error ? error.stack : "No stack");
+
     return {
       name: null,
       companyName: null,
@@ -264,16 +261,23 @@ export async function extractCardDetails(
       state: null,
       country: null,
       city: null,
-      description: null
+      description: null,
     };
   }
 }
 
 async function fetchAndEncodeImage(url: string): Promise<string> {
+  console.log(`Fetching image from URL: ${url}`);
   const response = await fetch(url);
+
   if (!response.ok) {
+    console.error(`Failed to fetch image. Status: ${response.status} ${response.statusText}`);
     throw new Error(`Failed to fetch image: ${response.statusText}`);
   }
+
+  console.log("Image fetched successfully, converting to base64...");
   const arrayBuffer = await response.arrayBuffer();
-  return Buffer.from(arrayBuffer).toString("base64");
+  const base64 = Buffer.from(arrayBuffer).toString("base64");
+  console.log(`Image converted to base64 (length: ${base64.length} chars)`);
+  return base64;
 }
