@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { extractCardDetails } from "@/lib/card-extractor";
-import { submitToZoho } from "@/lib/zoho-submit";
-import { appendToGoogleSheet } from "@/lib/googleSheetsSubmit";
+// import { submitToZoho } from "@/lib/zoho-submit";
+// import { appendToGoogleSheet } from "@/lib/googleSheetsSubmit";
 import { z } from "zod";
 
 const BackgroundJobSchema = z.object({
@@ -136,14 +136,14 @@ async function processFormInBackground(form: any) {
     console.log("Merged data (in memory):", mergedData);
 
     // ← UNCOMMENT AND USE THIS
-await prisma.mergedData.upsert({
-  where: { formId: form.id },
-  update: mergedData,
-  create: {
-    ...mergedData,
-    formId: form.id,   // This matches your schema perfectly
-  },
-});
+    await prisma.mergedData.upsert({
+      where: { formId: form.id },
+      update: mergedData,
+      create: {
+        ...mergedData,
+        formId: form.id,   // This matches your schema perfectly
+      },
+    });
 
     await prisma.form.update({
       where: { id: form.id },
@@ -157,19 +157,19 @@ await prisma.mergedData.upsert({
         data: { zohoStatus: "PROCESSING" },
       });
 
-      const zohoResponse = await submitToZoho(mergedData);
-      if ("error" in zohoResponse) throw new Error(`Zoho API Error: ${zohoResponse.error}`);
+      // const zohoResponse = await submitToZoho(mergedData);
+      // if ("error" in zohoResponse) throw new Error(`Zoho API Error: ${zohoResponse.error}`);
 
-      await prisma.form.update({
-        where: { id: form.id },
-        data: { status: "COMPLETED", zohoStatus: "COMPLETED" },
-      });
-      console.log("Zoho submission successful");
+      // await prisma.form.update({
+      //   where: { id: form.id },
+      //   data: { status: "COMPLETED", zohoStatus: "COMPLETED" },
+      // });
+      // console.log("Zoho submission successful");
 
       // Step 4: Submit to Google Sheets
-      const sheetSuccess = await appendToGoogleSheet(form, extractedData, mergedData);
-      if (sheetSuccess) console.log("Google Sheets submission successful");
-      else console.error("Google Sheets submission failed");
+      // const sheetSuccess = await appendToGoogleSheet(form, extractedData, mergedData);
+      // if (sheetSuccess) console.log("Google Sheets submission successful");
+      // else console.error("Google Sheets submission failed");
 
     } catch (err) {
       console.error("Zoho / Google Sheets error:", err);
