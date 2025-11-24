@@ -1,4 +1,6 @@
 export interface FormData {
+  [x: string]: {};
+  additionalData: any;
   createdAt: any;
   updatedAt: any;
   userId: any;
@@ -8,6 +10,7 @@ export interface FormData {
   salesPerson: string;
   date: string;
   country: string;
+  city: string;
   cardFrontPhoto?: string;
   cardBackPhoto?: string;
   leadStatus: string;

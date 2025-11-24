@@ -15,6 +15,13 @@ body {
   animation: gradient-animation 40s ease infinite;
 }
 
+.toast-container {
+  position: fixed !important;
+  right: 16px;
+  bottom: 16px;
+  z-index: 999999;
+}
+
 @keyframes gradient-animation {
   0% {
     background-position: 0% 50%;
@@ -32,6 +39,30 @@ body {
     text-wrap: balance;
   }
 }
+
+.nav-link {
+  @apply text-black text-sm font-medium hover:text-white transition-all px-3 py-1.5 rounded hover:bg-[#3d3260];
+}
+
+.mobile-link {
+  @apply text-sm font-medium hover:text-gray-300 transition-all py-2 px-3 rounded hover:bg-gray-800 w-full text-center;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slideDown {
+  animation: slideDown .2s ease-out;
+}
+
 
 @layer base {
   :root {

@@ -16,6 +16,7 @@ export async function submitToZoho(mergedData: any) {
       Sales_Person: mergedData.salesPerson || null,
       Date: mergedData.date ? new Date(mergedData.date).toISOString() : null,
       Country: mergedData.country || null,
+      City: mergedData.city || null,
       Card_Front_Photo: mergedData.cardFrontPhoto || null,
       Card_Back_Photo: mergedData.cardBackPhoto || null,
       Lead_Status: mergedData.leadStatus || null,
