@@ -388,129 +388,94 @@
       setUsers(Array.from(usersMap.values()));
     };
 
-    const handleDownloadExcel = async () => {
-      try {
-        setIsDownloading(true);
+const handleDownloadExcel = async () => {
+  try {
+    setIsDownloading(true);
 
-        const filteredData = forms.filter((form) => {
-          if (selectedUser !== "all" && form.userId !== selectedUser)
-            return false;
-          const q = search.toLowerCase();
-          return (
-            (form.cardNo || "").toLowerCase().includes(q) ||
-            (form.country || "").toLowerCase().includes(q) ||
-            (form.salesPerson || "").toLowerCase().includes(q) ||
-            ((form.mergedData?.companyName || "") as string)
-              .toLowerCase()
-              .includes(q) ||
-            ((form.mergedData?.name || "") as string).toLowerCase().includes(q) ||
-            ((form.mergedData?.email || "") as string)
-              .toLowerCase()
-              .includes(q) ||
-            ((form.mergedData?.contactNumbers || "") as string)
-              .toLowerCase()
-              .includes(q) ||
-            ((form.user?.email || "") as string).toLowerCase().includes(q)
-          );
-        });
+    const filteredData = forms.filter((form) => {
+      if (selectedUser !== "all" && form.userId !== selectedUser) return false;
+      const q = search.toLowerCase();
+      return (
+        (form.cardNo || "").toLowerCase().includes(q) ||
+        (form.country || "").toLowerCase().includes(q) ||
+        (form.salesPerson || "").toLowerCase().includes(q) ||
+        ((form.mergedData?.companyName || "") as string).toLowerCase().includes(q) ||
+        ((form.mergedData?.name || "") as string).toLowerCase().includes(q) ||
+        ((form.mergedData?.email || "") as string).toLowerCase().includes(q) ||
+        ((form.mergedData?.contactNumbers || "") as string).toLowerCase().includes(q) ||
+        ((form.user?.email || "") as string).toLowerCase().includes(q)
+      );
+    });
 
-        if (filteredData.length === 0) {
-          toast({
-            title: "No Data",
-            description: "No data available to export.",
-            variant: "default",
-          });
-          return;
-        }
+    if (filteredData.length === 0) {
+      toast({ title: "No Data", description: "No data available to export.", variant: "default" });
+      return;
+    }
 
-        const excelData = filteredData.map((form) => ({
-          "Card Image": form.cardFrontPhoto || "",
-          "Card No": form.cardNo || "",
-          "Sales Person": form.salesPerson || "",
-          Date: form.date ? new Date(form.date).toLocaleDateString() : "",
-          "User Email": form.user?.email || "",
-          "Company Name": form.extractedData?.companyName || "",
-          "Contact Name": form.mergedData?.name || "",
-          "Contact Email": form.extractedData?.email || "",
-          "Contact Numbers": form.extractedData?.contactNumbers || "",
-          Country: form.country || "",
-          "Lead Status": form.leadStatus || "",
-          "Deal Status": form.dealStatus || "",
-          "Meeting After Exhibition": form.meetingAfterExhibition ? "Yes" : "No",
-          "Form Status": form.status || "",
-          "Extraction Status": form.extractionStatus || "",
-          "Zoho Status": form.zohoStatus || "",
-          "Industry Categories": Array.isArray(form.industryCategories)
-            ? form.industryCategories.join(", ")
-            : form.industryCategories || "",
-          Description: form.description || "",
-          "Created At": form.createdAt
-            ? new Date(form.createdAt).toLocaleString()
-            : "",
-          "Updated At": form.updatedAt
-            ? new Date(form.updatedAt).toLocaleString()
-            : "",
-          "Form ID": form.id || "",
-          "User ID": form.userId || "",
-          "Card Back Image": form.cardBackPhoto || "",
-          ...form.additionalData,
-        }));
+    const excelData = filteredData.map((form) => ({
+      "Card Image": form.cardFrontPhoto || "",
+      "Card No": form.cardNo || "",
+      "Sales Person": form.salesPerson || "",
+      Date: form.date ? new Date(form.date).toLocaleDateString() : "",
+      "User Email": form.user?.email || "",
+      "Company Name": form.extractedData?.companyName || "",
+      "Contact Name": form.mergedData?.name || "",
+      "Contact Email": form.extractedData?.email || "",
+      "Contact Numbers": form.extractedData?.contactNumbers || "",
+      Country: form.country || "",
+      "Lead Status": form.leadStatus || "",
+      "Deal Status": form.dealStatus || "",
+      "Meeting After Exhibition": form.meetingAfterExhibition ? "Yes" : "No",
+      "Form Status": form.status || "",
+      "Extraction Status": form.extractionStatus || "",
+      "Zoho Status": form.zohoStatus || "",
+      Description: form.description || "",
+      "Created At": form.createdAt ? new Date(form.createdAt).toLocaleString() : "",
+      "Updated At": form.updatedAt ? new Date(form.updatedAt).toLocaleString() : "",
+      "Form ID": form.id || "",
+      "User ID": form.userId || "",
+      "Card Back Image": form.cardBackPhoto || "",
+      ...form.additionalData,
+    }));
 
-        const workbook = XLSX.utils.book_new();
-        const worksheet = XLSX.utils.json_to_sheet(excelData);
+    const workbook = XLSX.utils.book_new();
+    const worksheet = XLSX.utils.json_to_sheet(excelData);
+    worksheet["!cols"] = Array(23).fill({ wch: 20 });
 
-        const colWidths = [
-          { wch: 15 },
-          { wch: 12 },
-          { wch: 15 },
-          { wch: 12 },
-          { wch: 25 },
-          { wch: 25 },
-          { wch: 20 },
-          { wch: 25 },
-          { wch: 20 },
-          { wch: 12 },
-          { wch: 12 },
-          { wch: 12 },
-          { wch: 22 },
-          { wch: 12 },
-          { wch: 18 },
-          { wch: 12 },
-          { wch: 20 },
-          { wch: 30 },
-          { wch: 18 },
-          { wch: 18 },
-          { wch: 20 },
-          { wch: 20 },
-          { wch: 15 },
-        ];
-        worksheet["!cols"] = colWidths;
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Business Cards");
 
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Business Cards");
+    // THIS IS THE FIX FOR iPHONE
+    const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+    const data = new Blob([excelBuffer], { type: "application/octet-stream" });
+    const url = window.URL.createObjectURL(data);
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, "-");
+    const filename = `Business_Cards_${timestamp}.xlsx`;
 
-        const timestamp = new Date()
-          .toISOString()
-          .slice(0, 19)
-          .replace(/:/g, "-");
-        const filename = `Business_Cards_${timestamp}.xlsx`;
+    // iOS Safari fix: Open in new tab + auto-click
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    link.target = "_blank"; // Critical for iOS
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
 
-        XLSX.writeFile(workbook, filename);
-
-        toast({
-          title: "Download Complete",
-          description: `${filteredData.length} records exported to Excel successfully!`,
-        });
-      } catch (error) {
-        console.error("Error downloading Excel:", error);
-        toast({
-          title: "Export Failed",
-          description: "Failed to download Excel file.",
-          variant: "destructive",
-        });
-      } finally {
-        setIsDownloading(false);
-      }
-    };
+    toast({
+      title: "Download Started",
+      description: `Excel file is downloading...`,
+    });
+  } catch (error) {
+    console.error("Excel export failed:", error);
+    toast({
+      title: "Export Failed",
+      description: "Could not generate Excel file.",
+      variant: "destructive",
+    });
+  } finally {
+    setIsDownloading(false);
+  }
+};
 
     const handleDelete = async (id?: string) => {
       if (!id) {
