@@ -730,32 +730,43 @@ export function ExhibitionForm() {
     } else toastify.error("Upload failed");
   };
 
-  const handleSubmit = async () => {
-    if (!formData.cardFrontPhoto) return toastify.error("Front photo required");
-    if (limitReached) return toastify.error("Limit reached");
+const handleSubmit = async () => {
+  if (!formData.cardFrontPhoto) return toastify.error("Front photo required");
+  if (limitReached) return toastify.error("Limit reached");
 
-    setIsSubmitting(true);
-    try {
-      const submission = {
-        ...formData,
-        additionalData: Object.fromEntries(
-          Object.entries(formData).filter(
-            ([k]) =>
-              ![
-                "cardNo",
-                "salesPerson",
-                "date",
-                "country",
-                "cardFrontPhoto",
-                "cardBackPhoto",
-                "leadStatus",
-                "dealStatus",
-                "meetingAfterExhibition",
-                "description",
-              ].includes(k)
-          )
-        ),
-      };
+  setIsSubmitting(true);
+  try {
+    const submission = {
+      cardNo: formData.cardNo,
+      salesPerson: formData.salesPerson,
+      date: formData.date,
+      country: formData.country,
+      cardFrontPhoto: formData.cardFrontPhoto,
+      cardBackPhoto: formData.cardBackPhoto || "",
+      leadStatus: formData.leadStatus || "Warm",
+      dealStatus: formData.dealStatus || "",
+      meetingAfterExhibition: formData.meetingAfterExhibition || false,
+      description: formData.description || "", // ← NOW SAVED AT TOP LEVEL
+
+      // Dynamic fields go here
+      ...Object.fromEntries(
+        Object.entries(formData).filter(
+          ([k]) =>
+            ![
+              "cardNo",
+              "salesPerson",
+              "date",
+              "country",
+              "cardFrontPhoto",
+              "cardBackPhoto",
+              "leadStatus",
+              "dealStatus",
+              "meetingAfterExhibition",
+              "description",
+            ].includes(k)
+        )
+      ),
+    };
 
       const res = await fetch("/api/submit-form", {
         method: "POST",
@@ -1214,7 +1225,7 @@ export function ExhibitionForm() {
                         onChange={(e) => handleImageChange(e, "front")}
                       />
                       <label
-                        htmlFor="front"
+                        htmlFor="front" 
                         className="
       block h-32 md:h-48 border-2 border-dashed rounded-lg cursor-pointer 
       flex items-center justify-center overflow-hidden mt-2
