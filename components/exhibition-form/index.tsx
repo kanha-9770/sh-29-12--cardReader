@@ -356,7 +356,7 @@ function FieldDragOverlay({ type }: { type: FieldType }) {
     checkbox: "Checkbox",
     radio: "Radio Group",
     date: "Date",
-    file: "File Upload",
+    file: ""
   };
 
   return (
@@ -787,11 +787,12 @@ export function ExhibitionForm() {
     if (!over) return;
 
     const activeId = String(active.id);
-    const overId = String(over.id);
+    const overId = String(over?.id);
 
-    // From sidebar
+    // Case 1: Dragging from sidebar
     if (activeId.startsWith("sidebar-")) {
       const type = activeId.replace("sidebar-", "") as FieldType;
+
       const newField: BuilderField = {
         uid: uid("f_"),
         type,
@@ -799,26 +800,42 @@ export function ExhibitionForm() {
           type.charAt(0).toUpperCase() +
           type.slice(1).replace(/_/g, " ") +
           " Field",
-        name: type + "_" + Date.now(),
+        name: `${type}_${Date.now()}`,
         required: false,
         colSpan: 2,
+        options:
+          type === "select" || type === "radio"
+            ? [{ label: "Option 1", value: "option1" }]
+            : undefined,
       };
 
-      const overIndex = formFields.findIndex((f) => f.uid === overId);
-      const insertAt = overIndex === -1 ? formFields.length : overIndex;
+      // Find where to insert
+      let insertIndex = formFields.length; // default: append
+
+      if (overId && !overId.startsWith("sidebar-")) {
+        const overIndex = formFields.findIndex((f) => f.uid === overId);
+        if (overIndex !== -1) {
+          insertIndex = overIndex + 1; // insert after the dropped-on field
+        }
+      }
 
       setFormFields((prev) => {
-        const copy = [...prev];
-        copy.splice(insertAt, 0, newField);
-        return copy;
+        const updated = [...prev];
+        updated.splice(insertIndex, 0, newField);
+        return updated;
       });
+
+      toastify.success("Field added via drag!");
     }
-    // Reorder
-    else if (activeId !== overId) {
+    // Case 2: Reordering existing fields
+    else if (activeId !== overId && !activeId.startsWith("sidebar-")) {
       setFormFields((fields) => {
-        const oldIdx = fields.findIndex((f) => f.uid === activeId);
-        const newIdx = fields.findIndex((f) => f.uid === overId);
-        return arrayMove(fields, oldIdx, newIdx);
+        const oldIndex = fields.findIndex((f) => f.uid === activeId);
+        const newIndex = fields.findIndex((f) => f.uid === overId);
+
+        if (oldIndex === -1 || newIndex === -1) return fields;
+
+        return arrayMove(fields, oldIndex, newIndex);
       });
     }
 
@@ -834,7 +851,6 @@ export function ExhibitionForm() {
     { type: "checkbox" as const, label: "Checkbox" },
     { type: "radio" as const, label: "Radio Group" },
     { type: "date" as const, label: "Date" },
-    { type: "file" as const, label: "File Upload" },
   ];
 
   const renderFieldInput = (field: BuilderField) => {
