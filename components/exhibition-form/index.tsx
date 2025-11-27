@@ -100,6 +100,17 @@ function uid(prefix = "") {
   return `${prefix}${Math.random().toString(36).slice(2, 9)}`;
 }
 
+// PROPS FOR EDIT MODE SUPPORT
+interface ExhibitionFormProps {
+  initialData?: Record<string, any>;
+  onSubmit?: (data: any) => void;
+  isEdit?: boolean;
+  formId?: string;
+  disabledFields?: string[];
+  forceRestoreFields?: string[];     // ← NEW: List of field names to restore
+  prefillValues?: Record<string, any>; // ← NEW: Values to prefill
+}
+
 /* ==================== CAMERA MODAL - MOBILE FRIENDLY ==================== */
 function CameraModal({
   isOpen,
@@ -546,7 +557,15 @@ function FieldEditor({
 }
 
 /* ==================== MAIN COMPONENT ==================== */
-export function ExhibitionForm() {
+export function ExhibitionForm({
+  initialData = {},
+  onSubmit,
+  isEdit = false,
+  formId,
+  disabledFields = [],
+  forceRestoreFields = [],
+  prefillValues = {},
+}: ExhibitionFormProps){
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -563,29 +582,35 @@ export function ExhibitionForm() {
     null
   );
 
-  const [frontImagePreview, setFrontImagePreview] = useState<string | null>(
-    null
-  );
+const [frontImagePreview, setFrontImagePreview] = useState<string | null>(
+  initialData.cardFrontPhoto || null
+);
+const [backImagePreview, setBackImagePreview] = useState<string | null>(
+  initialData.cardBackPhoto || null
+);
 
-  const [backImagePreview, setBackImagePreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Camera state
   const [cameraOpen, setCameraOpen] = useState(false);
   const [cameraSide, setCameraSide] = useState<"front" | "back">("front");
 
-  const [formData, setFormData] = useState<Record<string, any>>({
-    cardNo: searchParams?.get("cardNo") || "",
-    salesPerson: searchParams?.get("salesPerson") || "",
-    date: new Date().toISOString().split("T")[0],
-    country: searchParams?.get("country") || "N/A",
-    cardFrontPhoto: "",
-    cardBackPhoto: "",
-    leadStatus: "",
-    dealStatus: "",
-    meetingAfterExhibition: false,
-    description: "",
-  });
+const [formData, setFormData] = useState<Record<string, any>>({
+  cardNo: initialData.cardNo || searchParams?.get("cardNo") || "",
+  salesPerson: initialData.salesPerson || searchParams?.get("salesPerson") || "",
+  date: initialData.date
+    ? new Date(initialData.date).toISOString().split("T")[0]
+    : new Date().toISOString().split("T")[0],
+  country: initialData.country || "N/A",
+  cardFrontPhoto: initialData.cardFrontPhoto || "",
+  cardBackPhoto: initialData.cardBackPhoto || "",
+  leadStatus: initialData.leadStatus || "",
+  dealStatus: initialData.dealStatus || "",
+  meetingAfterExhibition: initialData.meetingAfterExhibition || false,
+  description: initialData.description || "",
+  // This line fills ALL custom fields (even deleted ones)
+  ...prefillValues,
+});
 
   const defaultDynamicFields: Omit<BuilderField, "uid">[] = [
     {
