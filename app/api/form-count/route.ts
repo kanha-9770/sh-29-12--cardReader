@@ -109,8 +109,6 @@ export async function GET() {
       limitReached: result.limitReached,
       isAdmin: result.isAdmin,
       limit: result.limit,
-      // Optional: expose for debugging (remove in production if needed)
-      // wasFixed: result.wasFixed,
     });
   } catch (error: any) {
     console.error("Form Count API Critical Error:", {

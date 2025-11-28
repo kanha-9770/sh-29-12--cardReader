@@ -60,7 +60,7 @@ export default async function DashboardPage() {
           animation: bounceIn 0.6s ease-out forwards;
         }
       `}</style>
-      <main className="mx-auto fade-in-up overflow-hidden">
+      <main className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-900 dark:to-purple-900/30 mx-auto fade-in-up overflow-hidden transition-colors duration-500">
         <div className="fade-in-up">
           {session.isAdmin ? <AdminDashboardEnhanced /> : <UserDashboard />}
         </div>

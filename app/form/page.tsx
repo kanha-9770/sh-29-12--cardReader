@@ -6,7 +6,7 @@ export default async function Home() {
   const session = await getSession()
 
   if (!session) {
-    redirect("/login")  // login
+    redirect("/login")
   }
 
   return (
@@ -59,7 +59,7 @@ export default async function Home() {
           animation: bounceIn 0.6s ease-out forwards;
         }
       `}</style>
-      <main className="w-full fade-in-up">
+      <main className="w-full min-h-screen bg-[#f3f1f8] dark:bg-gray-900 fade-in-up">
         <div className="fade-in-up">
           <ExhibitionForm />
         </div>

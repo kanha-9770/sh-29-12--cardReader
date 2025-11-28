@@ -1248,7 +1248,7 @@ export function AdminDashboardEnhanced() {
     : null;
 
   return (
-    <div className="space-y-6 px-2 sm:px-4 py-6">
+    <div className="space-y-6 px-2 sm:px-4 py-6 bg-[#f3f1f8] dark:bg-gray-900 min-h-screen">
       <Tabs defaultValue="overview" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="overview">Dashboard Overview</TabsTrigger>
