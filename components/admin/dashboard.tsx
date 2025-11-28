@@ -41,7 +41,13 @@ import * as XLSX from "xlsx";
 import type { FormData } from "@/types/form";
 import { ExhibitionForm } from "@/components/exhibition-form";
 import { DashboardOverview } from "@/components/admin/dashboard-overview";
-import { ChevronDown, ChevronUp, MessageSquare, User, Scan } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronUp,
+  MessageSquare,
+  User,
+  Scan,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export function AdminDashboardEnhanced() {
@@ -63,15 +69,15 @@ export function AdminDashboardEnhanced() {
   const [showNotes, setShowNotes] = useState(false);
   const [templateFields, setTemplateFields] = useState<any[]>([]);
   const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
-      // Load saved columns from localStorage (persists user choice)
-      const saved = localStorage.getItem("dashboard-visible-columns");
-      if (saved) {
-        try {
-          return JSON.parse(saved);
-        } catch (e) {
-          console.warn("Failed to parse saved columns");
-        }
+    // Load saved columns from localStorage (persists user choice)
+    const saved = localStorage.getItem("dashboard-visible-columns");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.warn("Failed to parse saved columns");
       }
+    }
 
     // Default visible columns
     const defaults = [
@@ -513,20 +519,20 @@ export function AdminDashboardEnhanced() {
   }, [toast]);
 
   // Load the current published form template (so we know which fields exist)
-useEffect(() => {
-  fetch("/api/form-template")
-    .then(r => r.ok ? r.json() : { fields: [] })
-    .then(data => setTemplateFields(data.fields || []))
-    .catch(() => setTemplateFields([]));
-}, []);
+  useEffect(() => {
+    fetch("/api/form-template")
+      .then((r) => (r.ok ? r.json() : { fields: [] }))
+      .then((data) => setTemplateFields(data.fields || []))
+      .catch(() => setTemplateFields([]));
+  }, []);
 
-useEffect(() => {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(
-    "dashboard-visible-columns",
-    JSON.stringify(visibleColumns)
-  );
-}, [visibleColumns]); 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(
+      "dashboard-visible-columns",
+      JSON.stringify(visibleColumns)
+    );
+  }, [visibleColumns]);
 
   useEffect(() => {
     fetchForms();
@@ -620,7 +626,9 @@ useEffect(() => {
         .toISOString()
         .slice(0, 19)
         .replace(/:/g, "-");
-      const filename = `Business_Cards_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      const filename = `Business_Cards_${new Date()
+        .toISOString()
+        .slice(0, 10)}.xlsx`;
 
       // iOS Safari fix: Open in new tab + auto-click
       const link = document.createElement("a");
@@ -1775,67 +1783,65 @@ useEffect(() => {
                       return (
                         <>
                           {/* Toggle Button + Collapsible Notes */}
-<div className="space-y-4">
-  {/* Toggle Button */}
-  <Button
-    variant="outline"
-    size="sm"
-    className="w-full justify-between border-2 border-purple-200 bg-purple-50 hover:bg-purple-100"
-    onClick={() => setShowNotes(!showNotes)}
-  >
-    <div className="flex items-center gap-2">
-      <MessageSquare className="w-5 h-5 text-purple-700" />
-      <span className="font-semibold text-purple-900">
-        {showNotes ? "Hide" : "Show"} Notes
-      </span>
-    </div>
-    {showNotes ? (
-      <ChevronUp className="w-5 h-5 text-purple-700" />
-    ) : (
-      <ChevronDown className="w-5 h-5 text-purple-700" />
-    )}
-  </Button>
+                          <div className="space-y-4">
+                            {/* Toggle Button */}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="w-full justify-between border-2 border-purple-200 bg-purple-50 hover:bg-purple-100"
+                              onClick={() => setShowNotes(!showNotes)}
+                            >
+                              <div className="flex items-center gap-2">
+                                <MessageSquare className="w-5 h-5 text-purple-700" />
+                                <span className="font-semibold text-purple-900">
+                                  {showNotes ? "Hide" : "Show"} Notes
+                                </span>
+                              </div>
+                              {showNotes ? (
+                                <ChevronUp className="w-5 h-5 text-purple-700" />
+                              ) : (
+                                <ChevronDown className="w-5 h-5 text-purple-700" />
+                              )}
+                            </Button>
 
-  {/* Collapsible Content */}
-  <AnimatePresence>
-    {showNotes && (
-      <motion.div
-        initial={{ height: 0, opacity: 0 }}
-        animate={{ height: "auto", opacity: 1 }}
-        exit={{ height: 0, opacity: 0 }}
-        transition={{ duration: 0.3 }}
-        className="overflow-hidden"
-      >
-        <div className="space-y-4">
-
-          {/* 1. SALES REP'S MANUAL NOTES */}
-          {manualDescription ? (
-            <Card className="border-2 border-blue-300 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-lg">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg font-bold text-blue-900 flex items-center gap-2">
-                  <User className="w-5 h-5" />
-                  Customer Description
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed font-medium">
-                  {manualDescription}
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="text-center py-6 bg-gray-50 rounded-lg border border-gray-200">
-              <p className="text-sm text-gray-500 italic">
-                No notes added by the customer
-              </p>
-            </div>
-          )}
-
-        </div>
-      </motion.div>
-    )}
-  </AnimatePresence>
-</div>
+                            {/* Collapsible Content */}
+                            <AnimatePresence>
+                              {showNotes && (
+                                <motion.div
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: "auto", opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  transition={{ duration: 0.3 }}
+                                  className="overflow-hidden"
+                                >
+                                  <div className="space-y-4">
+                                    {/* 1. SALES REP'S MANUAL NOTES */}
+                                    {manualDescription ? (
+                                      <Card className="border-2 border-blue-300 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-lg">
+                                        <CardHeader className="pb-3">
+                                          <CardTitle className="text-lg font-bold text-blue-900 flex items-center gap-2">
+                                            <User className="w-5 h-5" />
+                                            Customer Description
+                                          </CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
+                                          <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed font-medium">
+                                            {manualDescription}
+                                          </p>
+                                        </CardContent>
+                                      </Card>
+                                    ) : (
+                                      <div className="text-center py-6 bg-gray-50 rounded-lg border border-gray-200">
+                                        <p className="text-sm text-gray-500 italic">
+                                          No notes added by the customer
+                                        </p>
+                                      </div>
+                                    )}
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
 
                           {/* 3. FULL MERGED DATA TABLE - WITH CORRECT DESCRIPTION */}
                           <MergedDataView
@@ -1947,46 +1953,63 @@ useEffect(() => {
         </Dialog>
       )}
 
+      {/* EDIT DIALOG - CLEAN, COMPACT & MOBILE-FRIENDLY */}
+      {selectedEditForm && selectedEditForm.id && (
+        <Dialog open={true} onOpenChange={() => setOpenEdit(null)}>
+          <DialogContent
+            className="max-w-4xl max-h-[92vh] p-4 sm:p-6 overflow-y-auto"
+            onOpenAutoFocus={(e) => e.preventDefault()}
+          >
+            <DialogHeader className="space-y-3 pb-4 border-b">
+              <DialogTitle className="text-lg sm:text-xl font-semibold">
+                Edit Lead - {selectedEditForm.cardNo || "N/A"}
+              </DialogTitle>
+              <p className="text-sm text-muted-foreground">
+                Update lead details and custom fields below
+              </p>
+            </DialogHeader>
 
-{/* EDIT DIALOG - FINAL WORKING VERSION */}
-{selectedEditForm && selectedEditForm.id && (
-  <Dialog open={true} onOpenChange={() => setOpenEdit(null)}>
-    <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-      <DialogHeader>
-        <DialogTitle>
-          Edit Lead - {selectedEditForm.cardNo || "N/A"}
-        </DialogTitle>
-      </DialogHeader>
-
-      <ExhibitionForm
-        initialData={{
-          cardNo: selectedEditForm.cardNo || "",
-          salesPerson: selectedEditForm.salesPerson || "",
-          date: selectedEditForm.date
-            ? new Date(selectedEditForm.date).toISOString().split("T")[0]
-            : "",
-          country: selectedEditForm.country || "",
-          cardFrontPhoto: selectedEditForm.cardFrontPhoto || "",
-          cardBackPhoto: selectedEditForm.cardBackPhoto || "",
-          leadStatus: selectedEditForm.leadStatus || "",
-          dealStatus: selectedEditForm.dealStatus || "",
-          meetingAfterExhibition: selectedEditForm.meetingAfterExhibition || false,
-          description: selectedEditForm.description || "",
-        }}
-        onSubmit={(updatedData: any) =>
-          handleUpdate(updatedData, selectedEditForm.id!, () => setOpenEdit(null))
-        }
-        isEdit={true}
-        formId={selectedEditForm.id!}
-        disabledFields={["cardNo", "date"]}
-
-        // THESE TWO LINES ARE THE KEY!
-        forceRestoreFields={Object.keys(selectedEditForm.additionalData || {})}
-        prefillValues={selectedEditForm.additionalData || {}}
-      />
-    </DialogContent>
-  </Dialog>
-)}
+            <div className="mt-5">
+              <ExhibitionForm
+                initialData={{
+                  cardNo: selectedEditForm.cardNo || "",
+                  salesPerson: selectedEditForm.salesPerson || "",
+                  date: selectedEditForm.date
+                    ? new Date(selectedEditForm.date)
+                        .toISOString()
+                        .split("T")[0]
+                    : "",
+                  country: selectedEditForm.country || "",
+                  cardFrontPhoto: selectedEditForm.cardFrontPhoto || "",
+                  cardBackPhoto: selectedEditForm.cardBackPhoto || "",
+                  leadStatus: selectedEditForm.leadStatus || "",
+                  dealStatus: selectedEditForm.dealStatus || "",
+                  meetingAfterExhibition:
+                    selectedEditForm.meetingAfterExhibition || false,
+                  description: selectedEditForm.description || "",
+                }}
+                onSubmit={(updatedData: any) =>
+                  handleUpdate(updatedData, selectedEditForm.id!, () =>
+                    setOpenEdit(null)
+                  )
+                }
+                isEdit={true}
+                formId={selectedEditForm.id!}
+                disabledFields={["cardNo", "date"]}
+                forceRestoreFields={Object.keys(
+                  selectedEditForm.additionalData || {}
+                )}
+                prefillValues={selectedEditForm.additionalData || {}}
+                // NEW: These make the form builder clean & usable in edit mode
+                builderMode="compact" // Forces smaller inputs, tighter spacing
+                hidePublishButton={true} // COMPLETELY hides "Publish to All Users"
+                disableFieldDragging={false} // Still allows reordering if needed
+                maxImageHeight="180px" // Smaller card preview
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* Zoomed Image */}
       {zoomedImage && (

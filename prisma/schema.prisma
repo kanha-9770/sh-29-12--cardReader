@@ -33,7 +33,6 @@ model User {
 model Form {
   id                     String   @id @default(cuid())
   cardNo                 String
-  salesPerson            String
   date                   DateTime
   country                String
   cardFrontPhoto         String
@@ -41,7 +40,6 @@ model Form {
   leadStatus             String
   dealStatus             String
   meetingAfterExhibition Boolean
-  industryCategories     String
   description            String   @db.Text
   userId                 String
   user                   User     @relation(fields: [userId], references: [id])
@@ -83,16 +81,13 @@ model MergedData {
   formId                 String   @unique
   form                   Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
   cardNo                 String
-  salesPerson            String
   date                   DateTime
   country                String
   city                   String?
   cardFrontPhoto         String
   cardBackPhoto          String?
   leadStatus             String
-  dealStatus             String
   meetingAfterExhibition Boolean
-  industryCategories     String
   description            String   @default("") @db.Text
   name                   String?
   companyName            String?
