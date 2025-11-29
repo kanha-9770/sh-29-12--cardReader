@@ -384,6 +384,49 @@ export function AdminDashboardEnhanced() {
       },
     ];
 
+    const priorityExtractedKeys = [
+      "address",
+      "contactNumbers",
+      "email",
+      "website",
+    ];
+
+    const priorityExtractedColumns = priorityExtractedKeys.map((key) => ({
+      id: `ext_${key}`,
+      label:
+        key === "contactNumbers"
+          ? "Contact Number"
+          : key === "website"
+          ? "Website"
+          : key.charAt(0).toUpperCase() + key.slice(1),
+      width: "w-40",
+      render: (form: FormData) => {
+        const value = form.extractedData?.[key];
+        if (!value) return "—";
+
+        if (key === "website" && value) {
+          const url = value.startsWith("http") ? value : `https://${value}`;
+          return (
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:underline text-xs"
+            >
+              {value.length > 35 ? value.slice(0, 35) + "..." : value}
+            </a>
+          );
+        }
+
+        const str = String(value);
+        return (
+          <div className="text-xs text-gray-800 dark:text-[#d1d5db]">
+            {str.length > 50 ? str.slice(0, 50) + "..." : str}
+          </div>
+        );
+      },
+    }));
+
     // Dynamic additionalData columns
     const blockedAdditionalKeys = [
       "id",
@@ -434,7 +477,7 @@ export function AdminDashboardEnhanced() {
         if (!value) return "—";
         const str = String(value);
         return (
-          <div className="text-xs text-gray-800">
+          <div className="text-xs text-gray-800 dark:text-[#d1d5db]">
             {str.length > 50 ? str.slice(0, 50) + "..." : str}
           </div>
         );
@@ -455,9 +498,10 @@ export function AdminDashboardEnhanced() {
       "country",
       "address",
       "description",
+      "website",
     ];
     const uniqueExtracted = [...new Set(allExtractedKeys)]
-      .filter((key) => !blockedKeys.includes(key)) // ← Only block exact keys
+      .filter((key) => !blockedKeys.includes(key))
       .slice(0, 15);
 
     const extractedColumns = uniqueExtracted.map((key) => ({
@@ -469,7 +513,12 @@ export function AdminDashboardEnhanced() {
       render: (form: FormData) => form.extractedData?.[key] || "—",
     }));
 
-    return [...fixedColumns, ...additionalColumns, ...extractedColumns];
+    return [
+      ...fixedColumns,
+      ...priorityExtractedColumns,
+      ...additionalColumns,
+      ...extractedColumns,
+    ];
   }, [forms]);
 
   const displayColumns = useMemo(
@@ -595,15 +644,21 @@ export function AdminDashboardEnhanced() {
         "Card No": form.cardNo || "",
         Date: form.date ? new Date(form.date).toLocaleDateString() : "",
         "User Email": form.user?.email || "",
-        "Company Name": form.extractedData?.companyName || "",
+        "Company Name":
+          form.extractedData?.companyName || form.mergedData?.companyName || "",
         "Contact Name": form.mergedData?.name || "",
         "Contact Email": form.extractedData?.email || "",
-        "Contact Numbers": form.extractedData?.contactNumbers || "",
+        "Contact Number": form.extractedData?.contactNumbers || "",
+        Address: form.extractedData?.address || "",
+        Website: form.extractedData?.website || "",
         Country: form.extractedData?.country || "",
+        City: form.extractedData?.city || "",
+        State: form.extractedData?.state || "",
         "Lead Status": form.leadStatus || "",
         "Meeting After Exhibition": form.meetingAfterExhibition ? "Yes" : "No",
         Description: form.description || "",
         "Card Back Image": form.cardBackPhoto || "",
+        // All custom fields from the form builder
         ...form.additionalData,
       }));
 
@@ -924,7 +979,7 @@ export function AdminDashboardEnhanced() {
             Cancel
           </Button>
           <Button
-            className="bg-[#62588b] hover:bg-[#31294e]"
+            className="bg-[#62588b] hover:bg-[#31294e] text-white"
             onClick={handleSubmit}
             disabled={
               !hasChanges || Object.keys(form.extractedData || {}).length === 0
@@ -941,17 +996,19 @@ export function AdminDashboardEnhanced() {
     const [view, setView] = useState<"raw" | "table">("table");
 
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Merged Information</CardTitle>
+      <Card className="bg-white dark:bg-gray-800 border border-[#e5e2f0] dark:border-gray-700 shadow-sm">
+        <CardHeader className="border-b border-[#e5e2f0] dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+          <CardTitle className="text-[#2d2a4a] dark:text-white">
+            Merged Information
+          </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <div className="flex gap-2 mb-4">
             <Button
               className={
                 view === "raw"
                   ? "bg-[#62588b] hover:bg-[#31294e] text-white"
-                  : ""
+                  : "border-[#483d73] text-[#483d73] hover:bg-[#f3f1f8] dark:hover:bg-gray-700"
               }
               variant={view === "raw" ? "default" : "outline"}
               onClick={() => setView("raw")}
@@ -962,7 +1019,7 @@ export function AdminDashboardEnhanced() {
               className={
                 view === "table"
                   ? "bg-[#62588b] hover:bg-[#31294e] text-white"
-                  : ""
+                  : "border-[#483d73] text-[#483d73] hover:bg-[#f3f1f8] dark:hover:bg-gray-700"
               }
               variant={view === "table" ? "default" : "outline"}
               onClick={() => setView("table")}
@@ -970,9 +1027,10 @@ export function AdminDashboardEnhanced() {
               Table Data
             </Button>
           </div>
+
           {view === "raw" ? (
-            <ScrollArea className="h-[calc(90vh-200px)] bg-muted p-4 rounded-md">
-              <pre className="text-sm whitespace-pre-wrap">
+            <ScrollArea className="h-[calc(90vh-200px)] bg-muted dark:bg-gray-900 p-4 rounded-md border border-[#e5e2f0] dark:border-gray-700">
+              <pre className="text-sm whitespace-pre-wrap text-gray-800 dark:text-gray-300 font-mono">
                 {formatData(data)}
               </pre>
             </ScrollArea>
@@ -981,23 +1039,26 @@ export function AdminDashboardEnhanced() {
               <table className="w-full text-sm border-collapse">
                 <thead>
                   <tr>
-                    <th className="bg-gray-100 py-2 px-2 border text-left w-1/2">
+                    <th className="bg-gray-100 dark:bg-gray-700 py-2 px-2 border border-[#e5e2f0] dark:border-gray-600 text-left w-1/2 font-medium text-[#2d2a4a] dark:text-gray-200">
                       Field
                     </th>
-                    <th className="bg-gray-100 py-2 px-2 border text-left w-1/2">
+                    <th className="bg-gray-100 dark:bg-gray-700 py-2 px-2 border border-[#e5e2f0] dark:border-gray-600 text-left w-1/2 font-medium text-[#2d2a4a] dark:text-gray-200">
                       Value
                     </th>
                   </tr>
                 </thead>
                 <tbody>
                   {Object.entries(data).map(([key, value]) => (
-                    <tr key={key}>
-                      <td className="py-1 px-2 border w-1/2 whitespace-normal break-words ">
+                    <tr
+                      key={key}
+                      className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition"
+                    >
+                      <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words text-gray-800 dark:text-gray-200">
                         {key
                           .replace(/_/g, " ")
                           .replace(/\b\w/g, (l) => l.toUpperCase())}
                       </td>
-                      <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
+                      <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words text-gray-700 dark:text-gray-300">
                         {typeof value === "object" && value !== null
                           ? JSON.stringify(value, null, 2)
                           : String(value ?? "N/A")}
@@ -1018,17 +1079,19 @@ export function AdminDashboardEnhanced() {
     const mergedData = data.mergedData;
 
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Form Details</CardTitle>
+      <Card className="bg-white dark:bg-gray-800 border border-[#e5e2f0] dark:border-gray-700 shadow-sm">
+        <CardHeader className="border-b border-[#e5e2f0] dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+          <CardTitle className="text-[#2d2a4a] dark:text-white">
+            Form Details
+          </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <div className="flex gap-2 mb-4">
             <Button
               className={
                 view === "raw"
                   ? "bg-[#62588b] hover:bg-[#31294e] text-white"
-                  : ""
+                  : "border-[#483d73] text-[#483d73] hover:bg-[#f3f1f8] dark:hover:bg-gray-700"
               }
               variant={view === "raw" ? "default" : "outline"}
               onClick={() => setView("raw")}
@@ -1039,7 +1102,7 @@ export function AdminDashboardEnhanced() {
               className={
                 view === "table"
                   ? "bg-[#62588b] hover:bg-[#31294e] text-white"
-                  : ""
+                  : "border-[#483d73] text-[#483d73] hover:bg-[#f3f1f8] dark:hover:bg-gray-700"
               }
               variant={view === "table" ? "default" : "outline"}
               onClick={() => setView("table")}
@@ -1047,9 +1110,10 @@ export function AdminDashboardEnhanced() {
               Table Data
             </Button>
           </div>
+
           {view === "raw" ? (
-            <ScrollArea className="h-[calc(90vh-200px)] bg-muted p-4 rounded-md">
-              <pre className="text-sm whitespace-pre-wrap">
+            <ScrollArea className="h-[calc(90vh-200px)] bg-muted dark:bg-gray-900 p-4 rounded-md border border-[#e5e2f0] dark:border-gray-700">
+              <pre className="text-sm whitespace-pre-wrap text-gray-800 dark:text-gray-300 font-mono">
                 {formatData(data)}
               </pre>
             </ScrollArea>
@@ -1058,20 +1122,20 @@ export function AdminDashboardEnhanced() {
               <table className="w-full text-sm border-collapse">
                 <thead>
                   <tr>
-                    <th className="bg-gray-100 py-2 px-2 border text-left w-1/2">
+                    <th className="bg-gray-100 dark:bg-gray-700 py-2 px-2 border border-[#e5e2f0] dark:border-gray-600 text-left w-1/2 font-medium text-[#2d2a4a] dark:text-gray-200">
                       Field
                     </th>
-                    <th className="bg-gray-100 py-2 px-2 border text-left w-1/2">
+                    <th className="bg-gray-100 dark:bg-gray-700 py-2 px-2 border border-[#e5e2f0] dark:border-gray-600 text-left w-1/2 font-medium text-[#2d2a4a] dark:text-gray-200">
                       Value
                     </th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr>
-                    <td className="py-1 px-2 border w-1/2 whitespace-normal break-words font-medium">
+                  <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
+                    <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words font-medium text-[#2d2a4a] dark:text-white">
                       Card Image
                     </td>
-                    <td className="py-1 px-2 border w-1/2">
+                    <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2">
                       {data.cardFrontPhoto ? (
                         <button
                           onClick={() => setZoomedImage(data.cardFrontPhoto!)}
@@ -1087,119 +1151,115 @@ export function AdminDashboardEnhanced() {
                           </div>
                         </button>
                       ) : (
-                        <span className="text-muted-foreground text-xs">
+                        <span className="text-muted-foreground dark:text-gray-500 text-xs">
                           No image
                         </span>
                       )}
                     </td>
                   </tr>
 
-                  <tr>
-                    <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
+                  <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
+                    <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words text-[#2d2a4a] dark:text-gray-300">
                       Card No
                     </td>
-                    <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
+                    <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words text-gray-800 dark:text-gray-200">
                       {data.cardNo ?? "N/A"}
                     </td>
                   </tr>
-                  <tr>
-                    <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
+                  <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
+                    <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words text-[#2d2a4a] dark:text-gray-300">
                       Sales Person
                     </td>
-                    <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
+                    <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words text-gray-800 dark:text-gray-200">
                       {data.salesPerson ?? "N/A"}
                     </td>
                   </tr>
-                  <tr>
-                    <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
+                  <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
+                    <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words text-[#2d2a4a] dark:text-gray-300">
                       Date
                     </td>
-                    <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
+                    <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words text-gray-800 dark:text-gray-200">
                       {data.date
                         ? new Date(data.date).toLocaleDateString()
                         : "N/A"}
                     </td>
                   </tr>
-                  <tr>
-                    <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
+                  <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
+                    <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words text-[#2d2a4a] dark:text-gray-300">
                       User
                     </td>
-                    <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
+                    <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words text-gray-800 dark:text-gray-200">
                       {data.user?.email || "N/A"}
                     </td>
                   </tr>
-                  <tr>
-                    <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
+                  <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
+                    <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words text-[#2d2a4a] dark:text-gray-300">
                       Company
                     </td>
-                    <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
-                      <div className="font-medium">
+                    <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words">
+                      <div className="font-medium text-gray-900 dark:text-white">
                         {mergedData?.companyName || "N/A"}
                       </div>
-                      <div className="text-[10px] text-muted-foreground">
+                      <div className="text-[10px] text-muted-foreground dark:text-gray-500">
                         {mergedData?.name || "No contact"}
                       </div>
                     </td>
                   </tr>
-                  <tr>
-                    <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
+                  <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
+                    <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words text-[#2d2a4a] dark:text-gray-300">
                       Contact Info
                     </td>
-                    <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
-                      {mergedData?.email && <div>{mergedData.email}</div>}
+                    <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words">
+                      {mergedData?.email && (
+                        <div className="text-gray-800 dark:text-gray-200">
+                          {mergedData.email}
+                        </div>
+                      )}
                       {mergedData?.contactNumbers && (
-                        <div className="text-[10px] text-muted-foreground">
+                        <div className="text-[10px] text-muted-foreground dark:text-gray-500">
                           {mergedData.contactNumbers.split(",")[0]}
                         </div>
                       )}
                     </td>
                   </tr>
-                  <tr>
-                    <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
+                  <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
+                    <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words text-[#2d2a4a] dark:text-gray-300">
                       Lead Status
                     </td>
-                    <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
+                    <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words text-gray-800 dark:text-gray-200">
                       {data.leadStatus ?? "N/A"}
                     </td>
                   </tr>
-                  <tr>
-                    <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
+                  <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
+                    <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words text-[#2d2a4a] dark:text-gray-300">
                       Deal Status
                     </td>
-                    <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
+                    <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words text-gray-800 dark:text-gray-200">
                       {data.dealStatus ?? "N/A"}
                     </td>
                   </tr>
-                  <tr>
-                    <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
+                  <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
+                    <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words text-[#2d2a4a] dark:text-gray-300">
                       Meeting
                     </td>
-                    <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
+                    <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words text-gray-800 dark:text-gray-200">
                       {data.meetingAfterExhibition ? "Yes" : "No"}
                     </td>
                   </tr>
-                  <tr>
-                    <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
+                  <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
+                    <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words text-[#2d2a4a] dark:text-gray-300">
                       Form Status
                     </td>
-                    <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
+                    <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words text-gray-800 dark:text-gray-200">
                       {data.status ?? "N/A"}
                     </td>
                   </tr>
-                  <tr>
-                    <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
+                  <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
+                    <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words text-[#2d2a4a] dark:text-gray-300">
                       Extraction Status
                     </td>
-                    <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
+                    <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words text-gray-800 dark:text-gray-200">
                       {data.extractionStatus ?? "N/A"}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
-                      Zoho Status
-                    </td>
-                    <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
-                      {data.zohoStatus ?? "N/A"}
                     </td>
                   </tr>
 
@@ -1210,20 +1270,23 @@ export function AdminDashboardEnhanced() {
                         <tr>
                           <td
                             colSpan={2}
-                            className="py-2 px-2 border bg-gray-50 font-medium text-sm"
+                            className="py-2 px-2 border border-[#e5e2f0] dark:border-gray-700 bg-gray-50 dark:bg-gray-900 font-medium text-sm text-[#2d2a4a] dark:text-white"
                           >
                             Custom Fields
                           </td>
                         </tr>
                         {Object.entries(data.additionalData).map(
                           ([key, value]) => (
-                            <tr key={key}>
-                              <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
+                            <tr
+                              key={key}
+                              className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition"
+                            >
+                              <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words text-[#2d2a4a] dark:text-gray-300">
                                 {key
                                   .replace(/_/g, " ")
                                   .replace(/\b\w/g, (l) => l.toUpperCase())}
                               </td>
-                              <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
+                              <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words text-gray-800 dark:text-gray-200">
                                 {String(value ?? "N/A")}
                               </td>
                             </tr>
@@ -1250,9 +1313,19 @@ export function AdminDashboardEnhanced() {
   return (
     <div className="space-y-6 px-2 sm:px-4 py-6 bg-[#f3f1f8] dark:bg-gray-900 min-h-screen">
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="overview">Dashboard Overview</TabsTrigger>
-          <TabsTrigger value="data">Card Data</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2 bg-white dark:bg-gray-800 border-b border-[#e5e2f0] dark:border-gray-700">
+          <TabsTrigger
+            value="overview"
+            className="data-[state=active]:bg-[#483d73] data-[state=active]:text-white"
+          >
+            Dashboard Overview
+          </TabsTrigger>
+          <TabsTrigger
+            value="data"
+            className="data-[state=active]:bg-[#483d73] data-[state=active]:text-white"
+          >
+            Card Data
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -1262,17 +1335,15 @@ export function AdminDashboardEnhanced() {
         <TabsContent value="data" className="space-y-4">
           {/* ------------------- MOBILE VERSION ------------------- */}
           <div className="sm:hidden flex flex-col gap-3">
-            {/* Row 1: Search + User Filter */}
             <div className="flex w-full gap-2">
               <Input
                 placeholder="Search forms..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="flex-1 h-9 px-2 text-sm"
+                className="flex-1 h-9 px-2 text-sm bg-white dark:bg-gray-800 border-[#e5e2f0] dark:border-gray-700"
               />
-
               <Select value={selectedUser} onValueChange={setSelectedUser}>
-                <SelectTrigger className="h-9 px-2 text-sm w-32">
+                <SelectTrigger className="h-9 px-2 text-sm w-32 bg-white dark:bg-gray-800 border-[#e5e2f0] dark:border-gray-700">
                   <SelectValue placeholder="Users" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1286,12 +1357,11 @@ export function AdminDashboardEnhanced() {
               </Select>
             </div>
 
-            {/* Row 2: Excel + Manage Columns */}
             <div className="flex w-full gap-2">
               <Button
                 onClick={handleDownloadExcel}
                 disabled={isDownloading || filteredForms.length === 0}
-                className="flex-1 h-9 px-2 text-xs bg-[#483d73] hover:bg-[#352c55]"
+                className="flex-1 h-9 px-2 text-xs bg-[#483d73] hover:bg-[#352c55] text-white"
               >
                 {isDownloading ? (
                   <>
@@ -1309,7 +1379,7 @@ export function AdminDashboardEnhanced() {
               <Button
                 variant="outline"
                 onClick={() => setShowManage(true)}
-                className="flex-1 h-9 px-2 text-xs border-[#483d73] text-[#483d73] hover:bg-[#483d73]/10"
+                className="flex-1 h-9 px-2 text-xs border-[#483d73] text-[#483d73] hover:bg-[#483d73]/10 dark:hover:bg-gray-700"
               >
                 Manage Columns
               </Button>
@@ -1318,18 +1388,16 @@ export function AdminDashboardEnhanced() {
 
           {/* ------------------- DESKTOP VERSION ------------------- */}
           <div className="hidden sm:flex flex-row justify-between items-center gap-3">
-            {/* Search */}
             <Input
               placeholder="Search forms..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-64 h-9"
+              className="w-64 h-9 bg-white dark:bg-gray-800 border-[#e5e2f0] dark:border-gray-700"
             />
 
-            {/* Filter + Buttons */}
             <div className="flex items-center gap-2">
               <Select value={selectedUser} onValueChange={setSelectedUser}>
-                <SelectTrigger className="w-48 text-xs h-9">
+                <SelectTrigger className="w-48 text-xs h-9 bg-white dark:bg-gray-800 border-[#e5e2f0] dark:border-gray-700">
                   <SelectValue placeholder="All Users" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1346,7 +1414,7 @@ export function AdminDashboardEnhanced() {
                 onClick={handleDownloadExcel}
                 disabled={isDownloading || filteredForms.length === 0}
                 size="sm"
-                className="h-9 px-3 text-xs bg-[#483d73] hover:bg-[#352c55]"
+                className="h-9 px-3 text-xs bg-[#483d73] hover:bg-[#352c55] text-white"
               >
                 {isDownloading ? (
                   <>
@@ -1371,13 +1439,13 @@ export function AdminDashboardEnhanced() {
             </div>
           </div>
 
-          {/* ------------------- TABLE + PAGINATION (unchanged) ------------------- */}
-          <Card>
+          {/* ------------------- TABLE + PAGINATION ------------------- */}
+          <Card className="bg-white dark:bg-gray-800 shadow-lg border-none">
             <CardContent className="p-0 mt-8">
               <div className="w-full h-[30rem] flex flex-col">
                 <div className="w-full overflow-auto">
                   <table className="w-full text-sm border-collapse table-fixed min-w-[1350px]">
-                    <thead className="sticky top-0 z-10">
+                    <thead className="sticky top-0 z-10 bg-gray-100 dark:bg-gray-800">
                       <tr>
                         {displayColumns.map((colId) => {
                           const col = possibleColumns.find(
@@ -1387,7 +1455,7 @@ export function AdminDashboardEnhanced() {
                           return (
                             <th
                               key={colId}
-                              className={`bg-gray-100 py-2 px-2 border ${col.width}`}
+                              className={`py-2 px-2 border border-[#e5e2f0] dark:border-gray-700 ${col.width} text-left text-xs font-medium text-gray-700 dark:text-gray-300`}
                             >
                               {col.label}
                             </th>
@@ -1402,7 +1470,7 @@ export function AdminDashboardEnhanced() {
                           .map((form) => (
                             <tr
                               key={form.id!}
-                              className="text-xs hover:bg-gray-50"
+                              className="text-xs hover:bg-gray-50 dark:hover:bg-gray-700/50 transition"
                             >
                               {displayColumns.map((colId) => {
                                 const col = possibleColumns.find(
@@ -1412,7 +1480,7 @@ export function AdminDashboardEnhanced() {
                                 return (
                                   <td
                                     key={colId}
-                                    className={`py-1 px-2 border ${col.width}`}
+                                    className={`py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 ${col.width} text-gray-800 dark:text-gray-300`}
                                   >
                                     {col.render(form)}
                                   </td>
@@ -1424,7 +1492,7 @@ export function AdminDashboardEnhanced() {
                         <tr>
                           <td
                             colSpan={displayColumns.length}
-                            className="py-4 text-center border"
+                            className="py-8 text-center border border-[#e5e2f0] dark:border-gray-700 text-gray-600 dark:text-gray-400"
                           >
                             {isLoading ? "Loading..." : "No forms found"}
                           </td>
@@ -1434,20 +1502,20 @@ export function AdminDashboardEnhanced() {
                   </table>
                 </div>
 
-                <div className="flex justify-between items-center mt-2">
+                <div className="flex justify-between items-center mt-2 px-4 py-3 bg-white dark:bg-gray-800 border-t border-[#e5e2f0] dark:border-gray-700">
                   <div className="flex gap-2 items-center">
                     <Button
-                      className="bg-[#483d73] hover:bg-[#31294e]"
+                      className="bg-[#483d73] hover:bg-[#31294e] text-white"
                       onClick={() => handlePageChange(currentPage - 1)}
                       disabled={currentPage === 1}
                     >
                       Prev
                     </Button>
-                    <span>
+                    <span className="text-sm text-gray-700 dark:text-gray-300">
                       Page {currentPage} of {totalPages}
                     </span>
                     <Button
-                      className="bg-[#483d73] hover:bg-[#31294e]"
+                      className="bg-[#483d73] hover:bg-[#31294e] text-white"
                       onClick={() => handlePageChange(currentPage + 1)}
                       disabled={currentPage === totalPages}
                     >
@@ -1459,7 +1527,7 @@ export function AdminDashboardEnhanced() {
                     value={String(itemsPerPage)}
                     onValueChange={handleItemsPerPageChange}
                   >
-                    <SelectTrigger className="w-[80px]">
+                    <SelectTrigger className="w-[80px] bg-white dark:bg-gray-800 border-[#e5e2f0] dark:border-gray-700">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -1477,239 +1545,141 @@ export function AdminDashboardEnhanced() {
         </TabsContent>
       </Tabs>
 
-      {/* Manage Columns Dialog - Improved & Grouped */}
-      <Dialog open={showManage} onOpenChange={setShowManage}>
-        <DialogContent className="max-h-[80vh] max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Manage Dashboard Columns</DialogTitle>
-          </DialogHeader>
-          <ScrollArea className="max-h-[60vh] pr-4">
-            <div className="space-y-6 py-4">
-              {/* Optional Extracted Fields */}
-              {/* <div className="border-t pt-4">
-                <h4 className="font-semibold text-sm mb-3 text-blue-700">
-                  Optional Fields
-                </h4>
-                {possibleColumns
-                  .filter(
-                    (col) =>
-                      col.id === "description" || col.id.startsWith("ext_")
-                  )
-                  .sort((a, b) => a.label.localeCompare(b.label))
-                  .map((col) => (
-                    <div
-                      key={col.id}
-                      className="flex items-center space-x-2 py-1"
-                    >
-                      <Checkbox
-                        checked={visibleColumns.includes(col.id)}
-                        onCheckedChange={(checked) => {
-                          setVisibleColumns((prev) =>
-                            checked
-                              ? [...prev, col.id]
-                              : prev.filter((id) => id !== col.id)
-                          );
-                        }}
-                      />
-                      <Label className="text-sm">{col.label}</Label>
-                    </div>
-                  ))}
-              </div> */}
+      {/* Manage Columns Dialog*/}
+<Dialog open={showManage} onOpenChange={setShowManage}>
+  <DialogContent className="max-h-[90vh] max-w-lg bg-white dark:bg-gray-800 border border-[#e5e2f0] dark:border-gray-700">
+    <DialogHeader className="border-b border-[#e5e2f0] dark:border-gray-700 pb-4">
+      <DialogTitle className="text-[#2d2a4a] dark:text-white text-lg font-bold">
+        Manage Dashboard Columns
+      </DialogTitle>
+    </DialogHeader>
 
-              <div className="border-t pt-4">
-                <h4 className="font-semibold text-sm mb-3 text-blue-700">
-                  Optional Fields
-                </h4>
+    <ScrollArea className="max-h-[60vh] pr-4 py-4">
+      <div className="space-y-8">
 
-                <div className="space-y-3">
-                  {/* 1. User-filled Description (from form) */}
-                  {possibleColumns.some((col) => col.id === "description") && (
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="opt-user-desc"
-                        checked={visibleColumns.includes("description")}
-                        onCheckedChange={(checked) => {
-                          setVisibleColumns((prev) =>
-                            checked
-                              ? [...prev, "description"]
-                              : prev.filter((id) => id !== "description")
-                          );
-                        }}
-                      />
-                      <Label
-                        htmlFor="opt-user-desc"
-                        className="text-sm font-medium"
-                      >
-                        Description
-                      </Label>
-                    </div>
-                  )}
-
-                  {/* 2. Created At (Submission Time) */}
-                  {possibleColumns.some(
-                    (col) => col.id === "ext_createdAt"
-                  ) && (
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="opt-created"
-                        checked={visibleColumns.includes("ext_createdAt")}
-                        onCheckedChange={(checked) => {
-                          setVisibleColumns((prev) =>
-                            checked
-                              ? [...prev, "ext_createdAt"]
-                              : prev.filter((id) => id !== "ext_createdAt")
-                          );
-                        }}
-                      />
-                      <Label
-                        htmlFor="opt-created"
-                        className="text-sm font-medium"
-                      >
-                        Created At
-                      </Label>
-                    </div>
-                  )}
-
-                  {/* 3. Extracted Contact Info (Email + Phone from OCR) */}
-                  {possibleColumns.some((col) => col.id === "contactInfo") && (
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="opt-contact"
-                        checked={visibleColumns.includes("contactInfo")}
-                        onCheckedChange={(checked) => {
-                          setVisibleColumns((prev) =>
-                            checked
-                              ? [...prev, "contactInfo"]
-                              : prev.filter((id) => id !== "contactInfo")
-                          );
-                        }}
-                      />
-                      <Label
-                        htmlFor="opt-contact"
-                        className="text-sm font-medium"
-                      >
-                        Contact Info
-                      </Label>
-                    </div>
-                  )}
-
-                  {/* WEBSITE – Works no matter what the OCR key is */}
-                  {possibleColumns.some((col) => {
-                    const key = col.id.replace("ext_", "").toLowerCase();
-                    return ["website", "web", "url", "site"].some((term) =>
-                      key.includes(term)
+        {/* Optional Fields */}
+        <div className=" border-[#e5e2f0] dark:border-gray-700 pt-2">
+          <h4 className="font-bold text-sm mb-4 text-blue-700 dark:text-blue-400">
+            Optional Fields
+          </h4>
+          <div className="space-y-3">
+            {possibleColumns.some((col) => col.id === "description") && (
+              <div className="flex items-center space-x-3">
+                <Checkbox
+                  id="opt-user-desc"
+                  checked={visibleColumns.includes("description")}
+                  onCheckedChange={(checked) => {
+                    setVisibleColumns((prev) =>
+                      checked
+                        ? [...prev, "description"]
+                        : prev.filter((id) => id !== "description")
                     );
-                  }) && (
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="opt-website"
-                        checked={visibleColumns.some((col) => {
-                          const key = col.replace("ext_", "").toLowerCase();
-                          return ["website", "web", "url", "site"].some(
-                            (term) => key.includes(term)
-                          );
-                        })}
-                        onCheckedChange={(checked) => {
-                          const websiteCol = possibleColumns.find((col) => {
-                            const key = col.id
-                              .replace("ext_", "")
-                              .toLowerCase();
-                            return ["website", "web", "url", "site"].some(
-                              (term) => key.includes(term)
-                            );
-                          });
-                          if (websiteCol) {
-                            setVisibleColumns((prev) =>
-                              checked
-                                ? [...prev, websiteCol.id]
-                                : prev.filter((id) => id !== websiteCol.id)
-                            );
-                          }
-                        }}
-                      />
-                      <Label
-                        htmlFor="opt-website"
-                        className="text-sm font-medium"
-                      >
-                        Website
-                      </Label>
-                    </div>
-                  )}
-                </div>
-
-                {/* Fallback message */}
-                {!possibleColumns.some(
-                  (col) =>
-                    col.id === "description" ||
-                    col.id === "ext_createdAt" ||
-                    col.id === "contactInfo" ||
-                    col.id === "website"
-                ) && (
-                  <p className="text-sm text-gray-500 italic">
-                    No optional fields available
-                  </p>
-                )}
+                  }}
+                />
+                <Label
+                  htmlFor="opt-user-desc"
+                  className="text-sm font-medium text-gray-800 dark:text-gray-200 cursor-pointer"
+                >
+                  Description
+                </Label>
               </div>
-
-              {/* ==================== FORM FIELDS (USER-ADDED VIA DRAG & DROP) ==================== */}
-              <div className="border-t pt-4">
-                <h4 className="font-semibold text-sm mb-4 text-green-700 flex items-center gap-2">
-                  Form Fields
-                </h4>
-
-                {/* All columns that start with "add_" are the dynamic ones from the form builder */}
-                {possibleColumns.filter((col) => col.id.startsWith("add_"))
-                  .length > 0 ? (
-                  <div className="grid gap-3">
-                    {possibleColumns
-                      .filter((col) => col.id.startsWith("add_"))
-                      .sort((a, b) => a.label.localeCompare(b.label))
-                      .map((col) => (
-                        <div key={col.id} className="items-center space-x-2">
-                          <Checkbox
-                            checked={visibleColumns.includes(col.id)}
-                            onCheckedChange={(checked) => {
-                              setVisibleColumns((prev) =>
-                                checked
-                                  ? [...prev, col.id]
-                                  : prev.filter((id) => id !== col.id)
-                              );
-                            }}
-                          />
-                          <Label className="text-sm font-medium">
-                            {col.label}
-                          </Label>
-                        </div>
-                      ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-500 italic">
-                    No custom fields added yet
-                  </p>
-                )}
-              </div>
-            </div>
-          </ScrollArea>
-
-          <div className="flex justify-end pt-2  border-t">
-            <Button
-              onClick={() => setShowManage(false)}
-              className="bg-[#483d73] hover:bg-[#31294e]"
-            >
-              Done
-            </Button>
+            )}
           </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+
+        {/* Form Fields (User-Added via Drag & Drop) */}
+        <div className="border-t border-[#e5e2f0] dark:border-gray-700 pt-6">
+          <h4 className="font-bold text-sm mb-4 text-green-700 dark:text-green-400 flex items-center gap-2">
+            Form Fields
+          </h4>
+          {possibleColumns.filter((col) => col.id.startsWith("add_")).length > 0 ? (
+            <div className="grid gap-3">
+              {possibleColumns
+                .filter((col) => col.id.startsWith("add_"))
+                .sort((a, b) => a.label.localeCompare(b.label))
+                .map((col) => (
+                  <div key={col.id} className="flex items-center space-x-3">
+                    <Checkbox
+                      checked={visibleColumns.includes(col.id)}
+                      onCheckedChange={(checked) => {
+                        setVisibleColumns((prev) =>
+                          checked
+                            ? [...prev, col.id]
+                            : prev.filter((id) => id !== col.id)
+                        );
+                      }}
+                    />
+                    <Label className="text-sm font-medium text-gray-800 dark:text-gray-200 cursor-pointer">
+                      {col.label}
+                    </Label>
+                  </div>
+                ))}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500 dark:text-gray-400 italic">
+              No custom fields added yet
+            </p>
+          )}
+        </div>
+
+        {/* Extracted Fields (Only the 4 you want) */}
+        <div className="border-t border-[#e5e2f0] dark:border-gray-700 pt-6">
+          <h4 className="font-bold text-sm mb-4 text-purple-700 dark:text-purple-400 flex items-center gap-2">
+            Extracted Fields
+          </h4>
+          <div className="grid gap-3">
+            {["address", "contactNumbers", "email", "website"].map((key) => {
+              const col = possibleColumns.find((c) => c.id === `ext_${key}`);
+              if (!col) return null;
+
+              return (
+                <div key={col.id} className="flex items-center space-x-3">
+                  <Checkbox
+                    id={`extracted-${col.id}`}
+                    checked={visibleColumns.includes(col.id)}
+                    onCheckedChange={(checked) => {
+                      setVisibleColumns((prev) =>
+                        checked
+                          ? [...prev, col.id]
+                          : prev.filter((id) => id !== col.id)
+                      );
+                    }}
+                  />
+                  <Label
+                    htmlFor={`extracted-${col.id}`}
+                    className="text-sm font-medium text-gray-800 dark:text-gray-200 cursor-pointer"
+                  >
+                    {col.label}
+                  </Label>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </ScrollArea>
+
+    <div className="flex justify-end pt-4 border-t border-[#e5e2f0] dark:border-gray-700">
+      <Button
+        onClick={() => setShowManage(false)}
+        className="bg-[#483d73] hover:bg-[#31294e] text-white font-medium px-6"
+      >
+        Done
+      </Button>
+    </div>
+  </DialogContent>
+</Dialog>
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
-        <DialogContent>
+        <DialogContent className="bg-white dark:bg-gray-800 border border-[#e5e2f0] dark:border-gray-700">
           <DialogHeader>
-            <DialogTitle>Confirm Delete</DialogTitle>
+            <DialogTitle className="text-[#2d2a4a] dark:text-white">
+              Confirm Delete
+            </DialogTitle>
           </DialogHeader>
           <div className="py-4">
-            <p>
+            <p className="text-[#5a5570] dark:text-gray-300">
               Are you sure you want to delete this record? This action cannot be
               undone.
             </p>
@@ -1721,6 +1691,7 @@ export function AdminDashboardEnhanced() {
                 setConfirmDeleteOpen(false);
                 setPendingDeleteId(null);
               }}
+              className="border-[#483d73] text-[#483d73] hover:bg-[#f3f1f8] dark:hover:bg-gray-700"
             >
               Cancel
             </Button>
@@ -1743,36 +1714,43 @@ export function AdminDashboardEnhanced() {
       {/* View Dialog */}
       {selectedViewForm && selectedViewForm.id && (
         <Dialog open={true} onOpenChange={() => setOpenView(null)}>
-          <DialogContent className="w-[95vw] max-w-lg sm:max-w-3xl lg:max-w-4xl h-[90vh] p-3 sm:p-6 overflow-hidden flex flex-col">
-            <DialogHeader>
-              <DialogTitle className="text-base sm:text-lg">
+          <DialogContent className="w-[95vw] max-w-lg sm:max-w-3xl lg:max-w-4xl h-[90vh] p-3 sm:p-6 overflow-hidden flex flex-col bg-white dark:bg-gray-800 border border-[#e5e2f0] dark:border-gray-700">
+            <DialogHeader className="border-b border-[#e5e2f0] dark:border-gray-700 pb-4">
+              <DialogTitle className="text-base sm:text-lg text-[#2d2a4a] dark:text-white">
                 Business Card - {selectedViewForm.cardNo || "N/A"}
               </DialogTitle>
             </DialogHeader>
 
-            {/* Main Scroll Area */}
             <div className="flex-grow overflow-y-auto">
               <Tabs defaultValue="merged" className="w-full">
-                {/* Mobile-friendly Tabs */}
-                <TabsList className="flex overflow-x-auto whitespace-nowrap sticky top-0 bg-background z-20 border-b">
-                  <TabsTrigger className="flex-shrink-0" value="merged">
+                <TabsList className="flex overflow-x-auto whitespace-nowrap sticky top-0 bg-white dark:bg-gray-800 z-20 border-b border-[#e5e2f0] dark:border-gray-700">
+                  <TabsTrigger
+                    className="flex-shrink-0 data-[state=active]:bg-[#483d73] data-[state=active]:text-white"
+                    value="merged"
+                  >
                     Merged Data
                   </TabsTrigger>
-                  <TabsTrigger className="flex-shrink-0" value="extracted">
+                  <TabsTrigger
+                    className="flex-shrink-0 data-[state=active]:bg-[#483d73] data-[state=active]:text-white"
+                    value="extracted"
+                  >
                     Extracted
                   </TabsTrigger>
-                  <TabsTrigger className="flex-shrink-0" value="form">
+                  <TabsTrigger
+                    className="flex-shrink-0 data-[state=active]:bg-[#483d73] data-[state=active]:text-white"
+                    value="form"
+                  >
                     Form
                   </TabsTrigger>
-                  <TabsTrigger className="flex-shrink-0" value="images">
+                  <TabsTrigger
+                    className="flex-shrink-0 data-[state=active]:bg-[#483d73] data-[state=active]:text-white"
+                    value="images"
+                  >
                     Images
                   </TabsTrigger>
                 </TabsList>
 
-                {/* Content Scroll Area */}
                 <ScrollArea className="h-[calc(90vh-140px)] sm:h-[calc(90vh-150px)]">
-                  {/* Merged Data */}
-
                   <TabsContent value="merged" className="space-y-6">
                     {(() => {
                       const manualDescription =
@@ -1782,29 +1760,27 @@ export function AdminDashboardEnhanced() {
 
                       return (
                         <>
-                          {/* Toggle Button + Collapsible Notes */}
                           <div className="space-y-4">
-                            {/* Toggle Button */}
                             <Button
                               variant="outline"
                               size="sm"
-                              className="w-full justify-between border-2 border-purple-200 bg-purple-50 hover:bg-purple-100"
+                              className="w-full justify-between border-2 border-purple-200 bg-purple-50 hover:bg-purple-100 
+               dark:border-purple-700 dark:bg-purple-900/30 dark:hover:bg-purple-900/50"
                               onClick={() => setShowNotes(!showNotes)}
                             >
                               <div className="flex items-center gap-2">
-                                <MessageSquare className="w-5 h-5 text-purple-700" />
-                                <span className="font-semibold text-purple-900">
+                                <MessageSquare className="w-5 h-5 text-purple-700 dark:text-purple-400" />
+                                <span className="font-semibold text-purple-900 dark:text-purple-300">
                                   {showNotes ? "Hide" : "Show"} Notes
                                 </span>
                               </div>
                               {showNotes ? (
-                                <ChevronUp className="w-5 h-5 text-purple-700" />
+                                <ChevronUp className="w-5 h-5 text-purple-700 dark:text-purple-400" />
                               ) : (
-                                <ChevronDown className="w-5 h-5 text-purple-700" />
+                                <ChevronDown className="w-5 h-5 text-purple-700 dark:text-purple-400" />
                               )}
                             </Button>
 
-                            {/* Collapsible Content */}
                             <AnimatePresence>
                               {showNotes && (
                                 <motion.div
@@ -1815,24 +1791,26 @@ export function AdminDashboardEnhanced() {
                                   className="overflow-hidden"
                                 >
                                   <div className="space-y-4">
-                                    {/* 1. SALES REP'S MANUAL NOTES */}
                                     {manualDescription ? (
-                                      <Card className="border-2 border-blue-300 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-lg">
+                                      <Card
+                                        className="border-2 border-blue-300 bg-gradient-to-br from-blue-50 to-indigo-50 
+                            dark:border-purple-300  dark:from-blue-900/40 dark:to-purple-900/40 shadow-lg"
+                                      >
                                         <CardHeader className="pb-3">
-                                          <CardTitle className="text-lg font-bold text-blue-900 flex items-center gap-2">
+                                          <CardTitle className="text-lg font-bold text-blue-900 dark:text-blue-900 flex items-center gap-2">
                                             <User className="w-5 h-5" />
                                             Customer Description
                                           </CardTitle>
                                         </CardHeader>
                                         <CardContent>
-                                          <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed font-medium">
+                                          <p className="text-sm text-gray-800 dark:text-gray-800 whitespace-pre-wrap leading-relaxed font-medium">
                                             {manualDescription}
                                           </p>
                                         </CardContent>
                                       </Card>
                                     ) : (
-                                      <div className="text-center py-6 bg-gray-50 rounded-lg border border-gray-200">
-                                        <p className="text-sm text-gray-500 italic">
+                                      <div className="text-center py-6 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                                        <p className="text-sm text-gray-500 dark:text-gray-400 italic">
                                           No notes added by the customer
                                         </p>
                                       </div>
@@ -1843,12 +1821,10 @@ export function AdminDashboardEnhanced() {
                             </AnimatePresence>
                           </div>
 
-                          {/* 3. FULL MERGED DATA TABLE - WITH CORRECT DESCRIPTION */}
                           <MergedDataView
                             data={{
                               ...selectedViewForm,
                               ...(selectedViewForm.extractedData || {}),
-                              // This is the KEY: we pass the CORRECT description
                               description:
                                 manualDescription ||
                                 ocrDescription ||
@@ -1859,11 +1835,11 @@ export function AdminDashboardEnhanced() {
                       );
                     })()}
                   </TabsContent>
-                  {/* Extracted Data */}
+
                   <TabsContent value="extracted">
-                    <Card>
+                    <Card className="bg-white dark:bg-gray-800">
                       <CardHeader>
-                        <CardTitle className="text-sm sm:text-base">
+                        <CardTitle className="text-sm sm:text-base text-[#2d2a4a] dark:text-white">
                           Extracted Information
                         </CardTitle>
                       </CardHeader>
@@ -1876,25 +1852,22 @@ export function AdminDashboardEnhanced() {
                     </Card>
                   </TabsContent>
 
-                  {/* Form Data */}
                   <TabsContent value="form">
                     <FormDataView data={selectedViewForm} />
                   </TabsContent>
 
-                  {/* Images Tab */}
                   <TabsContent value="images">
-                    <Card>
+                    <Card className="bg-white dark:bg-gray-800">
                       <CardHeader>
-                        <CardTitle className="text-sm sm:text-base">
+                        <CardTitle className="text-sm sm:text-base text-[#2d2a4a] dark:text-white">
                           Card Images
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
                         <ScrollArea className="h-[calc(90vh-220px)] sm:h-[calc(90vh-240px)]">
                           <div className="space-y-6">
-                            {/* Front Image */}
                             <div>
-                              <h4 className="text-sm font-medium mb-3">
+                              <h4 className="text-sm font-medium mb-3 text-[#2d2a4a] dark:text-white">
                                 Front Side
                               </h4>
                               {selectedViewForm.cardFrontPhoto ? (
@@ -1913,16 +1886,15 @@ export function AdminDashboardEnhanced() {
                                   />
                                 </button>
                               ) : (
-                                <p className="text-xs text-muted-foreground">
+                                <p className="text-xs text-muted-foreground dark:text-gray-500">
                                   No front image available
                                 </p>
                               )}
                             </div>
 
-                            {/* Back Image */}
                             {selectedViewForm.cardBackPhoto && (
                               <div>
-                                <h4 className="text-sm font-medium mb-3">
+                                <h4 className="text-sm font-medium mb-3 text-[#2d2a4a] dark:text-white">
                                   Back Side
                                 </h4>
                                 <button
@@ -1953,18 +1925,18 @@ export function AdminDashboardEnhanced() {
         </Dialog>
       )}
 
-      {/* EDIT DIALOG - CLEAN, COMPACT & MOBILE-FRIENDLY */}
+      {/* EDIT DIALOG */}
       {selectedEditForm && selectedEditForm.id && (
         <Dialog open={true} onOpenChange={() => setOpenEdit(null)}>
           <DialogContent
-            className="max-w-4xl max-h-[92vh] p-4 sm:p-6 overflow-y-auto"
+            className="max-w-4xl max-h-[92vh] p-4 sm:p-6 overflow-y-auto bg-white dark:bg-gray-800 border border-[#e5e2f0] dark:border-gray-700"
             onOpenAutoFocus={(e) => e.preventDefault()}
           >
-            <DialogHeader className="space-y-3 pb-4 border-b">
-              <DialogTitle className="text-lg sm:text-xl font-semibold">
+            <DialogHeader className="space-y-3 pb-4 border-b border-[#e5e2f0] dark:border-gray-700">
+              <DialogTitle className="text-lg sm:text-xl font-semibold text-[#2d2a4a] dark:text-white">
                 Edit Lead - {selectedEditForm.cardNo || "N/A"}
               </DialogTitle>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-[#5a5570] dark:text-gray-400">
                 Update lead details and custom fields below
               </p>
             </DialogHeader>
@@ -2000,11 +1972,10 @@ export function AdminDashboardEnhanced() {
                   selectedEditForm.additionalData || {}
                 )}
                 prefillValues={selectedEditForm.additionalData || {}}
-                // NEW: These make the form builder clean & usable in edit mode
-                builderMode="compact" // Forces smaller inputs, tighter spacing
-                hidePublishButton={true} // COMPLETELY hides "Publish to All Users"
-                disableFieldDragging={false} // Still allows reordering if needed
-                maxImageHeight="180px" // Smaller card preview
+                builderMode="compact"
+                hidePublishButton={true}
+                disableFieldDragging={false}
+                maxImageHeight="180px"
               />
             </div>
           </DialogContent>
@@ -2014,7 +1985,7 @@ export function AdminDashboardEnhanced() {
       {/* Zoomed Image */}
       {zoomedImage && (
         <Dialog open={true} onOpenChange={() => setZoomedImage(null)}>
-          <DialogContent className="max-w-3xl p-0 overflow-hidden">
+          <DialogContent className="max-w-3xl p-0 overflow-hidden bg-black">
             <img
               src={zoomedImage || "/placeholder.svg"}
               alt="Zoomed Card"

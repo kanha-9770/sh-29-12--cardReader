@@ -2264,7 +2264,7 @@ export function DashboardOverview({ forms }: DashboardOverviewProps) {
       </div>
 
       {/* ==================== CHARTS ==================== */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
         {/* Lead Status Pie */}
         <Card className="bg-white dark:bg-gray-800/90 shadow-lg">
           <CardHeader>

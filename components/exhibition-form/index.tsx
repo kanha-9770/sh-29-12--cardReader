@@ -2724,11 +2724,11 @@ export function ExhibitionForm({
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="front" className="text-gray-700 dark:text-gray-300">Card Front *</Label>
+                      <Label htmlFor="front" className="text-gray-700 dark:text-gray-300">Card Front <span className="text-red-500">*</span></Label>
                       <input type="file" accept="image/*" className="hidden" id="front" onChange={(e) => handleImageChange(e, "front")} />
                       <label
                         htmlFor="front"
-                        className="block h-32 md:h-48 border-2 border-dashed rounded-lg cursor-pointer flex items-center justify-center overflow-hidden mt-2 hover:border-[#483d73] transition relative"
+                        className="block h-32 md:h-48 border-2 border-dashed rounded-lg cursor-pointer flex items-center justify-center overflow-hidden mt-2 dark:hover:border-[#6350af] dark:border-[#374151] transition relative"
                       >
                         {frontImagePreview ? (
                           <div className="relative w-full h-full">
@@ -2762,7 +2762,7 @@ export function ExhibitionForm({
                       <input type="file" accept="image/*" className="hidden" id="back" onChange={(e) => handleImageChange(e, "back")} />
                       <label
                         htmlFor={!backImagePreview ? "back" : undefined}
-                        className="block h-32 md:h-48 border-2 border-dashed rounded-lg cursor-pointer flex items-center justify-center overflow-hidden mt-2 hover:border-[#483d73] transition relative"
+                        className="block h-32 md:h-48 border-2 border-dashed rounded-lg cursor-pointer flex items-center justify-center overflow-hidden mt-2 hover:border-[#483d73] dark:border-[#374151] dark:hover:border-[#6350af] transition relative"
                       >
                         {backImagePreview ? (
                           <div className="relative w-full h-full">
@@ -2793,7 +2793,7 @@ export function ExhibitionForm({
                   </div>
 
                   <div className="space-y-1">
-                    <Label className="text-xs text-gray-700 dark:text-gray-300">Lead Status</Label>
+                    <Label className="text-sm text-gray-700 dark:text-gray-300">Lead Status</Label>
                     <Select value={formData.leadStatus} onValueChange={(val) => setFormData((prev) => ({ ...prev, leadStatus: val }))}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select lead status" />
@@ -2807,7 +2807,7 @@ export function ExhibitionForm({
                   </div>
 
                   <div className="space-y-1">
-                    <Label className="text-xs text-gray-700 dark:text-gray-300">Description</Label>
+                    <Label className="text-sm text-gray-700 dark:text-gray-300">Description</Label>
                     <textarea
                       value={formData.description}
                       onChange={(e) =>
@@ -2817,7 +2817,7 @@ export function ExhibitionForm({
                         }))
                       }
                       placeholder="Enter description..."
-                      className="w-full min-h-24 rounded-md border border-input bg-background dark:bg-gray-800 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                      className="w-full min-h-24 rounded-md border border-input bg-background dark:bg-gray-800 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring dark:border-[#374151]"
                     />
                   </div>
 

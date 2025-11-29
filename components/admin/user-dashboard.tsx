@@ -1280,6 +1280,316 @@
 //   );
 // }
 
+// "use client";
+
+// import React, { useState, useEffect, useMemo } from "react";
+// import { Input } from "@/components/ui/input";
+// import { Button } from "@/components/ui/button";
+// import { Checkbox } from "@/components/ui/checkbox";
+// import { Label } from "@/components/ui/label";
+// import { Eye, Download, Loader2, Trash2 } from "lucide-react";
+// import {
+//   Dialog,
+//   DialogContent,
+//   DialogHeader,
+//   DialogTitle,
+// } from "@/components/ui/dialog";
+// import { Card, CardContent } from "@/components/ui/card";
+// import { useToast } from "@/components/ui/use-toast";
+// import { ScrollArea } from "@/components/ui/scroll-area";
+// import * as XLSX from "xlsx";
+// import type { FormData } from "@/types/form";
+
+// export function UserDashboard() {
+//   const [forms, setForms] = useState<FormData[]>([]);
+//   const [search, setSearch] = useState("");
+//   const [isLoading, setIsLoading] = useState(true);
+//   const [isDownloading, setIsDownloading] = useState(false);
+//   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
+//   const [showManage, setShowManage] = useState(false);
+//   const { toast } = useToast();
+
+//   const [visibleColumns, setVisibleColumns] = useState<string[]>([
+//     "cardImage",
+//     "cardNo",
+//     "date",
+//     "personName",
+//     "company",
+//     "state",
+//     "city",
+//     "country",
+//     "contactInfo",
+//     "leadStatus",
+//     "meeting",
+//   ]);
+
+//   const fetchForms = async () => {
+//     try {
+//       setIsLoading(true);
+//       const res = await fetch("/api/forms/user", { cache: "no-store" });
+//       if (!res.ok) throw new Error("Failed to load your cards");
+//       const data = await res.json();
+//       setForms(Array.isArray(data) ? data : data.forms || []);
+//     } catch (error: any) {
+//       toast({ title: "Error", description: error.message, variant: "destructive" });
+//       setForms([]);
+//     } finally {
+//       setIsLoading(false);
+//     }
+//   };
+
+//   useEffect(() => {
+//     fetchForms();
+//   }, []);
+
+//   const handleDelete = async (id: string) => {
+//     if (!confirm("Are you sure you want to delete this card? This cannot be undone.")) return;
+
+//     try {
+//       const res = await fetch(`/api/forms/${id}`, { method: "DELETE" });
+//       if (!res.ok) throw new Error("Failed to delete card");
+//       setForms(prev => prev.filter(f => f.id !== id));
+//       toast({ title: "Deleted", description: "Card removed successfully" });
+//     } catch (err: any) {
+//       toast({ title: "Delete Failed", description: err.message, variant: "destructive" });
+//     }
+//   };
+
+//   const possibleColumns = useMemo(() => {
+//     const fixed = [
+//       {
+//         id: "cardImage",
+//         label: "Card Image",
+//         width: "w-24",
+//         render: (f: FormData) =>
+//           f.cardFrontPhoto ? (
+//             <button onClick={() => setZoomedImage(f.cardFrontPhoto!)} className="group">
+//               <img 
+//                 src={f.cardFrontPhoto} 
+//                 alt="Card" 
+//                 className="max-w-20 h-12 object-cover rounded border transition group-hover:opacity-80" 
+//               />
+//             </button>
+//           ) : "—",
+//       },
+//       { id: "cardNo", label: "Card No", width: "w-24", render: (f: FormData) => f.cardNo ?? "N/A" },
+//       { id: "date", label: "Date", width: "w-28", render: (f: FormData) => f.date ? new Date(f.date).toLocaleDateString() : "N/A" },
+//       { id: "personName", label: "Person Name", width: "w-32", render: (f: FormData) => f.mergedData?.name || "N/A" },
+//       { id: "company", label: "Company", width: "w-32", render: (f: FormData) => f.mergedData?.companyName || f.additionalData?.company || "N/A" },
+//       { id: "state", label: "State", width: "w-24", render: (f: FormData) => f.extractedData?.state || "N/A" },
+//       { id: "city", label: "City", width: "w-28", render: (f: FormData) => f.extractedData?.city || "N/A" },
+//       { id: "country", label: "Country", width: "w-24", render: (f: FormData) => f.extractedData?.country || f.country || "N/A" },
+//       { id: "leadStatus", label: "Lead Status", width: "w-24", render: (f: FormData) => f.leadStatus ?? "N/A" },
+//       { id: "meeting", label: "Meeting", width: "w-20", render: (f: FormData) => f.meetingAfterExhibition ? "Yes" : "No" },
+//       {
+//         id: "actions",
+//         label: "Actions",
+//         width: "w-32",
+//         render: (f: FormData) => (
+//           <div className="flex items-center gap-2">
+//             <Button variant="ghost" size="icon" onClick={() => setZoomedImage(f.cardFrontPhoto || null)}>
+//               <Eye className="h-4 w-4" />
+//             </Button>
+//           </div>
+//         ),
+//       },
+//     ];
+
+//     const fieldsWithData = new Set<string>();
+//     forms.forEach(form => {
+//       Object.entries(form.extractedData || {}).forEach(([key, value]) => {
+//         if (value && value !== "N/A" && value !== "null" && value !== "") {
+//           fieldsWithData.add(key);
+//         }
+//       });
+//     });
+
+//     const blocked = ["name", "companyName", "email", "contactNumbers", "state", "country", "city"];
+//     const dynamic = Array.from(fieldsWithData)
+//       .filter(k => !blocked.includes(k))
+//       .map(key => ({
+//         id: `ext_${key}`,
+//         label: key.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase()),
+//         width: "w-36",
+//         render: (f: FormData) => f.extractedData?.[key] || "—",
+//       }));
+
+//     return [...fixed, ...dynamic];
+//   }, [forms]);
+
+//   const displayColumns = useMemo(() => [...visibleColumns, "actions"], [visibleColumns]);
+
+//   const filteredForms = useMemo(() => {
+//     const q = search.toLowerCase();
+//     return forms.filter(f =>
+//       [f.cardNo, f.salesPerson, f.country, f.mergedData?.companyName, f.mergedData?.name, f.mergedData?.email].some(v => v?.toLowerCase().includes(q))
+//     );
+//   }, [forms, search]);
+
+//   const handleDownloadExcel = async () => {
+//     setIsDownloading(true);
+//     try {
+//       const data = filteredForms.map(f => ({
+//         "Card No": f.cardNo,
+//         Date: f.date ? new Date(f.date).toLocaleDateString() : "",
+//         "Name": f.mergedData?.name || "",
+//         Company: f.mergedData?.companyName || "",
+//         City: f.extractedData?.city || "",
+//         State: f.extractedData?.state || "",
+//         Country: f.extractedData?.country || "",
+//         Email: f.mergedData?.email || "",
+//         Phone: f.mergedData?.contactNumbers || "",
+//         "Lead Status": f.leadStatus || "",
+//         Meeting: f.meetingAfterExhibition ? "Yes" : "No",
+//         ...f.extractedData,
+//       }));
+
+//       const ws = XLSX.utils.json_to_sheet(data);
+//       const wb = XLSX.utils.book_new();
+//       XLSX.utils.book_append_sheet(wb, ws, "My Cards");
+//       XLSX.writeFile(wb, `My_Cards_${new Date().toISOString().slice(0,10)}.xlsx`);
+//       toast({ title: "Downloaded!", description: `${filteredForms.length} cards exported` });
+//     } catch {
+//       toast({ title: "Error", description: "Download failed", variant: "destructive" });
+//     } finally {
+//       setIsDownloading(false);
+//     }
+//   };
+
+//   if (isLoading) return (
+//     <div className="flex items-center justify-center h-screen bg-[#f3f1f8] dark:bg-gray-900">
+//       <Loader2 className="h-12 w-12 animate-spin text-[#483d73] dark:text-purple-400" />
+//     </div>
+//   );
+
+//   return (
+//     <div className="space-y-6 px-4 py-6 bg-[#f3f1f8] dark:bg-gray-900 min-h-screen">
+//       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+//         <Input 
+//           placeholder="Search your cards..." 
+//           value={search} 
+//           onChange={e => setSearch(e.target.value)} 
+//           className="w-full sm:w-80 bg-white dark:bg-gray-800 border-[#e5e2f0] dark:border-gray-700"
+//         />
+//         <div className="flex gap-3 w-full sm:w-auto">
+//           <Button 
+//             onClick={handleDownloadExcel} 
+//             disabled={isDownloading || filteredForms.length === 0}
+//             className="flex-1 sm:flex-initial bg-[#483d73] hover:bg-[#352c55] dark:bg-purple-600 dark:hover:bg-purple-700 text-white"
+//           >
+//             {isDownloading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+//             Excel ({filteredForms.length})
+//           </Button>
+//           <Button 
+//             variant="outline" 
+//             onClick={() => setShowManage(true)}
+//             className="flex-1 sm:flex-initial border-[#483d73] text-[#483d73] hover:bg-[#f3f1f8] dark:border-purple-500 dark:text-purple-400 dark:hover:bg-gray-700"
+//           >
+//             Manage Columns
+//           </Button>
+//         </div>
+//       </div>
+
+//       <Card className="bg-white dark:bg-gray-800 shadow-lg border-none">
+//         <CardContent className="p-0">
+//           <div className="overflow-auto">
+//             <table className="w-full text-xs border-collapse">
+//               <thead className="sticky top-0 bg-gray-100 dark:bg-gray-800 z-10 border-b border-[#e5e2f0] dark:border-gray-700">
+//                 <tr>
+//                   {displayColumns.map(colId => {
+//                     const col = possibleColumns.find(c => c.id === colId);
+//                     return col ? (
+//                       <th key={colId} className={`py-3 px-2 text-left font-medium text-gray-700 dark:text-gray-300 ${col.width || "w-32"}`}>
+//                         {col.label}
+//                       </th>
+//                     ) : null;
+//                   })}
+//                 </tr>
+//               </thead>
+//               <tbody>
+//                 {filteredForms.map(form => (
+//                   <tr key={form.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition border-t border-[#e5e2f0] dark:border-gray-700">
+//                     {displayColumns.map(colId => {
+//                       const col = possibleColumns.find(c => c.id === colId);
+//                       return col ? (
+//                         <td key={colId} className={`py-3 px-2 text-gray-800 dark:text-gray-300 ${col.width || "w-32"}`}>
+//                           {col.render(form)}
+//                         </td>
+//                       ) : null;
+//                     })}
+//                   </tr>
+//                 ))}
+//                 {filteredForms.length === 0 && (
+//                   <tr>
+//                     <td colSpan={20} className="text-center py-12 text-muted-foreground dark:text-gray-500">
+//                       No cards found
+//                     </td>
+//                   </tr>
+//                 )}
+//               </tbody>
+//             </table>
+//           </div>
+//         </CardContent>
+//       </Card>
+
+//       {/* Manage Columns Dialog */}
+//       <Dialog open={showManage} onOpenChange={setShowManage}>
+//         <DialogContent className="max-w-md bg-white dark:bg-gray-800 border border-[#e5e2f0] dark:border-gray-700">
+//           <DialogHeader className="border-b border-[#e5e2f0] dark:border-gray-700 pb-4">
+//             <DialogTitle className="text-[#2d2a4a] dark:text-white">Manage Columns</DialogTitle>
+//           </DialogHeader>
+//           <ScrollArea className="h-96 py-4">
+//             <div className="space-y-6">
+//               <div>
+//                 <h4 className="font-semibold mb-3 text-[#2d2a4a] dark:text-white">Fixed Columns</h4>
+//                 {possibleColumns.filter(c => !c.id.startsWith("ext_")).map(c => (
+//                   <div key={c.id} className="flex items-center gap-3 py-2">
+//                     <Checkbox checked disabled />
+//                     <Label className="text-sm text-gray-700 dark:text-gray-300">{c.label}</Label>
+//                   </div>
+//                 ))}
+//               </div>
+//               <div className="border-t border-[#e5e2f0] dark:border-gray-700 pt-4">
+//                 <h4 className="font-semibold mb-3 text-[#2d2a4a] dark:text-white">Optional Fields</h4>
+//                 {possibleColumns.filter(c => c.id.startsWith("ext_")).map(c => (
+//                   <div key={c.id} className="flex items-center gap-3 py-2">
+//                     <Checkbox
+//                       checked={visibleColumns.includes(c.id)}
+//                       onCheckedChange={checked => {
+//                         setVisibleColumns(prev => checked ? [...prev, c.id] : prev.filter(id => id !== c.id));
+//                       }}
+//                     />
+//                     <Label className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+//                       {c.label}
+//                     </Label>
+//                   </div>
+//                 ))}
+//               </div>
+//             </div>
+//           </ScrollArea>
+//           <div className="flex justify-end pt-4 border-t border-[#e5e2f0] dark:border-gray-700">
+//             <Button 
+//               onClick={() => setShowManage(false)}
+//               className="bg-[#483d73] hover:bg-[#31294e] text-white"
+//             >
+//               Done
+//             </Button>
+//           </div>
+//         </DialogContent>
+//       </Dialog>
+
+//       {/* Zoomed Image */}
+//       {zoomedImage && (
+//         <Dialog open onOpenChange={() => setZoomedImage(null)}>
+//           <DialogContent className="max-w-4xl p-0 bg-black">
+//             <img src={zoomedImage} alt="Zoomed Card" className="w-full h-auto max-h-screen object-contain" />
+//           </DialogContent>
+//         </Dialog>
+//       )}
+//     </div>
+//   );
+// }
+
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
@@ -1287,7 +1597,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Eye, Download, Loader2, Trash2 } from "lucide-react";
+import { Eye, Download, Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -1309,19 +1619,39 @@ export function UserDashboard() {
   const [showManage, setShowManage] = useState(false);
   const { toast } = useToast();
 
-  const [visibleColumns, setVisibleColumns] = useState<string[]>([
-    "cardImage",
-    "cardNo",
-    "date",
-    "personName",
-    "company",
-    "state",
-    "city",
-    "country",
-    "contactInfo",
-    "leadStatus",
-    "meeting",
-  ]);
+  // Persistent visible columns — saved per user
+  const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
+    if (typeof window === "undefined") return [];
+    const saved = localStorage.getItem("user-dashboard-visible-columns");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        console.warn("Failed to parse saved columns");
+      }
+    }
+    // Default visible
+    return [
+      "cardImage",
+      "cardNo",
+      "date",
+      "personName",
+      "company",
+      "city",
+      "state",
+      "country",
+      "leadStatus",
+      "meeting",
+      "description", // user wants description by default
+    ];
+  });
+
+  // Save to localStorage
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("user-dashboard-visible-columns", JSON.stringify(visibleColumns));
+    }
+  }, [visibleColumns]);
 
   const fetchForms = async () => {
     try {
@@ -1342,29 +1672,11 @@ export function UserDashboard() {
     fetchForms();
   }, []);
 
-  // DELETE HANDLER — 100% WORKING
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this card? This cannot be undone.")) return;
-
-    try {
-      const res = await fetch(`/api/forms/${id}`, {
-        method: "DELETE",
-      });
-
-      if (!res.ok) {
-        const err = await res.text();
-        throw new Error(err || "Failed to delete card");
-      }
-
-      setForms(prev => prev.filter(f => f.id !== id));
-      toast({ title: "Deleted", description: "Card removed successfully" });
-    } catch (err: any) {
-      toast({ title: "Delete Failed", description: err.message, variant: "destructive" });
-    }
-  };
+  // Only these optional columns allowed
+  const optionalColumnIds = ["email", "phone", "website", "description"] as const;
 
   const possibleColumns = useMemo(() => {
-    const fixed = [
+    const fixedColumns = [
       {
         id: "cardImage",
         label: "Card Image",
@@ -1372,62 +1684,98 @@ export function UserDashboard() {
         render: (f: FormData) =>
           f.cardFrontPhoto ? (
             <button onClick={() => setZoomedImage(f.cardFrontPhoto!)} className="group">
-              <img src={f.cardFrontPhoto} alt="Card" className="max-w-20 h-12 object-cover rounded border group-hover:opacity-80 transition" />
+              <img
+                src={f.cardFrontPhoto}
+                alt="Card"
+                className="max-w-20 h-12 object-cover rounded border transition group-hover:opacity-80"
+              />
             </button>
           ) : "—",
       },
       { id: "cardNo", label: "Card No", width: "w-24", render: (f: FormData) => f.cardNo ?? "N/A" },
       { id: "date", label: "Date", width: "w-28", render: (f: FormData) => f.date ? new Date(f.date).toLocaleDateString() : "N/A" },
       { id: "personName", label: "Person Name", width: "w-32", render: (f: FormData) => f.mergedData?.name || "N/A" },
-      { id: "company", label: "Company", width: "w-32", render: (f: FormData) => f.mergedData?.companyName || f.additionalData?.company || "N/A" },
-      { id: "state", label: "State", width: "w-24", render: (f: FormData) => f.extractedData?.state || "N/A" },
-      { id: "city", label: "City", width: "w-28", render: (f: FormData) => f.extractedData?.city || "N/A" },
-      { id: "country", label: "Country", width: "w-24", render: (f: FormData) => f.extractedData?.country || f.country || "N/A" },
-      { id: "leadStatus", label: "Lead Status", width: "w-24", render: (f: FormData) => f.leadStatus ?? "N/A" },
-      { id: "meeting", label: "Meeting", width: "w-20", render: (f: FormData) => f.meetingAfterExhibition ? "Yes" : "No" },
       {
-        id: "actions",
-        label: "Actions",
-        width: "w-32",
-        render: (f: FormData) => (
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={() => setZoomedImage(f.cardFrontPhoto || null)}>
-              <Eye className="h-4 w-4" />
-            </Button>
-          </div>
-        ),
+        id: "company",
+        label: "Company",
+        width: "w-36",
+        render: (f: FormData) => f.mergedData?.companyName || f.additionalData?.company || "N/A",
+      },
+      { id: "city", label: "City", width: "w-28", render: (f: FormData) => f.extractedData?.city || "N/A" },
+      { id: "state", label: "State", width: "w-24", render: (f: FormData) => f.extractedData?.state || "N/A" },
+      { id: "country", label: "Country", width: "w-24", render: (f: FormData) => f.extractedData?.country || f.country || "N/A" },
+      { id: "leadStatus", label: "Lead Status", width: "w-28", render: (f: FormData) => f.leadStatus ?? "N/A" },
+      { id: "meeting", label: "Meeting", width: "w-24", render: (f: FormData) => f.meetingAfterExhibition ? "Yes" : "No" },
+    ];
+
+    const optionalColumns = [
+      {
+        id: "email",
+        label: "Email",
+        width: "w-48",
+        render: (f: FormData) => f.mergedData?.email ? (
+          <a href={`mailto:${f.mergedData.email}`} className="text-blue-600 hover:underline text-xs">
+            {f.mergedData.email}
+          </a>
+        ) : "—",
+      },
+      {
+        id: "phone",
+        label: "Phone Number",
+        width: "w-40",
+        render: (f: FormData) => f.mergedData?.contactNumbers || "—",
+      },
+      {
+        id: "website",
+        label: "Website",
+        width: "w-48",
+        render: (f: FormData) => {
+          const site = f.extractedData?.website;
+          if (!site) return "—";
+          const url = site.startsWith("http") ? site : `https://${site}`;
+          return (
+            <a href={url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-xs">
+              {site.length > 40 ? site.slice(0, 40) + "..." : site}
+            </a>
+          );
+        },
+      },
+      {
+        id: "description",
+        label: "Description",
+        width: "w-80",
+        render: (f: FormData) => {
+          const desc = f.description?.trim();
+          if (!desc) return <span className="text-xs text-muted-foreground italic">No notes</span>;
+          return (
+            <div className="text-xs text-gray-700 dark:text-gray-300 line-clamp-3">
+              {desc}
+            </div>
+          );
+        },
       },
     ];
 
-    // ONLY SHOW DYNAMIC COLUMNS IF REAL DATA EXISTS
-    const fieldsWithData = new Set<string>();
-    forms.forEach(form => {
-      Object.entries(form.extractedData || {}).forEach(([key, value]) => {
-        if (value && value !== "N/A" && value !== "null" && value !== "") {
-          fieldsWithData.add(key);
-        }
-      });
-    });
+    return [...fixedColumns, ...optionalColumns];
+  }, []);
 
-    const blocked = ["name", "companyName", "email", "contactNumbers", "state", "country", "city"];
-    const dynamic = Array.from(fieldsWithData)
-      .filter(k => !blocked.includes(k))
-      .map(key => ({
-        id: `ext_${key}`,
-        label: key.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase()),
-        width: "w-36",
-        render: (f: FormData) => f.extractedData?.[key] || "—",
-      }));
-
-    return [...fixed, ...dynamic];
-  }, [forms]);
-
-  const displayColumns = useMemo(() => [...visibleColumns, "actions"], [visibleColumns]);
+  const displayColumns = useMemo(() => [
+    ...visibleColumns.filter(id => id !== "actions"),
+    "actions"
+  ], [visibleColumns]);
 
   const filteredForms = useMemo(() => {
     const q = search.toLowerCase();
     return forms.filter(f =>
-      [f.cardNo, f.salesPerson, f.country, f.mergedData?.companyName, f.mergedData?.name, f.mergedData?.email].some(v => v?.toLowerCase().includes(q))
+      [
+        f.cardNo,
+        f.country,
+        f.mergedData?.companyName,
+        f.mergedData?.name,
+        f.mergedData?.email,
+        f.mergedData?.contactNumbers,
+        f.description,
+      ].some(v => v?.toString().toLowerCase().includes(q))
     );
   }, [forms, search]);
 
@@ -1435,21 +1783,23 @@ export function UserDashboard() {
     setIsDownloading(true);
     try {
       const data = filteredForms.map(f => ({
-        "Card No": f.cardNo,
+        "Card No": f.cardNo || "",
         Date: f.date ? new Date(f.date).toLocaleDateString() : "",
-        "Name": f.mergedData?.name || "",
+        "Person Name": f.mergedData?.name || "",
         Company: f.mergedData?.companyName || "",
+        Email: f.mergedData?.email || "",
+        Phone: f.mergedData?.contactNumbers || "",
+        Website: f.extractedData?.website || "",
         City: f.extractedData?.city || "",
         State: f.extractedData?.state || "",
         Country: f.extractedData?.country || "",
-        Email: f.mergedData?.email || "",
-        Phone: f.mergedData?.contactNumbers || "",
+        "My Notes": f.description || "",
         "Lead Status": f.leadStatus || "",
         Meeting: f.meetingAfterExhibition ? "Yes" : "No",
-        ...f.extractedData,
       }));
 
       const ws = XLSX.utils.json_to_sheet(data);
+      ws["!cols"] = Array(15).fill({ wch: 22 });
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "My Cards");
       XLSX.writeFile(wb, `My_Cards_${new Date().toISOString().slice(0,10)}.xlsx`);
@@ -1461,46 +1811,90 @@ export function UserDashboard() {
     }
   };
 
-  if (isLoading) return <div className="flex items-center justify-center h-screen"><Loader2 className="h-12 w-12 animate-spin text-[#483d73]" /></div>;
+  if (isLoading) return (
+    <div className="flex items-center justify-center h-screen bg-[#f3f1f8] dark:bg-gray-900">
+      <Loader2 className="h-12 w-12 animate-spin text-[#483d73]" />
+    </div>
+  );
 
   return (
-    <div className="space-y-6 px-4 py-6">
+    <div className="space-y-6 px-4 py-6 bg-[#f3f1f8] dark:bg-gray-900 min-h-screen">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <Input placeholder="Search your cards..." value={search} onChange={e => setSearch(e.target.value)} className="w-full sm:w-80" />
-        <div className="flex gap-3">
-          <Button onClick={handleDownloadExcel} disabled={isDownloading || filteredForms.length === 0} className="bg-[#483d73] hover:bg-[#352c55]">
+        <Input
+          placeholder="Search cards, notes, company..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="w-full sm:w-96 bg-white dark:bg-gray-800 border-[#e5e2f0] dark:border-gray-700"
+        />
+        <div className="flex gap-3 w-full sm:w-auto">
+          <Button
+            onClick={handleDownloadExcel}
+            disabled={isDownloading || filteredForms.length === 0}
+            className="flex-1 sm:flex-initial bg-[#483d73] hover:bg-[#352c55] text-white"
+          >
             {isDownloading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
-            Excel ({filteredForms.length})
+            Download Excel ({filteredForms.length})
           </Button>
-          <Button variant="outline" onClick={() => setShowManage(true)}>
+          <Button
+            variant="outline"
+            onClick={() => setShowManage(true)}
+            className="flex-1 sm:flex-initial border-[#483d73] text-[#483d73] hover:bg-[#f3f1f8] dark:hover:bg-[#302950] dark:text-white dark:bg-[#483d73]"
+          >
             Manage Columns
           </Button>
         </div>
       </div>
 
-      <Card>
+      <Card className="bg-white dark:bg-gray-800 shadow-lg border-none">
         <CardContent className="p-0">
-          <div className="overflow-auto">
-            <table className="w-full text-xs border-collapse">
-              <thead className="sticky top-0 bg-gray-100 z-10">
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs border-collapse min-w-[1300px]">
+              <thead className="sticky top-0 bg-gray-100 dark:bg-gray-800 z-10">
                 <tr>
                   {displayColumns.map(colId => {
-                    const col = possibleColumns.find(c => c.id === colId);
-                    return col ? <th key={colId} className={`py-3 px-2 text-left font-medium ${col.width || "w-32"}`}>{col.label}</th> : null;
+                    const col = possibleColumns.find(c => c.id === colId) || (colId === "actions" ? {
+                      id: "actions",
+                      label: "View",
+                      width: "w-24",
+                      render: (f: FormData) => (
+                        <Button variant="ghost" size="icon" onClick={() => setZoomedImage(f.cardFrontPhoto || null)}>
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      )
+                    } : null);
+                    if (!col) return null;
+                    return (
+                      <th key={colId} className={`py-3 px-2 text-left font-medium text-gray-700 dark:text-gray-300 ${col.width || "w-32"}`}>
+                        {col.label}
+                      </th>
+                    );
                   })}
                 </tr>
               </thead>
               <tbody>
-                {filteredForms.map(form => (
-                  <tr key={form.id} className="hover:bg-gray-50 border-t">
+                {filteredForms.length > 0 ? filteredForms.map(form => (
+                  <tr key={form.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition border-t border-[#e5e2f0] dark:border-gray-700">
                     {displayColumns.map(colId => {
-                      const col = possibleColumns.find(c => c.id === colId);
-                      return col ? <td key={colId} className={`py-3 px-2 ${col.width || "w-32"}`}>{col.render(form)}</td> : null;
+                      const col = possibleColumns.find(c => c.id === colId) || (colId === "actions" ? {
+                        render: (f: FormData) => (
+                          <Button variant="ghost" size="icon" onClick={() => setZoomedImage(f.cardFrontPhoto || null)}>
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        )
+                      } : null);
+                      return col ? (
+                        <td key={colId} className={`py-3 px-2 text-gray-800 dark:text-gray-300 ${col.width || "w-32"}`}>
+                          {col.render(form)}
+                        </td>
+                      ) : null;
                     })}
                   </tr>
-                ))}
-                {filteredForms.length === 0 && (
-                  <tr><td colSpan={20} className="text-center py-8 text-muted-foreground">No cards found</td></tr>
+                )) : (
+                  <tr>
+                    <td colSpan={20} className="text-center py-16 text-muted-foreground">
+                      No cards found
+                    </td>
+                  </tr>
                 )}
               </tbody>
             </table>
@@ -1508,39 +1902,49 @@ export function UserDashboard() {
         </CardContent>
       </Card>
 
-      {/* Manage Columns Dialog */}
+      {/* Clean & Simple Manage Columns */}
       <Dialog open={showManage} onOpenChange={setShowManage}>
-        <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Manage Columns</DialogTitle></DialogHeader>
-          <ScrollArea className="h-96">
-            <div className="space-y-4">
-              <div>
-                <h4 className="font-semibold mb-2">Fixed Columns</h4>
-                {possibleColumns.filter(c => !c.id.startsWith("ext_")).map(c => (
-                  <div key={c.id} className="flex items-center gap-2 py-1">
-                    <Checkbox checked disabled />
-                    <Label className="text-sm">{c.label}</Label>
-                  </div>
-                ))}
-              </div>
-              <div className="border-t pt-4">
-                <h4 className="font-semibold mb-2">Optional Fields</h4>
-                {possibleColumns.filter(c => c.id.startsWith("ext_")).map(c => (
-                  <div key={c.id} className="flex items-center gap-2 py-1">
-                    <Checkbox
-                      checked={visibleColumns.includes(c.id)}
-                      onCheckedChange={checked => {
-                        setVisibleColumns(prev => checked ? [...prev, c.id] : prev.filter(id => id !== c.id));
-                      }}
-                    />
-                    <Label className="text-sm">{c.label}</Label>
-                  </div>
-                ))}
+        <DialogContent className="max-h-[90vh] max-w-lg bg-white dark:bg-gray-800 border border-[#e5e2f0] dark:border-gray-700">
+          <DialogHeader className="border-b border-[#e5e2f0] dark:border-gray-700 pb-4">
+            <DialogTitle className="text-[#2d2a4a] dark:text-white text-lg font-bold">
+              Manage Dashboard Columns
+            </DialogTitle>
+          </DialogHeader>
+
+          <ScrollArea className="max-h-[60vh] py-4">
+            <div className="space-y-6">
+              {/* Optional Columns */}
+              <div className="border-[#e5e2f0] dark:border-gray-700">
+                <h4 className="font-semibold text-sm mb-4 text-[#483d73] dark:text-purple-400">Optional Fields</h4>
+                <div className="space-y-4">
+                  {optionalColumnIds.map(id => {
+                    const col = possibleColumns.find(c => c.id === id);
+                    if (!col) return null;
+                    return (
+                      <div key={id} className="flex items-center space-x-3">
+                        <Checkbox
+                          checked={visibleColumns.includes(id)}
+                          onCheckedChange={(checked) => {
+                            setVisibleColumns(prev =>
+                              checked ? [...prev, id] : prev.filter(x => x !== id)
+                            );
+                          }}
+                        />
+                        <Label className="text-sm font-medium cursor-pointer text-gray-800 dark:text-gray-200">
+                          {col.label}
+                        </Label>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </ScrollArea>
-          <div className="flex justify-end pt-4">
-            <Button onClick={() => setShowManage(false)}>Done</Button>
+
+          <div className="flex justify-end pt-4 border-t border-[#e5e2f0] dark:border-gray-700">
+            <Button onClick={() => setShowManage(false)} className="bg-[#483d73] hover:bg-[#31294e] text-white">
+              Done
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -1548,8 +1952,8 @@ export function UserDashboard() {
       {/* Zoomed Image */}
       {zoomedImage && (
         <Dialog open onOpenChange={() => setZoomedImage(null)}>
-          <DialogContent className="max-w-4xl p-0">
-            <img src={zoomedImage} alt="Zoomed Card" className="w-full h-auto max-h-screen object-contain" />
+          <DialogContent className="max-w-4xl p-0 bg-black">
+            <img src={zoomedImage} alt="Card" className="w-full h-auto max-h-screen object-contain" />
           </DialogContent>
         </Dialog>
       )}

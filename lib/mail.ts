@@ -1,3 +1,4 @@
+// This route is for the forgot passward reset link 
 import nodemailer from "nodemailer";
 
 export const transporter = nodemailer.createTransport({

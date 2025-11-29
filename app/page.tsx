@@ -493,7 +493,7 @@ export default function Home() {
 
       <div className="min-h-screen bg-[#f3f1f8] dark:bg-gray-900 transition-colors duration-300">
         {/* Hero Section */}
-        <section className="py-16 md:py-24 relative overflow-hidden fade-in-up">
+        <section className="py-10 md:py-16 relative overflow-hidden fade-in-up">
           <div className="container mx-auto px-4 relative">
             <div className="flex flex-col md:flex-row items-center gap-12 lg:gap-20">
               <div className="flex-1 space-y-8">
@@ -511,7 +511,7 @@ export default function Home() {
                   Say goodbye to manual data entry. Our AI reads, saves, and organizes contact details instantly — helping you build smarter professional relationships effortlessly.
                 </p>
 
-                <div className="flex flex-col sm:flex-row items-center gap-4 pt-4">
+                <div className="flex flex-row sm:flex-row items-center gap-4 pt-4">
                   <Link href="/pricing">
                     <Button
                       size="lg"
@@ -548,7 +548,7 @@ export default function Home() {
         </section>
 
         {/* Features Section */}
-        <section className="py-16 md:py-24 bg-white dark:bg-gray-800/50 fade-in-up">
+        <section className="py-16 md:py-16 bg-white dark:bg-gray-800/50 fade-in-up">
           <div className="container mx-auto px-4">
             <div className="text-center max-w-3xl mx-auto mb-16">
               <h2 className="text-3xl md:text-5xl font-bold text-[#2d2a4a] dark:text-white mb-4">
@@ -600,7 +600,7 @@ export default function Home() {
         </section>
 
         {/* How It Works */}
-        <section className="py-16 md:py-24 bg-white dark:bg-gray-800/50 fade-in-up">
+        <section className="py-16 md:py-16 bg-white dark:bg-gray-800/50 fade-in-up">
           <div className="container mx-auto px-4">
             <div className="text-center max-w-3xl mx-auto mb-16">
               <h2 className="text-4xl md:text-5xl font-bold text-[#2d2a4a] dark:text-white mb-4">
@@ -636,7 +636,7 @@ export default function Home() {
         </section>
 
         {/* CTA Section */}
-        <section className="py-16 md:py-24 bg-[#e5e2f0] dark:bg-gray-800 fade-in-up">
+        <section className="py-16 md:py-16 bg-[#e5e2f0] dark:bg-gray-800 fade-in-up">
           <div className="container mx-auto px-4">
             <div className="max-w-5xl mx-auto bg-white dark:bg-gray-800 rounded-3xl shadow-2xl overflow-hidden">
               <div className="flex flex-col md:flex-row">
@@ -667,13 +667,13 @@ export default function Home() {
                   </Link>
                 </div>
 
-                <div className="md:w-1/2 bg-[#f3f1f8] dark:bg-gray-900/50 flex items-center justify-center p-10">
+                <div className="md:w-1/2 bg-[#f3f1f8] dark:bg-gray-900/50 flex items-center justify-center">
                   <Image
                     src="/card-05.png"
                     width={800}
                     height={800}
                     alt="CardSync Device"
-                    className="h-full max-h-96 object-contain float"
+                    className="h-full float"
                   />
                 </div>
               </div>

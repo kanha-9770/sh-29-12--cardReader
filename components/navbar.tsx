@@ -414,7 +414,6 @@
 //   );
 // }
 
-
 // "use client";
 
 // import Link from "next/link";
@@ -645,6 +644,7 @@ import {
   HelpCircle,
   Moon,
   Sun,
+  Sparkles,
 } from "lucide-react";
 
 import {
@@ -692,7 +692,9 @@ export function Navbar() {
   // Dark mode initialization — only runs once
   useEffect(() => {
     const saved = localStorage.getItem("darkMode");
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const prefersDark = window.matchMedia(
+      "(prefers-color-scheme: dark)"
+    ).matches;
 
     if (saved !== null) {
       const dark = saved === "true";
@@ -736,7 +738,12 @@ export function Navbar() {
 
   const getInitials = () => {
     if (user?.name) {
-      return user.name.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase();
+      return user.name
+        .split(" ")
+        .map((n) => n[0])
+        .slice(0, 2)
+        .join("")
+        .toUpperCase();
     }
     return user?.email.slice(0, 2).toUpperCase() || "U";
   };
@@ -755,7 +762,6 @@ export function Navbar() {
   return (
     <nav className="border-b border-[#e5e2f0] dark:border-gray-700 bg-white/90 dark:bg-gray-900/95 backdrop-blur-sm sticky top-0 z-50 transition-all duration-300">
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 group">
           <div className="font-bold text-2xl text-[#2d2a4a] dark:text-white transition-all group-hover:scale-105">
@@ -768,21 +774,42 @@ export function Navbar() {
 
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center gap-8">
-          <Link href="/" className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-[#483d73] dark:hover:text-purple-400 transition">
+          <Link
+            href="/"
+            className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-[#483d73] dark:hover:text-purple-400 transition"
+          >
             Home
           </Link>
-          <Link href="/dashboard" className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-[#483d73] dark:hover:text-purple-400 transition">
+          <Link
+            href="/dashboard"
+            className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-[#483d73] dark:hover:text-purple-400 transition"
+          >
             Dashboard
           </Link>
-          <Link href="/form" className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-[#483d73] dark:hover:text-purple-400 transition">
+          <Link
+            href="/form"
+            className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-[#483d73] dark:hover:text-purple-400 transition"
+          >
             Scan Card
+          </Link>
+          <Link
+            href="/feature"
+            className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-[#483d73] dark:hover:text-purple-400 transition"
+          >
+            Features
           </Link>
           {user?.isAdmin && (
             <>
-              <Link href="/pricing" className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-[#483d73] dark:hover:text-purple-400 transition">
+              <Link
+                href="/pricing"
+                className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-[#483d73] dark:hover:text-purple-400 transition"
+              >
                 Pricing
               </Link>
-              <Link href="/user" className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-[#483d73] dark:hover:text-purple-400 transition">
+              <Link
+                href="/user"
+                className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-[#483d73] dark:hover:text-purple-400 transition"
+              >
                 User Management
               </Link>
             </>
@@ -793,9 +820,15 @@ export function Navbar() {
         {user ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="relative rounded-full p-1 hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="relative rounded-full p-1 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+              >
                 <Avatar className="h-9 w-9 ring-2 ring-[#483d73]/20 dark:ring-purple-500/30">
-                  <AvatarImage src={user.avatar || generateAvatar(user.email)} />
+                  <AvatarImage
+                    src={user.avatar || generateAvatar(user.email)}
+                  />
                   <AvatarFallback className="bg-[#483d73] dark:bg-purple-600 text-white text-sm font-bold">
                     {getInitials()}
                   </AvatarFallback>
@@ -807,12 +840,18 @@ export function Navbar() {
               <DropdownMenuLabel>
                 <div className="flex items-center gap-3">
                   <Avatar className="h-10 w-10">
-                    <AvatarImage src={user.avatar || generateAvatar(user.email)} />
+                    <AvatarImage
+                      src={user.avatar || generateAvatar(user.email)}
+                    />
                     <AvatarFallback>{getInitials()}</AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="font-semibold text-sm">{user.name || user.email.split("@")[0]}</p>
-                    <p className="text-xs text-muted-foreground">{user.email}</p>
+                    <p className="font-semibold text-sm">
+                      {user.name || user.email.split("@")[0]}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {user.email}
+                    </p>
                   </div>
                 </div>
               </DropdownMenuLabel>
@@ -820,7 +859,10 @@ export function Navbar() {
               <DropdownMenuSeparator />
 
               <DropdownMenuItem asChild>
-                <Link href="/profile" className="flex items-center gap-3 cursor-pointer">
+                <Link
+                  href="/profile"
+                  className="flex items-center gap-3 cursor-pointer"
+                >
                   <User className="h-4 w-4" />
                   <span>My Profile</span>
                 </Link>
@@ -839,6 +881,12 @@ export function Navbar() {
                   <span>Scan Card</span>
                 </Link>
               </DropdownMenuItem>
+              <DropdownMenuItem asChild className="md:hidden">
+                <Link href="/feature" className="flex items-center gap-3">
+                  <Sparkles className="h-4 w-4" />
+                  <span>Features</span>
+                </Link>
+              </DropdownMenuItem>
 
               <DropdownMenuSeparator />
 
@@ -847,7 +895,10 @@ export function Navbar() {
               </DropdownMenuItem>
 
               {/* Dark Mode Toggle */}
-              <DropdownMenuItem onClick={toggleDarkMode} className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800">
+              <DropdownMenuItem
+                onClick={toggleDarkMode}
+                className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800"
+              >
                 <div className="flex items-center gap-3 w-full">
                   {isDarkMode ? (
                     <Moon className="h-4 w-4 text-purple-400" />
@@ -861,8 +912,10 @@ export function Navbar() {
               </DropdownMenuItem>
 
               <DropdownMenuItem className="cursor-pointer">
-                <HelpCircle className="h-4 w-4 mr-3" />
-                <span>Help & Support</span>
+                <Link href="/help" className="flex items-center gap-3">
+                  <HelpCircle className="h-4 w-4" />
+                  <span>Help & Support</span>
+                </Link>
               </DropdownMenuItem>
 
               {user.isAdmin && (
@@ -888,14 +941,20 @@ export function Navbar() {
 
               <DropdownMenuSeparator />
 
-              <DropdownMenuItem onClick={handleLogout} className="text-red-600 dark:text-red-400 font-medium">
+              <DropdownMenuItem
+                onClick={handleLogout}
+                className="text-red-600 dark:text-red-400 font-medium"
+              >
                 <LogOut className="h-4 w-4 mr-3" />
                 <span>Log out</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         ) : (
-          <Button asChild className="bg-[#483d73] hover:bg-[#352c55] dark:bg-purple-600 dark:hover:bg-purple-700 font-medium">
+          <Button
+            asChild
+            className="bg-[#483d73] hover:bg-[#352c55] dark:bg-purple-600 dark:hover:bg-purple-700 font-medium"
+          >
             <Link href="/login">Sign In</Link>
           </Button>
         )}
