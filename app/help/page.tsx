@@ -48,7 +48,6 @@ export default function HelpAndSupport() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // In real app: send to your backend or email service
-    console.log("Support request:", formData);
     setSubmitted(true);
     setTimeout(() => setSubmitted(false), 5000);
   };

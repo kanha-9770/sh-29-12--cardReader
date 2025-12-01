@@ -618,8 +618,8 @@ export default function Home() {
                 { step: 3, title: "Sync & Manage", desc: "Access everywhere, stay organized." },
               ].map((item, i) => (
                 <div key={i} className="text-center space-y-6 fade-in-up" style={{ animationDelay: `${i * 0.2}s` }}>
-                  <div className="h-20 w-20 rounded-full bg-[#e5e2f0] dark:bg-gray-700 flex items-center justify-center mx-auto shadow-lg border-4 border-white dark:border-gray-800">
-                    <span className="text-3xl font-bold text-[#483d73] dark:text-purple-400">
+                  <div className="h-20 w-20 rounded-full bg-[#e5e2f0] dark:bg-gray-700 flex items-center justify-center mx-auto shadow-lg border-4 border-white dark:border-gray-800 dark:hover:shadow-purple-500/20 hover:shadow-xl">
+                    <span className="text-3xl font-bold text-[#483d73] dark:text-purple-400 ">
                       {item.step}
                     </span>
                   </div>
@@ -636,7 +636,7 @@ export default function Home() {
         </section>
 
         {/* CTA Section */}
-        <section className="py-16 md:py-16 bg-[#e5e2f0] dark:bg-gray-800 fade-in-up">
+        {/* <section className="py-16 md:py-16 bg-[#e5e2f0] dark:bg-gray-800 fade-in-up">
           <div className="container mx-auto px-4">
             <div className="max-w-5xl mx-auto bg-white dark:bg-gray-800 rounded-3xl shadow-2xl overflow-hidden">
               <div className="flex flex-col md:flex-row">
@@ -668,6 +668,59 @@ export default function Home() {
                 </div>
 
                 <div className="md:w-1/2 bg-[#f3f1f8] dark:bg-gray-900/50 flex items-center justify-center">
+                  <Image
+                    src="/card-05.png"
+                    width={800}
+                    height={800}
+                    alt="CardSync Device"
+                    className="h-full float"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </section> */}
+        <section
+          className="py-16 md:py-16 bg-[#e5e2f0] dark:bg-gray-800 fade-in-up"
+          style={{ animationDelay: "0.8s" }}
+        >
+          <div className="container mx-auto px-4">
+            <div className="max-w-4xl mx-auto bg-white rounded-2xl dark:bg-gray-800 dark:hover:shadow-purple-500/20 hover:shadow-2xl">
+              <div className="flex flex-col md:flex-row">
+                <div className="md:w-1/2 p-12 flex flex-col justify-center">
+                  <h2 className="text-3xl font-bold text-[#2d2a4a] mb-4 dark:text-white leading-tight">
+                    Ready to Elevate Your Networking?
+                  </h2>
+                  <p className="text-[#5a5570] dark:text-gray-300 mb-8">
+                    Join thousands of professionals who have transformed their
+                    contact management with CardSync.
+                  </p>
+                  <ul className="space-y-3 mb-8">
+                    {[
+                      "Smart AI reader",
+                      "Free shipping",
+                      "Priority support included",
+                    ].map((item, i) => (
+                      <li
+                        key={i}
+                        className="flex items-center gap-3 slide-in-left"
+                        style={{ animationDelay: `${0.9 + i * 0.1}s` }}
+                      >
+                        <CheckCircle className="h-5 w-5 text-[#483d73] dark:text-purple-400" />
+                        <span className="text-[#2d2a4a] dark:text-gray-200 ">{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <Link href="/form">
+                    <Button
+                      size="lg"
+                      className="bg-[#483d73] hover:bg-[#5a5570] text-white w-full md:w-auto dark:bg-purple-600 dark:hover:bg-purple-700 transition-all duration-300 hover:scale-105"
+                    >
+                      Get Your CardSync Now
+                    </Button>
+                  </Link>
+                </div>
+                <div className="md:w-1/2 bg-[#f3f1f8] flex items-center justify-center">
                   <Image
                     src="/card-05.png"
                     width={800}

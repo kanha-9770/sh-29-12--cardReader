@@ -68,6 +68,7 @@ export function AdminDashboardEnhanced() {
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [showNotes, setShowNotes] = useState(false);
   const [templateFields, setTemplateFields] = useState<any[]>([]);
+  const [isSilentLoading, setIsSilentLoading] = useState(false); // ← ADD THIS LINE
   const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
     // Load saved columns from localStorage (persists user choice)
     const saved = localStorage.getItem("dashboard-visible-columns");
@@ -172,7 +173,7 @@ export function AdminDashboardEnhanced() {
           if (status === "PENDING" || status === "PROCESSING") {
             return (
               <span className="text-xs text-amber-600 italic">
-                Processing OCR...
+                Processing AI...
               </span>
             );
           }
@@ -201,7 +202,7 @@ export function AdminDashboardEnhanced() {
           if (status === "PENDING" || status === "PROCESSING") {
             return (
               <span className="text-xs text-amber-600 italic">
-                Processing OCR...
+                Processing AI...
               </span>
             );
           }
@@ -230,7 +231,7 @@ export function AdminDashboardEnhanced() {
           if (status === "PENDING" || status === "PROCESSING") {
             return (
               <span className="text-xs text-amber-600 italic">
-                Processing OCR...
+                Processing AI...
               </span>
             );
           }
@@ -259,7 +260,7 @@ export function AdminDashboardEnhanced() {
           if (status === "PENDING" || status === "PROCESSING") {
             return (
               <span className="text-xs text-amber-600 italic">
-                Processing OCR...
+                Processing AI...
               </span>
             );
           }
@@ -315,7 +316,7 @@ export function AdminDashboardEnhanced() {
           if (desc) {
             return (
               <div className="text-xs leading-relaxed">
-                <span className="text-gray-800">
+                <span className="text-gray-800 dark:text-[#d1d5db]">
                   {desc.length > 100 ? desc.slice(0, 100) + "..." : desc}
                 </span>
               </div>
@@ -334,12 +335,32 @@ export function AdminDashboardEnhanced() {
         width: "w-24",
         render: (form: FormData) => form.status ?? "N/A",
       },
-      {
-        id: "extractionStatus",
-        label: "Extraction Status",
-        width: "w-32",
-        render: (form: FormData) => form.extractionStatus ?? "N/A",
-      },
+{
+  id: "extractionStatus",
+  label: "OCR Status",
+  width: "w-36",
+  render: (form: FormData) => {
+    const status = form.extractionStatus || "NOT_STARTED";
+    const isProcessing = status === "PENDING" || status === "PROCESSING";
+
+    return (
+      <div className="flex items-center gap-2">
+        {isProcessing && (
+          <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600" />
+        )}
+        <span className={`font-medium text-xs ${
+          status === "COMPLETED" ? "text-green-600" :
+          status === "FAILED" ? "text-red-600" :
+          isProcessing ? "text-blue-600" : "text-gray-500"
+        }`}>
+          {isProcessing ? "Processing AI..." : 
+           status === "COMPLETED" ? "Completed" :
+           status === "FAILED" ? "Failed" : status}
+        </span>
+      </div>
+    );
+  },
+},
       {
         id: "zohoStatus",
         label: "Zoho Status",
@@ -526,46 +547,71 @@ export function AdminDashboardEnhanced() {
     [visibleColumns]
   );
 
-  const fetchForms = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const res = await fetch("/api/forms", {
-        method: "GET",
-        headers: { "Cache-Control": "no-cache" },
-      });
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        if (errorData.limitReached) {
-          toast({
-            title: "Limit Reached",
-            description:
-              errorData.message ||
-              "Form submission limit reached. Please upgrade your plan.",
-            variant: "destructive",
-          });
-          setForms([]);
-          extractUniqueUsers([]);
-          return;
-        }
-        throw new Error(`Failed to fetch forms: ${res.status}`);
+const fetchForms = useCallback(async (silent = false) => {
+  if (!silent) {
+    setIsLoading(true);
+  } else {
+    setIsSilentLoading(true);
+  }
+
+  try {
+    const res = await fetch("/api/forms", {
+      method: "GET",
+      headers: { "Cache-Control": "no-cache" },
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      if (errorData.limitReached) {
+        toast({
+          title: "Limit Reached",
+          description: errorData.message || "Form submission limit reached.",
+          variant: "destructive",
+        });
+        setForms([]);
+        extractUniqueUsers([]);
+        return;
       }
-      const data = await res.json();
-      const fetchedForms = data.forms || data || [];
-      setForms(fetchedForms);
-      extractUniqueUsers(fetchedForms);
-    } catch (error) {
-      console.error("Error fetching forms:", error);
+      throw new Error(`Failed to fetch forms: ${res.status}`);
+    }
+
+    const data = await res.json();
+    const fetchedForms = data.forms || data || [];
+    setForms(fetchedForms);
+    extractUniqueUsers(fetchedForms);
+
+    // Show toast only if OCR completed during this fetch
+    const previousProcessing = forms.filter(f => 
+      ["PENDING", "PROCESSING"].includes(f.extractionStatus || "")
+    );
+    const nowCompleted = fetchedForms.filter(f => 
+      f.extractionStatus === "COMPLETED" && 
+      previousProcessing.some(p => p.id === f.id)
+    );
+
+    if (nowCompleted.length > 0) {
       toast({
-        title: "Error",
-        description: "Failed to fetch forms.",
-        variant: "destructive",
+        title: "OCR Completed!",
+        description: `${nowCompleted.length} card${nowCompleted.length > 1 ? 's' : ''} extracted successfully`,
       });
-      setForms([]);
-      extractUniqueUsers([]);
-    } finally {
+    }
+
+  } catch (error) {
+    console.error("Error fetching forms:", error);
+    toast({
+      title: "Error",
+      description: "Failed to fetch forms.",
+      variant: "destructive",
+    });
+    setForms([]);
+    extractUniqueUsers([]);
+  } finally {
+    if (!silent) {
       setIsLoading(false);
     }
-  }, [toast]);
+    setIsSilentLoading(false);
+  }
+}, [toast, forms]); // ← Added 'forms' as dependency
 
   // Load the current published form template (so we know which fields exist)
   useEffect(() => {
@@ -603,6 +649,48 @@ export function AdminDashboardEnhanced() {
     });
     setUsers(Array.from(usersMap.values()));
   };
+
+
+  // Auto-refresh when OCR is in progress
+useEffect(() => {
+  const hasPendingOCR = forms.some(f =>
+    ["PENDING", "PROCESSING"].includes(f.extractionStatus || "")
+  );
+
+  if (!hasPendingOCR) return;
+
+  // Start polling
+// FINAL: Refresh only ONCE after 12 seconds
+useEffect(() => {
+  const hasPendingOCR = forms.some(f =>
+    ["PENDING", "PROCESSING"].includes(f.extractionStatus || "")
+  );
+
+  if (!hasPendingOCR) return;
+
+  // Clear any old timer
+  if ((window as any)._ocrCheckTimer) {
+    clearTimeout((window as any)._ocrCheckTimer);
+  }
+
+  // Set new one-time check
+  (window as any)._ocrCheckTimer = setTimeout(() => {
+    fetchForms(true);
+    toast({
+      title: "Data Updated",
+      description: "OCR completed and data is now visible!",
+      duration: 5000,
+    });
+  }, 12000); // 12 seconds after upload
+
+  return () => {
+    clearTimeout((window as any)._ocrCheckTimer);
+    (window as any)._ocrCheckTimer = null;
+  };
+}, [forms, fetchForms, toast]);
+
+  return () => clearInterval(interval);
+}, [forms, fetchForms]);
 
   const handleDownloadExcel = async () => {
     try {
