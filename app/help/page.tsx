@@ -89,7 +89,7 @@ export default function HelpAndSupport() {
                 </Link>
               </CardContent>
             </Card>
-    
+
             <Card className="hover:shadow-lg transition-shadow bg-white dark:bg-gray-800 border border-[#e5e2f0] dark:border-gray-700">
               <CardHeader>
                 <FileText className="w-10 h-10 text-[#483d73] dark:text-purple-400 mb-3" />
@@ -242,8 +242,6 @@ export default function HelpAndSupport() {
             </Accordion>
           </div>
 
-          <Separator />
-
           {/* Contact Support */}
           <div id="contact" className="max-w-2xl mx-auto">
             <Card className="bg-white dark:bg-gray-800 border border-[#e5e2f0] dark:border-gray-700 shadow-lg">
@@ -333,32 +331,33 @@ export default function HelpAndSupport() {
                 )}
 
                 <Separator className="my-8 border-[#e5e2f0] dark:border-gray-700" />
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
-                  <div className="space-y-2">
-                    <Mail className="w-8 h-8 text-[#483d73] dark:text-purple-400 mx-auto" />
-                    <p className="font-medium text-[#2d2a4a] dark:text-white">
+                <div className="grid grid-cols-3 gap-3 md:gap-6">
+                  <div className="space-y-1.5 text-center">
+                    <Mail className="w-7 h-7 md:w-8 md:h-8 text-[#483d73] dark:text-purple-400 mx-auto" />
+                    <p className="text-xs md:text-base font-medium text-[#2d2a4a] dark:text-white leading-tight">
                       Email
                     </p>
-                    <p className="text-sm text-[#5a5570] dark:text-gray-400 break-all">
-                      support@yourcompany.com
+                    <p className="text-[10px] md:text-sm text-[#5a5570] dark:text-gray-400 leading-tight break-all">
+                      cardsync422@gmail.com
                     </p>
                   </div>
-                  <div className="space-y-2">
-                    <Phone className="w-8 h-8 text-[#483d73] dark:text-purple-400 mx-auto" />
-                    <p className="font-medium text-[#2d2a4a] dark:text-white">
+
+                  <div className="space-y-1.5 text-center">
+                    <Phone className="w-7 h-7 md:w-8 md:h-8 text-[#483d73] dark:text-purple-400 mx-auto" />
+                    <p className="text-xs md:text-base font-medium text-[#2d2a4a] dark:text-white leading-tight">
                       Phone
                     </p>
-                    <p className="text-sm text-[#5a5570] dark:text-gray-400">
+                    <p className="text-[10px] md:text-sm text-[#5a5570] dark:text-gray-400 leading-tight">
                       +91 98765 43210
                     </p>
                   </div>
-                  <div className="space-y-2">
-                    <MessageSquare className="w-8 h-8 text-[#483d73] dark:text-purple-400 mx-auto" />
-                    <p className="font-medium text-[#2d2a4a] dark:text-white">
+
+                  <div className="space-y-1.5 text-center">
+                    <MessageSquare className="w-7 h-7 md:w-8 md:h-8 text-[#483d73] dark:text-purple-400 mx-auto" />
+                    <p className="text-xs md:text-base font-medium text-[#2d2a4a] dark:text-white leading-tight">
                       WhatsApp
                     </p>
-                    <p className="text-sm text-[#5a5570] dark:text-gray-400">
+                    <p className="text-[10px] md:text-sm text-[#5a5570] dark:text-gray-400 leading-tight">
                       Same number
                     </p>
                   </div>
@@ -369,7 +368,7 @@ export default function HelpAndSupport() {
 
           {/* Footer */}
           <div className="text-center py-8 text-muted-foreground">
-            <p>© 2025 Your Company • Business Card Scanner Pro</p>
+            <p>© 2025 CardSync • Business Card Scanner with AI</p>
             <p className="text-sm mt-2">
               Made with <span className="text-red-500">♥</span> for exhibition
               teams

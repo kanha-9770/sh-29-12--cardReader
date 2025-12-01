@@ -120,7 +120,9 @@ function CameraModal({
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [facingMode, setFacingMode] = useState<"user" | "environment">("environment");
+  const [facingMode, setFacingMode] = useState<"user" | "environment">(
+    "environment"
+  );
 
   const startStream = async () => {
     if (!videoRef.current) return;
@@ -187,7 +189,9 @@ function CameraModal({
         className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl overflow-hidden max-w-lg w-full"
       >
         <div className="p-4 bg-gray-200 dark:bg-gray-700 border-b border-gray-300 dark:border-gray-600 flex justify-between items-center">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Capture Photo</h3>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            Capture Photo
+          </h3>
           <Button
             variant="ghost"
             size="sm"
@@ -272,7 +276,9 @@ function SidebarFieldBlock({
     >
       <div className="flex items-center gap-2">
         <div className="w-5 h-5 border rounded dark:border-gray-600" />
-        <span className="text-sm font-medium text-gray-800 dark:text-gray-200">{label}</span>
+        <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
+          {label}
+        </span>
       </div>
     </motion.div>
   );
@@ -332,7 +338,11 @@ function SortableFormField({
               <Button size="icon" variant="ghost" onClick={() => onEdit(field)}>
                 <Settings className="w-4 h-4" />
               </Button>
-              <Button size="icon" variant="ghost" onClick={() => onDelete(field.uid)}>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => onDelete(field.uid)}
+              >
                 <Trash2 className="w-4 h-4" />
               </Button>
             </div>
@@ -361,7 +371,9 @@ function FieldDragOverlay({ type }: { type: FieldType }) {
       <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900 border-2 border-blue-500 rounded flex items-center justify-center">
         <Columns className="w-5 h-5 text-blue-600 dark:text-blue-400" />
       </div>
-      <span className="font-semibold text-lg text-gray-900 dark:text-white">{labels[type] || type}</span>
+      <span className="font-semibold text-lg text-gray-900 dark:text-white">
+        {labels[type] || type}
+      </span>
     </div>
   );
 }
@@ -404,10 +416,14 @@ function FieldEditor({
         animate={{ scale: 1, opacity: 1 }}
         className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full p-6 max-h-screen overflow-y-auto"
       >
-        <h3 className="text-xl font-bold mb-6 text-gray-900 dark:text-white">Edit Field</h3>
+        <h3 className="text-xl font-bold mb-6 text-gray-900 dark:text-white">
+          Edit Field
+        </h3>
         <div className="space-y-5">
           <div>
-            <Label className="text-gray-900 dark:text-gray-200">Field Label *</Label>
+            <Label className="text-gray-900 dark:text-gray-200">
+              Field Label *
+            </Label>
             <Input
               value={edited.label}
               onChange={(e) => setEdited({ ...edited, label: e.target.value })}
@@ -415,7 +431,9 @@ function FieldEditor({
             />
           </div>
           <div>
-            <Label className="text-gray-900 dark:text-gray-200">Field Name (unique key) *</Label>
+            <Label className="text-gray-900 dark:text-gray-200">
+              Field Name (unique key) *
+            </Label>
             <Input
               value={edited.name}
               onChange={(e) => setEdited({ ...edited, name: e.target.value })}
@@ -425,7 +443,9 @@ function FieldEditor({
           </div>
           {["text", "email", "textarea"].includes(edited.type) && (
             <div>
-              <Label className="text-gray-900 dark:text-gray-200">Placeholder</Label>
+              <Label className="text-gray-900 dark:text-gray-200">
+                Placeholder
+              </Label>
               <Input
                 value={edited.placeholder || ""}
                 onChange={(e) =>
@@ -437,7 +457,9 @@ function FieldEditor({
           )}
           {(edited.type === "select" || edited.type === "radio") && (
             <div>
-              <Label className="text-gray-900 dark:text-gray-200">Options</Label>
+              <Label className="text-gray-900 dark:text-gray-200">
+                Options
+              </Label>
               <div className="space-y-2 mt-2">
                 {(edited.options || []).map((opt, idx) => (
                   <div key={idx} className="flex gap-2">
@@ -472,7 +494,9 @@ function FieldEditor({
           )}
           {edited.type === "file" && (
             <div>
-              <Label className="text-gray-900 dark:text-gray-200">Accept (MIME types)</Label>
+              <Label className="text-gray-900 dark:text-gray-200">
+                Accept (MIME types)
+              </Label>
               <Input
                 value={edited.accept || ""}
                 onChange={(e) =>
@@ -489,10 +513,14 @@ function FieldEditor({
               onCheckedChange={(c) => setEdited({ ...edited, required: c })}
               className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-[#483d73] data-[state=checked]:to-[#352c55]"
             />
-            <Label className="text-gray-900 dark:text-gray-200">Required field</Label>
+            <Label className="text-gray-900 dark:text-gray-200">
+              Required field
+            </Label>
           </div>
           <div>
-            <Label className="text-gray-900 dark:text-gray-200">Column Width</Label>
+            <Label className="text-gray-900 dark:text-gray-200">
+              Column Width
+            </Label>
             <div className="grid grid-cols-4 gap-3 mt-3">
               {[1, 2, 3, 4].map((span) => (
                 <Button
@@ -501,9 +529,10 @@ function FieldEditor({
                   size="sm"
                   onClick={() => setEdited({ ...edited, colSpan: span as any })}
                   className={`flex items-center gap-2 
-                    ${edited.colSpan === span
-                      ? "bg-gradient-to-r from-[#483d73] to-[#352c55] text-white border-0"
-                      : ""
+                    ${
+                      edited.colSpan === span
+                        ? "bg-gradient-to-r from-[#483d73] to-[#352c55] text-white border-0"
+                        : ""
                     }`}
                 >
                   <Columns className="w-4 h-4" />
@@ -557,7 +586,9 @@ export function ExhibitionForm({
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [editingField, setEditingField] = useState<BuilderField | null>(null);
-  const [activeDragId, setActiveDragId] = useState<UniqueIdentifier | null>(null);
+  const [activeDragId, setActiveDragId] = useState<UniqueIdentifier | null>(
+    null
+  );
 
   const [frontImagePreview, setFrontImagePreview] = useState<string | null>(
     initialData.cardFrontPhoto || null
@@ -572,7 +603,8 @@ export function ExhibitionForm({
 
   const [formData, setFormData] = useState<Record<string, any>>({
     cardNo: initialData.cardNo || searchParams?.get("cardNo") || "",
-    salesPerson: initialData.salesPerson || searchParams?.get("salesPerson") || "",
+    salesPerson:
+      initialData.salesPerson || searchParams?.get("salesPerson") || "",
     date: initialData.date
       ? new Date(initialData.date).toISOString().split("T")[0]
       : new Date().toISOString().split("T")[0],
@@ -618,6 +650,8 @@ export function ExhibitionForm({
       placeholder: "name@company.com",
     },
   ];
+
+  const [publishModalOpen, setPublishModalOpen] = useState(false);
 
   const freshDefaults = useMemo(
     () => defaultDynamicFields.map((f) => ({ ...f, uid: uid("f_") })),
@@ -684,18 +718,11 @@ export function ExhibitionForm({
   }, [isLoadingCount, formData.cardNo]);
 
   const publishToAll = async () => {
-    if (!confirm("Publish this form to all users?")) return;
-    try {
-      const res = await fetch("/api/form-template", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fields: formFields }),
-      });
-      if (res.ok) toast.success("Published!");
-      else toast.error("Failed");
-    } catch {
-      toast.error("Network error");
+    if (formFields.length === 0) {
+      toast.error("Cannot publish empty form");
+      return;
     }
+    setPublishModalOpen(true); // Opens the beautiful modal
   };
 
   const handleImageChange = async (
@@ -826,8 +853,7 @@ export function ExhibitionForm({
       });
 
       toast.success("Field added via drag!");
-    }
-    else if (activeId !== overId && !activeId.startsWith("sidebar-")) {
+    } else if (activeId !== overId && !activeId.startsWith("sidebar-")) {
       setFormFields((fields) => {
         const oldIndex = fields.findIndex((f) => f.uid === activeId);
         const newIndex = fields.findIndex((f) => f.uid === overId);
@@ -870,6 +896,7 @@ export function ExhibitionForm({
             className={baseClass}
           />
         );
+
       case "select":
         return (
           <Select value={value} onValueChange={onChange}>
@@ -885,13 +912,47 @@ export function ExhibitionForm({
             </SelectContent>
           </Select>
         );
+
       case "checkbox":
         return (
-          <div className="flex items-center mt-3">
-            <Checkbox checked={!!value} onCheckedChange={onChange} />
-            <span className="ml-2">Yes</span>
+          <div className="flex items-center space-x-3 mt-4">
+            <Checkbox
+              id={field.uid}
+              checked={!!value}
+              onCheckedChange={onChange}
+            />
+            <Label
+              htmlFor={field.uid}
+              className="font-normal cursor-pointer text-base"
+            >
+              {field.label}
+              {field.required && <span className="text-red-500 ml-1">*</span>}
+            </Label>
           </div>
         );
+
+      case "radio":
+        return (
+          <RadioGroup value={value} onValueChange={onChange}>
+            <div className="space-y-3 mt-3">
+              {(field.options || []).map((option) => (
+                <div key={option.value} className="flex items-center space-x-3">
+                  <RadioGroupItem
+                    value={option.value}
+                    id={`${field.uid}-${option.value}`}
+                  />
+                  <Label
+                    htmlFor={`${field.uid}-${option.value}`}
+                    className="font-normal cursor-pointer"
+                  >
+                    {option.label}
+                  </Label>
+                </div>
+              ))}
+            </div>
+          </RadioGroup>
+        );
+
       case "date":
         return (
           <Input
@@ -901,6 +962,7 @@ export function ExhibitionForm({
             className={baseClass}
           />
         );
+
       case "file":
         return (
           <Input
@@ -913,9 +975,17 @@ export function ExhibitionForm({
             className={baseClass}
           />
         );
+
       default:
         return (
           <Input
+            type={
+              field.type === "email"
+                ? "email"
+                : field.type === "number"
+                ? "number"
+                : "text"
+            }
             placeholder={field.placeholder || "Enter value"}
             value={value}
             onChange={(e) => onChange(e.target.value)}
@@ -1128,7 +1198,9 @@ export function ExhibitionForm({
             {/* Desktop Sidebar */}
             {isAdmin && (
               <div className="hidden lg:block col-span-12 lg:col-span-3 bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 sticky top-6 h-fit">
-                <h3 className="font-bold text-lg mb-4 text-gray-900 dark:text-white">Form Builder</h3>
+                <h3 className="font-bold text-lg mb-4 text-gray-900 dark:text-white">
+                  Form Builder
+                </h3>
                 <Button
                   onClick={() =>
                     setFormFields((prev) => [...prev, ...freshDefaults])
@@ -1164,10 +1236,14 @@ export function ExhibitionForm({
             )}
 
             {/* Main Form */}
-            <div className={isAdmin ? "col-span-12 lg:col-span-9" : "col-span-12"}>
+            <div
+              className={isAdmin ? "col-span-12 lg:col-span-9" : "col-span-12"}
+            >
               <Card className="shadow-xl bg-white dark:bg-gray-800">
                 <CardHeader>
-                  <CardTitle className="text-gray-900 dark:text-white">Exhibition Lead Capture</CardTitle>
+                  <CardTitle className="text-gray-900 dark:text-white">
+                    Exhibition Lead Capture
+                  </CardTitle>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
                     Submissions: {submissionCount} / {LIMIT}{" "}
                     {limitReached && " (Limit reached)"}
@@ -1187,8 +1263,19 @@ export function ExhibitionForm({
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="front" className="text-gray-700 dark:text-gray-300">Card Front <span className="text-red-500">*</span></Label>
-                      <input type="file" accept="image/*" className="hidden" id="front" onChange={(e) => handleImageChange(e, "front")} />
+                      <Label
+                        htmlFor="front"
+                        className="text-gray-700 dark:text-gray-300"
+                      >
+                        Card Front <span className="text-red-500">*</span>
+                      </Label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        id="front"
+                        onChange={(e) => handleImageChange(e, "front")}
+                      />
                       <label
                         htmlFor="front"
                         className="block h-32 md:h-48 border-2 border-dashed rounded-lg cursor-pointer flex items-center justify-center overflow-hidden mt-2 dark:hover:border-[#6350af] dark:border-[#374151] transition relative"
@@ -1205,7 +1292,12 @@ export function ExhibitionForm({
                             >
                               ✕
                             </button>
-                            <Image src={frontImagePreview} alt="Card front preview" fill className="object-cover rounded-lg" />
+                            <Image
+                              src={frontImagePreview}
+                              alt="Card front preview"
+                              fill
+                              className="object-cover rounded-lg"
+                            />
                           </div>
                         ) : (
                           <Upload className="w-10 h-10 md:w-12 md:h-12 text-gray-400" />
@@ -1221,8 +1313,19 @@ export function ExhibitionForm({
                     </div>
 
                     <div>
-                      <Label htmlFor="back" className="text-gray-700 dark:text-gray-300">Card Back</Label>
-                      <input type="file" accept="image/*" className="hidden" id="back" onChange={(e) => handleImageChange(e, "back")} />
+                      <Label
+                        htmlFor="back"
+                        className="text-gray-700 dark:text-gray-300"
+                      >
+                        Card Back
+                      </Label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        id="back"
+                        onChange={(e) => handleImageChange(e, "back")}
+                      />
                       <label
                         htmlFor={!backImagePreview ? "back" : undefined}
                         className="block h-32 md:h-48 border-2 border-dashed rounded-lg cursor-pointer flex items-center justify-center overflow-hidden mt-2 hover:border-[#483d73] dark:border-[#374151] dark:hover:border-[#6350af] transition relative"
@@ -1239,7 +1342,12 @@ export function ExhibitionForm({
                             >
                               ✕
                             </button>
-                            <Image src={backImagePreview} alt="Card back preview" fill className="object-cover rounded-lg" />
+                            <Image
+                              src={backImagePreview}
+                              alt="Card back preview"
+                              fill
+                              className="object-cover rounded-lg"
+                            />
                           </div>
                         ) : (
                           <Upload className="w-10 h-10 md:w-12 md:h-12 text-gray-400" />
@@ -1256,8 +1364,15 @@ export function ExhibitionForm({
                   </div>
 
                   <div className="space-y-1">
-                    <Label className="text-sm text-gray-700 dark:text-gray-300">Lead Status</Label>
-                    <Select value={formData.leadStatus} onValueChange={(val) => setFormData((prev) => ({ ...prev, leadStatus: val }))}>
+                    <Label className="text-sm text-gray-700 dark:text-gray-300">
+                      Lead Status
+                    </Label>
+                    <Select
+                      value={formData.leadStatus}
+                      onValueChange={(val) =>
+                        setFormData((prev) => ({ ...prev, leadStatus: val }))
+                      }
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Select lead status" />
                       </SelectTrigger>
@@ -1270,7 +1385,9 @@ export function ExhibitionForm({
                   </div>
 
                   <div className="space-y-1">
-                    <Label className="text-sm text-gray-700 dark:text-gray-300">Description</Label>
+                    <Label className="text-sm text-gray-700 dark:text-gray-300">
+                      Description
+                    </Label>
                     <textarea
                       value={formData.description}
                       onChange={(e) =>
@@ -1296,13 +1413,19 @@ export function ExhibitionForm({
                       }
                       className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-[#483d73] data-[state=checked]:to-[#352c55]"
                     />
-                    <Label htmlFor="meeting" className="text-sm text-gray-700 dark:text-gray-300">
+                    <Label
+                      htmlFor="meeting"
+                      className="text-sm text-gray-700 dark:text-gray-300"
+                    >
                       Meeting After Exhibition
                     </Label>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <SortableContext items={formFields.map((f) => f.uid)} strategy={rectSortingStrategy}>
+                    <SortableContext
+                      items={formFields.map((f) => f.uid)}
+                      strategy={rectSortingStrategy}
+                    >
                       <AnimatePresence>
                         {formFields.length === 0 ? (
                           <div className="col-span-full text-center py-20 text-gray-500 bg-gray-50/50 dark:bg-gray-800/50 rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-700">
@@ -1377,12 +1500,112 @@ export function ExhibitionForm({
                 </CardFooter>
               </Card>
             </div>
+            {publishModalOpen && (
+              <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[100] p-4">
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden"
+                >
+                  {/* Header */}
+                  <div className="bg-gradient-to-r from-[#483d73] to-[#352c55] p-6 text-white">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                        <Globe className="w-7 h-7" />
+                      </div>
+                      <div>
+                        <h2 className="text-2xl font-bold">
+                          Publish Form Globally?
+                        </h2>
+                        <p className="text-white/80 text-sm mt-1">
+                          This will affect <strong>all users</strong>{" "}
+                          immediately
+                        </p>
+                      </div>
+                    </div>
+                  </div>
 
-            <CameraModal isOpen={cameraOpen} onClose={() => setCameraOpen(false)} onCapture={handleCapture} />
+                  <div className="p-6 space-y-5">
+                    <div className="flex items-start gap-3 text-amber-600 dark:text-amber-400">
+                      <svg
+                        className="w-6 h-6 flex-shrink-0 mt-0.5"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      <p className="text-gray-700 dark:text-gray-300">
+                        You're about to publish{" "}
+                        <strong>
+                          {formFields.length} field
+                          {formFields.length !== 1 ? "s" : ""}
+                        </strong>{" "}
+                        to every user. This action{" "}
+                        <strong>cannot be undone</strong> without republishing.
+                      </p>
+                    </div>
+
+                    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Users will see this exact form layout on their next
+                        visit or refresh.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 p-6 bg-gray-50 dark:bg-gray-900">
+                    <Button
+                      variant="outline"
+                      onClick={() => setPublishModalOpen(false)}
+                      className="flex-1"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={async () => {
+                        setPublishModalOpen(false);
+                        try {
+                          const res = await fetch("/api/form-template", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ fields: formFields }),
+                          });
+                          if (res.ok) {
+                            toast.success("Form published to all users!");
+                          } else {
+                            toast.error("Publish failed");
+                          }
+                        } catch {
+                          toast.error("Network error");
+                        }
+                      }}
+                      className="flex-1 bg-gradient-to-r from-[#483d73] to-[#352c55] text-white hover:from-[#5a5570] hover:to-[#483d73]"
+                    >
+                      <Globe className="w-4 h-4 mr-2" />
+                      Yes, Publish Now
+                    </Button>
+                  </div>
+                </motion.div>
+              </div>
+            )}
+            <CameraModal
+              isOpen={cameraOpen}
+              onClose={() => setCameraOpen(false)}
+              onCapture={handleCapture}
+            />
 
             <DragOverlay>
-              {activeDragId && activeDragId.toString().startsWith("sidebar-") ? (
-                <FieldDragOverlay type={activeDragId.toString().replace("sidebar-", "") as FieldType} />
+              {activeDragId &&
+              activeDragId.toString().startsWith("sidebar-") ? (
+                <FieldDragOverlay
+                  type={
+                    activeDragId.toString().replace("sidebar-", "") as FieldType
+                  }
+                />
               ) : null}
             </DragOverlay>
           </DndContext>

@@ -113,7 +113,7 @@ export function Footer() {
                     href="mailto:support@cardsync.com"
                     className="text-[#5a5570] dark:text-gray-400 hover:text-[#483d73] dark:hover:text-purple-400 transition-colors break-all"
                   >
-                    support@cardsync.com
+                    cardsync422@gmail.com
                   </Link>
                 </li>
               </ul>
@@ -122,22 +122,31 @@ export function Footer() {
         </div>
 
         {/* Footer Bottom */}
-        <div className="border-t border-[#e5e2f0] dark:border-gray-700 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-sm">
-          <p className="text-[#5a5570] dark:text-gray-500">
-            © {new Date().getFullYear()} CardSync. All rights reserved.
-          </p>
-          <div className="flex flex-wrap justify-center gap-6">
-            {["Privacy Policy", "Terms of Service", "Cookies"].map((item) => (
-              <Link
-                key={item}
-                href="#"
-                className="text-[#5a5570] dark:text-gray-500 hover:text-[#483d73] dark:hover:text-purple-400 transition-colors font-medium"
-              >
-                {item}
-              </Link>
-            ))}
-          </div>
-        </div>
+<div className="border-t border-[#e5e2f0] dark:border-gray-700 mt-12 pt-8">
+  <div className="flex flex-col md:flex-row justify-between items-center gap-6 text-sm">
+    
+    {/* Copyright */}
+    <p className="text-[#5a5570] dark:text-gray-500 font-medium">
+      © {new Date().getFullYear()} CardSync. All rights reserved.
+    </p>
+
+    {/* Links */}
+    <div className="flex flex-wrap justify-center gap-6 md:gap-8">
+      <Link
+        href="/privacy"
+        className="text-[#5a5570] dark:text-gray-500 hover:text-[#483d73] dark:hover:text-purple-400 transition-colors font-medium"
+      >
+        Privacy Policy
+      </Link>
+      <Link
+        href="/terms-of-service"
+        className="text-[#5a5570] dark:text-gray-500 hover:text-[#483d73] dark:hover:text-purple-400 transition-colors font-medium"
+      >
+        Terms of Service
+      </Link>
+    </div>
+  </div>
+</div>
       </div>
     </footer>
   );

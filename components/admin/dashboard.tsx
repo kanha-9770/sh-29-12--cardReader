@@ -469,7 +469,7 @@ export function AdminDashboardEnhanced() {
       "extractionStatus",
       "ExtractionStatus",
       "zohoStatus",
-      "ZohoStatus",
+      " Status",
       "userId",
       "UserId",
       "mergedData",
