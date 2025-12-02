@@ -912,7 +912,7 @@ export function ExhibitionForm({
     { type: "date" as const, label: "Date" },
   ];
 
-  const renderFieldInput = (field: BuilderField) => {
+  const renderFieldInput = (field: BuilderField, isAdmin: boolean) => {
     const value = formData[field.name] || "";
     const baseClass = "mt-2";
 
@@ -946,7 +946,7 @@ export function ExhibitionForm({
 
       return (
         <div className="mt-4">
-          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"> 
+          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             {field.required && <span className="text-red-500">*</span>}
           </p>
           <p className="text-xs text-muted-foreground mb-4">
@@ -1077,10 +1077,13 @@ export function ExhibitionForm({
         );
 
       case "date":
+        const today = new Date().toISOString().split("T")[0];
+        const dateValue = value || (!isAdmin ? today : "");
+
         return (
           <Input
             type="date"
-            value={value}
+            value={dateValue}
             onChange={(e) => onChange(e.target.value)}
             className={baseClass}
           />
@@ -1210,11 +1213,13 @@ export function ExhibitionForm({
 
   return (
     <>
-      <div  className={`${
-    isAdmin
-      ? "min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 py-6 sm:py-12"
-      : "w-full max-w-4xl mx-auto overflow-hidden bg-gradient-to-b dark:from-gray-900 dark:to-gray-800 py-6"
-  }`}>
+      <div
+        className={`${
+          isAdmin
+            ? "min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 py-6 sm:py-12"
+            : "w-full max-w-4xl mx-auto overflow-hidden bg-gradient-to-b dark:from-gray-900 dark:to-gray-800 py-6"
+        }`}
+      >
         <div className="max-w-7xl mx-auto grid grid-cols-12 gap-6 px-4">
           <DndContext
             sensors={sensors}
@@ -1363,200 +1368,278 @@ export function ExhibitionForm({
             )}
 
             {/* Main Form */}
-<div
-  className={isAdmin ? "col-span-12 lg:col-span-9" : "col-span-12"}
->
-  <Card className="shadow-xl bg-white dark:bg-gray-800">
-    <CardHeader>
-      <CardTitle className="text-gray-900 dark:text-white">
-        Exhibition Lead Capture
-      </CardTitle>
-      <p className="text-sm text-gray-600 dark:text-gray-400">
-        Submissions: {submissionCount} / {LIMIT}{" "}
-        {limitReached && " (Limit reached)"}
-      </p>
-    </CardHeader>
-
-    <CardContent 
-      className={isAdmin ? "space-y-8" : "space-y-6"} // Less space for normal users
-    >
-      {/* Card Number */}
-      <div className="space-y-1">
-        <Label className="text-xs text-gray-700 dark:text-gray-300">
-          Card Number <span className="text-red-500">*</span>
-        </Label>
-        <Input
-          value={formData.cardNo}
-          readOnly
-          className="bg-gray-100 dark:bg-gray-700"
-        />
-      </div>
-
-      {/* Image Uploads - More compact on small screens */}
-      <div className="grid grid-cols-2 gap-4">
-        {/* Front Card */}
-        <div>
-          <Label className="text-gray-700 dark:text-gray-300 text-sm">
-            Card Front <span className="text-red-500">*</span>
-          </Label>
-          <input type="file" accept="image/*" className="hidden" id="front" onChange={(e) => handleImageChange(e, "front")} />
-          <label
-            htmlFor="front"
-            className="block mt-2 h-40 sm:h-48 lg:h-56 border-2 border-dashed rounded-lg cursor-pointer flex items-center justify-center overflow-hidden relative hover:border-[#483d73] dark:hover:border-[#6350af] transition"
-          >
-            {frontImagePreview ? (
-              <div className="relative w-full h-full">
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); handleRemoveImage("front"); }}
-                  className="absolute top-2 right-2 z-10 bg-black/70 text-white w-7 h-7 rounded-full flex items-center justify-center text-sm hover:bg-black"
-                >
-                  ×
-                </button>
-                <Image src={frontImagePreview} alt="Front" fill className="object-cover" />
-              </div>
-            ) : (
-              <Upload className="w-10 h-10 text-gray-400" />
-            )}
-            <Button
-              onClick={(e) => { e.preventDefault(); openCamera("front"); }}
-              size="sm"
-              className="absolute bottom-2 right-2 bg-[#483d73]/90 hover:bg-[#483d73] text-white"
+            <div
+              className={isAdmin ? "col-span-12 lg:col-span-9" : "col-span-12"}
             >
-              <Camera className="w-4 h-4" />
-            </Button>
-          </label>
-        </div>
+              <Card className="shadow-xl bg-white dark:bg-gray-800">
+                <CardHeader>
+                  <CardTitle className="text-gray-900 dark:text-white">
+                    Exhibition Lead Capture
+                  </CardTitle>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Submissions: {submissionCount} / {LIMIT}{" "}
+                    {limitReached && " (Limit reached)"}
+                  </p>
+                </CardHeader>
 
-        {/* Back Card */}
-        <div>
-          <Label className="text-gray-700 dark:text-gray-300 text-sm">
-            Card Back
-          </Label>
-          <input type="file" accept="image/*" className="hidden" id="back" onChange={(e) => handleImageChange(e, "back")} />
-          <label
-            htmlFor={!backImagePreview ? "back" : undefined}
-            className="block mt-2 h-40 sm:h-48 lg:h-56 border-2 border-dashed rounded-lg cursor-pointer flex items-center justify-center overflow-hidden relative hover:border-[#483d73] dark:hover:border-[#6350af] transition"
-          >
-            {backImagePreview ? (
-              <div className="relative w-full h-full">
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); handleRemoveImage("back"); }}
-                  className="absolute top-2 right-2 z-10 bg-black/70 text-white w-7 h-7 rounded-full flex items-center justify-center text-sm hover:bg-black"
+                <CardContent
+                  className={isAdmin ? "space-y-8" : "space-y-6"} // Less space for normal users
                 >
-                  ×
-                </button>
-                <Image src={backImagePreview} alt="Back" fill className="object-cover" />
-              </div>
-            ) : (
-              <Upload className="w-10 h-10 text-gray-400" />
-            )}
-            <Button
-              onClick={(e) => { e.preventDefault(); openCamera("back"); }}
-              size="sm"
-              className="absolute bottom-2 right-2 bg-[#483d73]/90 hover:bg-[#483d73] text-white"
-            >
-              <Camera className="w-4 h-4" />
-            </Button>
-          </label>
-        </div>
-      </div>
+                  {/* Card Number */}
+                  <div className="space-y-1">
+                    <Label className="text-xs text-gray-700 dark:text-gray-300">
+                      Card Number <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      value={formData.cardNo}
+                      readOnly
+                      className="bg-gray-100 dark:bg-gray-700"
+                    />
+                  </div>
 
-      {/* Lead Status */}
-      <div className="space-y-2">
-        <Label className="text-sm">Lead Status</Label>
-        <Select value={formData.leadStatus} onValueChange={(val) => setFormData(prev => ({ ...prev, leadStatus: val }))}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select lead status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="JUST LEAD">JUST LEAD</SelectItem>
-            <SelectItem value="QUALIFIED LEAD">QUALIFIED LEAD</SelectItem>
-            <SelectItem value="NEW DEAL">NEW DEAL</SelectItem>
-            <SelectItem value="OLD DEAL">OLD DEAL</SelectItem>
-            <SelectItem value="EXISTING CUSTOMER">EXISTING CUSTOMER</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Description */}
-      <div className="space-y-2">
-        <Label className="text-sm">Description</Label>
-        <textarea
-          value={formData.description}
-          onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-          placeholder="Enter description..."
-          className="w-full min-h-20 rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-ring"
-          rows={3}
-        />
-      </div>
-
-      {/* Meeting Switch */}
-      <div className="flex items-center gap-3 py-2">
-        <Switch
-          id="meeting"
-          checked={formData.meetingAfterExhibition}
-          onCheckedChange={(c) => setFormData(prev => ({ ...prev, meetingAfterExhibition: c }))}
-          className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-[#483d73] data-[state=checked]:to-[#352c55]"
-        />
-        <Label htmlFor="meeting" className="text-sm font-medium cursor-pointer">
-          Meeting After Exhibition
-        </Label>
-      </div>
-
-      {/* Dynamic Fields Grid - Tighter & Cleaner for Normal Users */}
-      <div className={isAdmin ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6" : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"}>
-        <SortableContext items={formFields.map(f => f.uid)} strategy={rectSortingStrategy}>
-          <AnimatePresence>
-            {formFields.length === 0 ? (
-              <div className="col-span-full text-center py-16 text-gray-500">
-                <p className="text-lg font-medium">No additional fields required</p>
-              </div>
-            ) : (
-              formFields.map((field) => (
-                <div
-                  key={field.uid}
-                  className={
-                    field.colSpan === 1 ? "sm:col-span-1" :
-                    field.colSpan === 2 ? "sm:col-span-2" :
-                    field.colSpan === 3 ? "sm:col-span-3" :
-                    "sm:col-span-full"
-                  }
-                >
-                  <SortableFormField
-                    field={field}
-                    isAdmin={isAdmin}
-                    onEdit={setEditingField}
-                    onDelete={(uid) => setFormFields(prev => prev.filter(f => f.uid !== uid))}
-                  >
-                    <div className={!isAdmin ? "space-y-2" : ""}>
-                      <Label className="text-sm font-medium text-gray-900 dark:text-gray-200">
-                        {field.label}
-                        {field.required && <span className="text-red-500 ml-1">*</span>}
+                  {/* Image Uploads - More compact on small screens */}
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* Front Card */}
+                    <div>
+                      <Label className="text-gray-700 dark:text-gray-300 text-sm">
+                        Card Front <span className="text-red-500">*</span>
                       </Label>
-                      {renderFieldInput(field)}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        id="front"
+                        onChange={(e) => handleImageChange(e, "front")}
+                      />
+                      <label
+                        htmlFor="front"
+                        className="block mt-2 h-40 sm:h-48 lg:h-56 border-2 border-dashed rounded-lg cursor-pointer flex items-center justify-center overflow-hidden relative hover:border-[#483d73] dark:hover:border-[#6350af] transition"
+                      >
+                        {frontImagePreview ? (
+                          <div className="relative w-full h-full">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRemoveImage("front");
+                              }}
+                              className="absolute top-2 right-2 z-10 bg-black/70 text-white w-7 h-7 rounded-full flex items-center justify-center text-sm hover:bg-black"
+                            >
+                              ×
+                            </button>
+                            <Image
+                              src={frontImagePreview}
+                              alt="Front"
+                              fill
+                              className="object-cover"
+                            />
+                          </div>
+                        ) : (
+                          <Upload className="w-10 h-10 text-gray-400" />
+                        )}
+                        <Button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            openCamera("front");
+                          }}
+                          size="sm"
+                          className="absolute bottom-2 right-2 bg-[#483d73]/90 hover:bg-[#483d73] text-white"
+                        >
+                          <Camera className="w-4 h-4" />
+                        </Button>
+                      </label>
                     </div>
-                  </SortableFormField>
-                </div>
-              ))
-            )}
-          </AnimatePresence>
-        </SortableContext>
-      </div>
-    </CardContent>
 
-    <CardFooter>
-      <Button
-        onClick={handleSubmit}
-        disabled={isSubmitting || limitReached || !isFormValid}
-        className="w-full bg-gradient-to-r from-[#483d73] to-[#352c55] text-white font-medium py-6 text-lg"
-      >
-        {isSubmitting ? "Submitting..." : "Submit Lead"}
-      </Button>
-    </CardFooter>
-  </Card>
-</div>
+                    {/* Back Card */}
+                    <div>
+                      <Label className="text-gray-700 dark:text-gray-300 text-sm">
+                        Card Back
+                      </Label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        id="back"
+                        onChange={(e) => handleImageChange(e, "back")}
+                      />
+                      <label
+                        htmlFor={!backImagePreview ? "back" : undefined}
+                        className="block mt-2 h-40 sm:h-48 lg:h-56 border-2 border-dashed rounded-lg cursor-pointer flex items-center justify-center overflow-hidden relative hover:border-[#483d73] dark:hover:border-[#6350af] transition"
+                      >
+                        {backImagePreview ? (
+                          <div className="relative w-full h-full">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRemoveImage("back");
+                              }}
+                              className="absolute top-2 right-2 z-10 bg-black/70 text-white w-7 h-7 rounded-full flex items-center justify-center text-sm hover:bg-black"
+                            >
+                              ×
+                            </button>
+                            <Image
+                              src={backImagePreview}
+                              alt="Back"
+                              fill
+                              className="object-cover"
+                            />
+                          </div>
+                        ) : (
+                          <Upload className="w-10 h-10 text-gray-400" />
+                        )}
+                        <Button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            openCamera("back");
+                          }}
+                          size="sm"
+                          className="absolute bottom-2 right-2 bg-[#483d73]/90 hover:bg-[#483d73] text-white"
+                        >
+                          <Camera className="w-4 h-4" />
+                        </Button>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Lead Status */}
+                  <div className="space-y-2">
+                    <Label className="text-sm">Lead Status</Label>
+                    <Select
+                      value={formData.leadStatus}
+                      onValueChange={(val) =>
+                        setFormData((prev) => ({ ...prev, leadStatus: val }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select lead status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="JUST LEAD">JUST LEAD</SelectItem>
+                        <SelectItem value="QUALIFIED LEAD">
+                          QUALIFIED LEAD
+                        </SelectItem>
+                        <SelectItem value="NEW DEAL">NEW DEAL</SelectItem>
+                        <SelectItem value="OLD DEAL">OLD DEAL</SelectItem>
+                        <SelectItem value="EXISTING CUSTOMER">
+                          EXISTING CUSTOMER
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Description */}
+                  <div className="space-y-2">
+                    <Label className="text-sm">Description</Label>
+                    <textarea
+                      value={formData.description}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          description: e.target.value,
+                        }))
+                      }
+                      placeholder="Enter description..."
+                      className="w-full min-h-20 rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-ring"
+                      rows={3}
+                    />
+                  </div>
+
+                  {/* Meeting Switch */}
+                  <div className="flex items-center gap-3 py-2">
+                    <Switch
+                      id="meeting"
+                      checked={formData.meetingAfterExhibition}
+                      onCheckedChange={(c) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          meetingAfterExhibition: c,
+                        }))
+                      }
+                      className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-[#483d73] data-[state=checked]:to-[#352c55]"
+                    />
+                    <Label
+                      htmlFor="meeting"
+                      className="text-sm font-medium cursor-pointer"
+                    >
+                      Meeting After Exhibition
+                    </Label>
+                  </div>
+
+                  {/* Dynamic Fields Grid - Tighter & Cleaner for Normal Users */}
+                  <div
+                    className={
+                      isAdmin
+                        ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+                        : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+                    }
+                  >
+                    <SortableContext
+                      items={formFields.map((f) => f.uid)}
+                      strategy={rectSortingStrategy}
+                    >
+                      <AnimatePresence>
+                        {formFields.length === 0 ? (
+                          <div className="col-span-full text-center py-16 text-gray-500">
+                            <p className="text-lg font-medium">
+                              No additional fields required
+                            </p>
+                          </div>
+                        ) : (
+                          formFields.map((field) => (
+                            <div
+                              key={field.uid}
+                              className={
+                                field.colSpan === 1
+                                  ? "sm:col-span-1"
+                                  : field.colSpan === 2
+                                  ? "sm:col-span-2"
+                                  : field.colSpan === 3
+                                  ? "sm:col-span-3"
+                                  : "sm:col-span-full"
+                              }
+                            >
+                              <SortableFormField
+                                field={field}
+                                isAdmin={isAdmin}
+                                onEdit={setEditingField}
+                                onDelete={(uid) =>
+                                  setFormFields((prev) =>
+                                    prev.filter((f) => f.uid !== uid)
+                                  )
+                                }
+                              >
+                                <div className={!isAdmin ? "space-y-2" : ""}>
+                                  <Label className="text-sm font-medium text-gray-900 dark:text-gray-200">
+                                    {field.label}
+                                    {field.required && (
+                                      <span className="text-red-500 ml-1">
+                                        *
+                                      </span>
+                                    )}
+                                  </Label>
+                                  {renderFieldInput(field, isAdmin)}
+                                </div>
+                              </SortableFormField>
+                            </div>
+                          ))
+                        )}
+                      </AnimatePresence>
+                    </SortableContext>
+                  </div>
+                </CardContent>
+
+                <CardFooter>
+                  <Button
+                    onClick={handleSubmit}
+                    disabled={isSubmitting || limitReached || !isFormValid}
+                    className="w-full bg-gradient-to-r from-[#483d73] to-[#352c55] text-white font-medium py-6 text-lg"
+                  >
+                    {isSubmitting ? "Submitting..." : "Submit Lead"}
+                  </Button>
+                </CardFooter>
+              </Card>
+            </div>
             {publishModalOpen && (
               <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[100] p-4">
                 <motion.div
