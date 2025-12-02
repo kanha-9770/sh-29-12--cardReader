@@ -1,123 +1,131 @@
-import { NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
-import { getSession } from "@/lib/auth"
-import { submitToZoho } from "@/lib/zoho-submit"
+// app/api/forms/route.ts
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { getSession } from "@/lib/auth";
 
-export const dynamic = "force-dynamic"
-export const revalidate = 0
+export const dynamic = "force-dynamic";
 
-export async function GET(req: Request) {
+/* ========== GET: Admin sees all forms in organization ========== */
+export async function GET() {
   try {
-    const session = await getSession()
+    const session = await getSession();
 
-    if (!session?.isAdmin) {
-      console.error("Unauthorized access attempt in GET")
-      return NextResponse.json({ error: "Unauthorized - Admin access required" }, { status: 401 })
+    const userEmail = (session as any)?.user?.email || (session as any)?.email;
+    const isAdmin = (session as any)?.user?.isAdmin || (session as any)?.isAdmin;
+
+    if (!userEmail) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (!isAdmin) {
+      return NextResponse.json({ error: "Forbidden - Admin only" }, { status: 403 });
+    }
+
+    const adminUser = await prisma.user.findUnique({
+      where: { email: userEmail },
+      select: { organizationId: true },
+    });
+
+    if (!adminUser?.organizationId) {
+      return NextResponse.json({ error: "No organization found" }, { status: 400 });
     }
 
     const forms = await prisma.form.findMany({
-      orderBy: {
-        createdAt: "desc",
+      where: {
+        user: { organizationId: adminUser.organizationId },
       },
+      orderBy: { createdAt: "desc" },
       include: {
-        user: {
-          select: {
-            email: true,
-          },
-        },
+        user: { select: { email: true, name: true } },
         extractedData: true,
         mergedData: true,
       },
-    })
+    });
 
-    return NextResponse.json(forms)
+    return NextResponse.json({ forms });
   } catch (error) {
-    console.error("Error in GET /api/forms:", error)
-    return NextResponse.json(
-      {
-        error: "Failed to fetch forms",
-        details: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 500 },
-    )
+    console.error("GET /api/forms error:", error);
+    return NextResponse.json({ error: "Failed to fetch forms" }, { status: 500 });
   }
 }
 
+/* ========== POST: Create new form + Trigger Background Job ========== */
 export async function POST(req: Request) {
   try {
-    const session = await getSession()
+    const session = await getSession();
+    const userEmail = (session as any)?.user?.email || (session as any)?.email;
 
-    if (!session) {
-      console.error("Unauthorized access attempt")
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    if (!userEmail) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const userId = String(session.id)
-
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 401 })
-    }
-
-    const formData = await req.formData()
-    const jsonData = formData.get("jsonData") as string
-    const data = JSON.parse(jsonData)
-
-    console.log("Received form data:", JSON.stringify(data, null, 2))
-
-    // Merge form data with extracted data
-    const mergedData = {
-      ...data,
-      userId: user.id,
-      date: new Date(data.date), // Convert date string to Date object
-    }
-
-    console.log("Attempting to save merged data to MySQL:", mergedData)
-
-    // Save to MySQL
-    // const form = await prisma.form.create({
-    //   data: mergedData,
-    // })
-
-    // console.log("Successfully saved to MySQL with ID:", form.id)
-
-    // Submit to Zoho
-    console.log("Attempting to submit to Zoho...")
-    const zohoResponse = await submitToZoho(mergedData)
-    console.log("Zoho submission successful:", zohoResponse)
-
-    return NextResponse.json({
-      success: true,
-      // mysqlData: form,
-      zohoResponse,
-      message: "Data successfully saved to MySQL and submitted to Zoho.",
-    })
-  } catch (error) {
-    console.error("Error in POST /api/forms:", error)
-
-    const err = error as { code?: string; message?: string; stack?: string }
-
-    if (err.code === "P2002") {
-      return NextResponse.json(
-        {
-          error: "Database constraint violation",
-          details: "A record with this card number already exists",
-        },
-        { status: 400 },
-      )
-    }
-
-    return NextResponse.json(
-      {
-        error: "Internal server error",
-        details: err.message || "Unknown error",
-        stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
+    const currentUser = await prisma.user.findUnique({
+      where: { email: userEmail },
+      select: {
+        id: true,
+        subscriptionPlan: true,
+        formLimit: true,
       },
-      { status: 500 },
-    )
-  }
-}
+    });
 
+    if (!currentUser) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    // Free plan limit check
+    if (currentUser.subscriptionPlan === "FREE") {
+      const count = await prisma.form.count({ where: { userId: currentUser.id } });
+      const limit = currentUser.formLimit ?? 15;
+      if (count >= limit) {
+        return NextResponse.json(
+          { error: "Limit reached", message: "Upgrade your plan to submit more forms" },
+          { status: 403 }
+        );
+      }
+    }
+
+    const formData = await req.formData();
+    const jsonData = formData.get("jsonData") as string;
+    if (!jsonData) return NextResponse.json({ error: "Missing data" }, { status: 400 });
+
+    let data;
+    try {
+      data = JSON.parse(jsonData);
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    }
+
+    const newForm = await prisma.form.create({
+      data: {
+        ...data,
+        userId: currentUser.id,
+        date: new Date(data.date || Date.now()),
+        cardFrontPhoto: data.cardFrontPhoto || "",
+        cardBackPhoto: data.cardBackPhoto || null,
+        meetingAfterExhibition: Boolean(data.meetingAfterExhibition),
+        additionalData: data.additionalData || {},
+      },
+    });
+
+    // ================================================
+    // THIS IS THE FIX: Trigger background job properly
+    // ================================================
+    const backgroundUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/background-job`;
+
+    setTimeout(() => {
+      fetch(backgroundUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ formId: newForm.id }),
+      })
+        .then((res) => res.json())
+        .then((result) => console.log("Background job triggered:", result))
+        .catch((err) => console.error("Failed to trigger background job:", err));
+    }, 1000); // 1-second delay ensures parent function completes first (safe on Vercel)
+
+    return NextResponse.json({ success: true, formId: newForm.id }, { status: 201 });
+  } catch (error) {
+    console.error("POST /api/forms error:", error);
+    return NextResponse.json({ error: "Failed to save form" }, { status: 500 });
+  }
+} 

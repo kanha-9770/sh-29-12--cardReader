@@ -5,14 +5,18 @@
 body {
   font-family: Arial, Helvetica, sans-serif;
 }
-/* .gradient{
- background-image: linear-gradient(240deg, #9795f0 0%, #fbc8d4 100%);
-} */
 
 .gradient-background {
   background: linear-gradient(335deg,#7797cf,#7e852e,#4217e8,#a25912,#8e15c6);
   background-size: 300% 300%;
   animation: gradient-animation 40s ease infinite;
+}
+
+.toast-container {
+  position: fixed !important;
+  right: 16px;
+  bottom: 16px;
+  z-index: 999999;
 }
 
 @keyframes gradient-animation {
@@ -32,6 +36,30 @@ body {
     text-wrap: balance;
   }
 }
+
+.nav-link {
+  @apply text-black text-sm font-medium hover:text-white transition-all px-3 py-1.5 rounded hover:bg-[#3d3260];
+}
+
+.mobile-link {
+  @apply text-sm font-medium hover:text-gray-300 transition-all py-2 px-3 rounded hover:bg-gray-800 w-full text-center;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slideDown {
+  animation: slideDown .2s ease-out;
+}
+
 
 @layer base {
   :root {

@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import {
   Eye,
   Trash,
@@ -35,72 +37,605 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import * as XLSX from "xlsx"; // NEW: Excel library
+import * as XLSX from "xlsx";
 import type { FormData } from "@/types/form";
 import { ExhibitionForm } from "@/components/exhibition-form";
+import { DashboardOverview } from "@/components/admin/dashboard-overview";
+import {
+  ChevronDown,
+  ChevronUp,
+  MessageSquare,
+  User,
+  Scan,
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
-export function AdminDashboard() {
+export function AdminDashboardEnhanced() {
   const [forms, setForms] = useState<FormData[]>([]);
   const [users, setUsers] = useState<{ id: string; email: string }[]>([]);
   const [search, setSearch] = useState("");
   const [selectedUser, setSelectedUser] = useState<string>("all");
   const [isLoading, setIsLoading] = useState(false);
-  const [isDownloading, setIsDownloading] = useState(false); // NEW: Download loading state
+  const [isDownloading, setIsDownloading] = useState(false);
   const { toast } = useToast();
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [openView, setOpenView] = useState<string | null>(null);
   const [openEdit, setOpenEdit] = useState<string | null>(null);
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
+  const [showManage, setShowManage] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [showNotes, setShowNotes] = useState(false);
+  const [templateFields, setTemplateFields] = useState<any[]>([]);
+  const [isSilentLoading, setIsSilentLoading] = useState(false); // ← ADD THIS LINE
+  const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
+    // Load saved columns from localStorage (persists user choice)
+    const saved = localStorage.getItem("dashboard-visible-columns");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.warn("Failed to parse saved columns");
+      }
+    }
+
+    // Default visible columns
+    const defaults = [
+      "cardImage",
+      "cardNo",
+      "date",
+      "user",
+      "personName",
+      "company",
+      "city",
+      "state",
+      "country",
+      "leadStatus",
+      "meeting",
+    ];
+
+    // Auto-detect ALL dynamic fields that exist in any submission
+    const dynamicKeys = forms
+      .flatMap((f) => Object.keys(f.additionalData || {}))
+      .filter((key) => key !== "description"); // optional: exclude description
+
+    const dynamicIds = [...new Set(dynamicKeys)].map((key) => `add_${key}`);
+
+    return [...defaults, ...dynamicIds];
+  });
+
+  const possibleColumns = useMemo(() => {
+    const fixedColumns = [
+      {
+        id: "cardImage",
+        label: "Card Image",
+        width: "w-24",
+        render: (form: FormData) =>
+          form.cardFrontPhoto ? (
+            <button
+              onClick={() => setZoomedImage(form.cardFrontPhoto!)}
+              className="group"
+            >
+              <img
+                src={form.cardFrontPhoto || "/placeholder.svg"}
+                alt="Card"
+                className="max-w-20 h-12 object-cover rounded border transition group-hover:opacity-80"
+              />
+            </button>
+          ) : (
+            <span className="text-[10px] text-muted-foreground">—</span>
+          ),
+      },
+      {
+        id: "cardNo",
+        label: "Card No",
+        width: "w-24",
+        render: (form: FormData) => form.cardNo ?? "N/A",
+      },
+      {
+        id: "salesPerson",
+        label: "Sales Person",
+        width: "w-28",
+        render: (form: FormData) => form.salesPerson ?? "N/A",
+      },
+      {
+        id: "date",
+        label: "Date",
+        width: "w-24",
+        render: (form: FormData) =>
+          form.date ? new Date(form.date).toLocaleDateString() : "N/A",
+      },
+      {
+        id: "user",
+        label: "User",
+        width: "w-40",
+        render: (form: FormData) => form.user?.email || "N/A",
+      },
+      {
+        id: "personName",
+        label: "Person Name",
+        width: "w-32",
+        render: (form: FormData) =>
+          form.mergedData?.name || form.additionalData?.contactPerson || "N/A",
+      },
+      // Example: Company column
+      {
+        id: "company",
+        label: "Company Name",
+        width: "w-32",
+        render: (form: FormData) => {
+          const extracted = form.extractedData?.companyName;
+          const manual = form.additionalData?.company;
+          const status = form.extractionStatus;
+
+          // If OCR is still running → show "Processing..."
+          if (status === "PENDING" || status === "PROCESSING") {
+            return (
+              <span className="text-xs text-amber-600 italic">
+                Processing AI...
+              </span>
+            );
+          }
+
+          // If OCR failed → show manual or "Failed"
+          if (status === "FAILED") {
+            return (
+              manual || <span className="text-xs text-red-600">OCR Failed</span>
+            );
+          }
+
+          // OCR done → show extracted (or fallback to manual)
+          return extracted || manual || "N/A";
+        },
+      },
+      {
+        id: "city",
+        label: "City",
+        width: "w-28",
+        render: (form: FormData) => {
+          const extracted = form.extractedData?.city;
+          const manual = form.additionalData?.city;
+          const status = form.extractionStatus;
+
+          // If OCR is still running → show "Processing..."
+          if (status === "PENDING" || status === "PROCESSING") {
+            return (
+              <span className="text-xs text-amber-600 italic">
+                Processing AI...
+              </span>
+            );
+          }
+
+          // If OCR failed → show manual or "Failed"
+          if (status === "FAILED") {
+            return (
+              manual || <span className="text-xs text-red-600">OCR Failed</span>
+            );
+          }
+
+          // OCR done → show extracted (or fallback to manual)
+          return extracted || manual || "N/A";
+        },
+      },
+      {
+        id: "state",
+        label: "State",
+        width: "w-24",
+        render: (form: FormData) => {
+          const extracted = form.extractedData?.state;
+          const manual = form.additionalData?.state;
+          const status = form.extractionStatus;
+
+          // If OCR is still running → show "Processing..."
+          if (status === "PENDING" || status === "PROCESSING") {
+            return (
+              <span className="text-xs text-amber-600 italic">
+                Processing AI...
+              </span>
+            );
+          }
+
+          // If OCR failed → show manual or "Failed"
+          if (status === "FAILED") {
+            return (
+              manual || <span className="text-xs text-red-600">OCR Failed</span>
+            );
+          }
+
+          // OCR done → show extracted (or fallback to manual)
+          return extracted || manual || "N/A";
+        },
+      },
+      {
+        id: "country",
+        label: "Country",
+        width: "w-24",
+        render: (form: FormData) => {
+          const extracted = form.extractedData?.country;
+          const manual = form.additionalData?.country;
+          const status = form.extractionStatus;
+
+          // If OCR is still running → show "Processing..."
+          if (status === "PENDING" || status === "PROCESSING") {
+            return (
+              <span className="text-xs text-amber-600 italic">
+                Processing AI...
+              </span>
+            );
+          }
+
+          // If OCR failed → show manual or "Failed"
+          if (status === "FAILED") {
+            return (
+              manual || <span className="text-xs text-red-600">OCR Failed</span>
+            );
+          }
+
+          // OCR done → show extracted (or fallback to manual)
+          return extracted || manual || "N/A";
+        },
+      },
+      {
+        id: "contactInfo",
+        label: "Contact Info",
+        width: "w-32",
+        render: (form: FormData) => {
+          const merged = form.mergedData;
+          return (
+            <>
+              {merged?.email && <div className="truncate">{merged.email}</div>}
+              {merged?.contactNumbers && (
+                <div className="text-[10px] text-muted-foreground truncate">
+                  {merged.contactNumbers.split(",")[0]}
+                </div>
+              )}
+            </>
+          );
+        },
+      },
+      {
+        id: "leadStatus",
+        label: "Lead Status",
+        width: "w-24",
+        render: (form: FormData) => form.leadStatus ?? "N/A",
+      },
+      {
+        id: "meeting",
+        label: "Meeting",
+        width: "w-20",
+        render: (form: FormData) =>
+          form.meetingAfterExhibition ? "Yes" : "No",
+      },
+      {
+        id: "description",
+        label: "Description",
+        width: "w-72",
+        render: (form: FormData) => {
+          const desc = form.description?.trim();
+          if (desc) {
+            return (
+              <div className="text-xs leading-relaxed">
+                <span className="text-gray-800 dark:text-[#d1d5db]">
+                  {desc.length > 100 ? desc.slice(0, 100) + "..." : desc}
+                </span>
+              </div>
+            );
+          }
+          return (
+            <span className="text-[12px] text-muted-foreground">
+              No Description Provided by the User
+            </span>
+          );
+        },
+      },
+      {
+        id: "formStatus",
+        label: "Form Status",
+        width: "w-24",
+        render: (form: FormData) => form.status ?? "N/A",
+      },
+{
+  id: "extractionStatus",
+  label: "OCR Status",
+  width: "w-36",
+  render: (form: FormData) => {
+    const status = form.extractionStatus || "NOT_STARTED";
+    const isProcessing = status === "PENDING" || status === "PROCESSING";
+
+    return (
+      <div className="flex items-center gap-2">
+        {isProcessing && (
+          <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600" />
+        )}
+        <span className={`font-medium text-xs ${
+          status === "COMPLETED" ? "text-green-600" :
+          status === "FAILED" ? "text-red-600" :
+          isProcessing ? "text-blue-600" : "text-gray-500"
+        }`}>
+          {isProcessing ? "Processing AI..." : 
+           status === "COMPLETED" ? "Completed" :
+           status === "FAILED" ? "Failed" : status}
+        </span>
+      </div>
+    );
+  },
+},
+      {
+        id: "zohoStatus",
+        label: "Zoho Status",
+        width: "w-24",
+        render: (form: FormData) => form.zohoStatus ?? "N/A",
+      },
+      {
+        id: "actions",
+        label: "Actions",
+        width: "w-24",
+        render: (form: FormData) => (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 text-[10px]"
+              >
+                <span className="sr-only">Open menu</span>
+                <MoreHorizontal className="h-3 w-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setOpenView(form.id!)}>
+                <Eye className="mr-2 h-3 w-3" /> View
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setOpenEdit(form.id!)}>
+                <Edit className="mr-2 h-3 w-3" /> Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  setPendingDeleteId(form.id!);
+                  setConfirmDeleteOpen(true);
+                }}
+                className="focus:bg-destructive focus:text-destructive-foreground"
+              >
+                <Trash className="mr-2 h-3 w-3" /> Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ),
+      },
+    ];
+
+    const priorityExtractedKeys = [
+      "address",
+      "contactNumbers",
+      "email",
+      "website",
+    ];
+
+    const priorityExtractedColumns = priorityExtractedKeys.map((key) => ({
+      id: `ext_${key}`,
+      label:
+        key === "contactNumbers"
+          ? "Contact Number"
+          : key === "website"
+          ? "Website"
+          : key.charAt(0).toUpperCase() + key.slice(1),
+      width: "w-40",
+      render: (form: FormData) => {
+        const value = form.extractedData?.[key];
+        if (!value) return "—";
+
+        if (key === "website" && value) {
+          const url = value.startsWith("http") ? value : `https://${value}`;
+          return (
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:underline text-xs"
+            >
+              {value.length > 35 ? value.slice(0, 35) + "..." : value}
+            </a>
+          );
+        }
+
+        const str = String(value);
+        return (
+          <div className="text-xs text-gray-800 dark:text-[#d1d5db]">
+            {str.length > 50 ? str.slice(0, 50) + "..." : str}
+          </div>
+        );
+      },
+    }));
+
+    // Dynamic additionalData columns
+    const blockedAdditionalKeys = [
+      "id",
+      "Id",
+      "ID",
+      "formId",
+      "FormId",
+      "formID",
+      "createdAt",
+      "CreatedAt",
+      "created_at",
+      "updatedAt",
+      "UpdatedAt",
+      "updated_at",
+      "status",
+      "Status",
+      "description",
+      "Description",
+      "extractionStatus",
+      "ExtractionStatus",
+      "zohoStatus",
+      "ZohoStatus",
+      "userId",
+      "UserId",
+      "mergedData",
+      "extractedData",
+      "__v",
+      "_id",
+    ];
+
+    const allAdditionalKeys = forms
+      .flatMap((f) => Object.keys(f.additionalData || {}))
+      .filter(
+        (key) =>
+          !blockedAdditionalKeys.some(
+            (blocked) => key.toLowerCase() === blocked.toLowerCase()
+          )
+      );
+
+    const uniqueAdditional = [...new Set(allAdditionalKeys)];
+
+    const additionalColumns = uniqueAdditional.map((key) => ({
+      id: `add_${key}`,
+      label: key.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()),
+      width: "w-36",
+      render: (form: FormData) => {
+        const value = form.additionalData?.[key];
+        if (!value) return "—";
+        const str = String(value);
+        return (
+          <div className="text-xs text-gray-800 dark:text-[#d1d5db]">
+            {str.length > 50 ? str.slice(0, 50) + "..." : str}
+          </div>
+        );
+      },
+    }));
+
+    // FIXED: Dynamic extractedData columns — ONLY block exact matches
+    const allExtractedKeys = forms.flatMap((f) =>
+      Object.keys(f.extractedData || {})
+    );
+    const blockedKeys = [
+      "companyName",
+      "name",
+      "email",
+      "contactNumbers",
+      "city",
+      "state",
+      "country",
+      "address",
+      "description",
+      "website",
+    ];
+    const uniqueExtracted = [...new Set(allExtractedKeys)]
+      .filter((key) => !blockedKeys.includes(key))
+      .slice(0, 15);
+
+    const extractedColumns = uniqueExtracted.map((key) => ({
+      id: `ext_${key}`,
+      label: key
+        .replace(/_/g, " ")
+        .replace(/\b\w/g, (l: string) => l.toUpperCase()),
+      width: "w-36",
+      render: (form: FormData) => form.extractedData?.[key] || "—",
+    }));
+
+    return [
+      ...fixedColumns,
+      ...priorityExtractedColumns,
+      ...additionalColumns,
+      ...extractedColumns,
+    ];
+  }, [forms]);
+
+  const displayColumns = useMemo(
+    () => [...visibleColumns, "actions"],
+    [visibleColumns]
+  );
+
+const fetchForms = useCallback(async (silent = false) => {
+  if (!silent) {
+    setIsLoading(true);
+  } else {
+    setIsSilentLoading(true);
+  }
+
+  try {
+    const res = await fetch("/api/forms", {
+      method: "GET",
+      headers: { "Cache-Control": "no-cache" },
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      if (errorData.limitReached) {
+        toast({
+          title: "Limit Reached",
+          description: errorData.message || "Form submission limit reached.",
+          variant: "destructive",
+        });
+        setForms([]);
+        extractUniqueUsers([]);
+        return;
+      }
+      throw new Error(`Failed to fetch forms: ${res.status}`);
+    }
+
+    const data = await res.json();
+    const fetchedForms = data.forms || data || [];
+    setForms(fetchedForms);
+    extractUniqueUsers(fetchedForms);
+
+    // Show toast only if OCR completed during this fetch
+    const previousProcessing = forms.filter(f => 
+      ["PENDING", "PROCESSING"].includes(f.extractionStatus || "")
+    );
+    const nowCompleted = fetchedForms.filter(f => 
+      f.extractionStatus === "COMPLETED" && 
+      previousProcessing.some(p => p.id === f.id)
+    );
+
+    if (nowCompleted.length > 0) {
+      toast({
+        title: "OCR Completed!",
+        description: `${nowCompleted.length} card${nowCompleted.length > 1 ? 's' : ''} extracted successfully`,
+      });
+    }
+
+  } catch (error) {
+    console.error("Error fetching forms:", error);
+    toast({
+      title: "Error",
+      description: "Failed to fetch forms.",
+      variant: "destructive",
+    });
+    setForms([]);
+    extractUniqueUsers([]);
+  } finally {
+    if (!silent) {
+      setIsLoading(false);
+    }
+    setIsSilentLoading(false);
+  }
+}, [toast, forms]); // ← Added 'forms' as dependency
+
+  // Load the current published form template (so we know which fields exist)
+  useEffect(() => {
+    fetch("/api/form-template")
+      .then((r) => (r.ok ? r.json() : { fields: [] }))
+      .then((data) => setTemplateFields(data.fields || []))
+      .catch(() => setTemplateFields([]));
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(
+      "dashboard-visible-columns",
+      JSON.stringify(visibleColumns)
+    );
+  }, [visibleColumns]);
 
   useEffect(() => {
     fetchForms();
-  }, []);
+  }, [fetchForms]);
 
   useEffect(() => {
     setCurrentPage(1);
   }, [search, selectedUser]);
-
-  const fetchForms = async () => {
-    try {
-      setIsLoading(true);
-      const res = await fetch("/api/forms", {
-        method: "GET",
-        headers: { "Cache-Control": "no-cache" },
-      });
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        if (errorData.limitReached) {
-          toast({
-            title: "Limit Reached",
-            description:
-              errorData.message ||
-              "Form submission limit reached. Please upgrade your plan.",
-            variant: "destructive",
-          });
-          setForms([]);
-          extractUniqueUsers([]);
-          return;
-        }
-        throw new Error(`Failed to fetch forms: ${res.status}`);
-      }
-      const data = await res.json();
-      const fetchedForms = data.forms || data || [];
-      setForms(fetchedForms);
-      extractUniqueUsers(fetchedForms);
-    } catch (error) {
-      console.error("Error fetching forms:", error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch forms.",
-        variant: "destructive",
-      });
-      setForms([]);
-      extractUniqueUsers([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const extractUniqueUsers = (data: FormData[] = forms) => {
     if (!data || data.length === 0) return setUsers([]);
@@ -115,14 +650,52 @@ export function AdminDashboard() {
     setUsers(Array.from(usersMap.values()));
   };
 
-  // --------------------------------------------------------------------- //
-  //  NEW: EXCEL DOWNLOAD FUNCTION
-  // --------------------------------------------------------------------- //
+
+  // Auto-refresh when OCR is in progress
+useEffect(() => {
+  const hasPendingOCR = forms.some(f =>
+    ["PENDING", "PROCESSING"].includes(f.extractionStatus || "")
+  );
+
+  if (!hasPendingOCR) return;
+
+  // Start polling
+// FINAL: Refresh only ONCE after 12 seconds
+useEffect(() => {
+  const hasPendingOCR = forms.some(f =>
+    ["PENDING", "PROCESSING"].includes(f.extractionStatus || "")
+  );
+
+  if (!hasPendingOCR) return;
+
+  // Clear any old timer
+  if ((window as any)._ocrCheckTimer) {
+    clearTimeout((window as any)._ocrCheckTimer);
+  }
+
+  // Set new one-time check
+  (window as any)._ocrCheckTimer = setTimeout(() => {
+    fetchForms(true);
+    toast({
+      title: "Data Updated",
+      description: "OCR completed and data is now visible!",
+      duration: 5000,
+    });
+  }, 12000); // 12 seconds after upload
+
+  return () => {
+    clearTimeout((window as any)._ocrCheckTimer);
+    (window as any)._ocrCheckTimer = null;
+  };
+}, [forms, fetchForms, toast]);
+
+  return () => clearInterval(interval);
+}, [forms, fetchForms]);
+
   const handleDownloadExcel = async () => {
     try {
       setIsDownloading(true);
 
-      // Get filtered data (same as table)
       const filteredData = forms.filter((form) => {
         if (selectedUser !== "all" && form.userId !== selectedUser)
           return false;
@@ -154,93 +727,72 @@ export function AdminDashboard() {
         return;
       }
 
-      // Transform data for Excel
       const excelData = filteredData.map((form) => ({
         "Card Image": form.cardFrontPhoto || "",
         "Card No": form.cardNo || "",
-        "Sales Person": form.salesPerson || "",
         Date: form.date ? new Date(form.date).toLocaleDateString() : "",
         "User Email": form.user?.email || "",
-        "Company Name": form.mergedData?.companyName || "",
+        "Company Name":
+          form.extractedData?.companyName || form.mergedData?.companyName || "",
         "Contact Name": form.mergedData?.name || "",
-        "Contact Email": form.mergedData?.email || "",
-        "Contact Numbers": form.mergedData?.contactNumbers || "",
-        Country: form.country || "",
+        "Contact Email": form.extractedData?.email || "",
+        "Contact Number": form.extractedData?.contactNumbers || "",
+        Address: form.extractedData?.address || "",
+        Website: form.extractedData?.website || "",
+        Country: form.extractedData?.country || "",
+        City: form.extractedData?.city || "",
+        State: form.extractedData?.state || "",
         "Lead Status": form.leadStatus || "",
-        "Deal Status": form.dealStatus || "",
         "Meeting After Exhibition": form.meetingAfterExhibition ? "Yes" : "No",
-        "Form Status": form.status || "",
-        "Extraction Status": form.extractionStatus || "",
-        "Zoho Status": form.zohoStatus || "",
-        "Industry Categories": Array.isArray(form.industryCategories)
-          ? form.industryCategories.join(", ")
-          : form.industryCategories || "",
         Description: form.description || "",
-        "Created At": form.createdAt
-          ? new Date(form.createdAt).toLocaleString()
-          : "",
-        "Updated At": form.updatedAt
-          ? new Date(form.updatedAt).toLocaleString()
-          : "",
-        "Form ID": form.id || "",
-        "User ID": form.userId || "",
         "Card Back Image": form.cardBackPhoto || "",
+        // All custom fields from the form builder
+        ...form.additionalData,
       }));
 
-      // Create workbook and worksheet
       const workbook = XLSX.utils.book_new();
       const worksheet = XLSX.utils.json_to_sheet(excelData);
+      worksheet["!cols"] = Array(23).fill({ wch: 20 });
 
-      // Auto-size columns
-      const colWidths = [
-        { wch: 15 }, // Card Image
-        { wch: 12 }, // Card No
-        { wch: 15 }, // Sales Person
-        { wch: 12 }, // Date
-        { wch: 25 }, // User Email
-        { wch: 25 }, // Company Name
-        { wch: 20 }, // Contact Name
-        { wch: 25 }, // Contact Email
-        { wch: 20 }, // Contact Numbers
-        { wch: 12 }, // Country
-        { wch: 12 }, // Lead Status
-        { wch: 12 }, // Deal Status
-        { wch: 22 }, // Meeting After Exhibition
-        { wch: 12 }, // Form Status
-        { wch: 18 }, // Extraction Status
-        { wch: 12 }, // Zoho Status
-        { wch: 20 }, // Industry Categories
-        { wch: 30 }, // Description
-        { wch: 18 }, // Created At
-        { wch: 18 }, // Updated At
-        { wch: 20 }, // Form ID
-        { wch: 20 }, // User ID
-        { wch: 15 }, // Card Back Image
-      ];
-      worksheet["!cols"] = colWidths;
-
-      // Add worksheet to workbook
       XLSX.utils.book_append_sheet(workbook, worksheet, "Business Cards");
 
-      // Generate filename with timestamp
+      // THIS IS THE FIX FOR iPHONE
+      const excelBuffer = XLSX.write(workbook, {
+        bookType: "xlsx",
+        type: "array",
+      });
+      const data = new Blob([excelBuffer], {
+        type: "application/octet-stream",
+      });
+      const url = window.URL.createObjectURL(data);
       const timestamp = new Date()
         .toISOString()
         .slice(0, 19)
         .replace(/:/g, "-");
-      const filename = `Business_Cards_${timestamp}.xlsx`;
+      const filename = `Business_Cards_${new Date()
+        .toISOString()
+        .slice(0, 10)}.xlsx`;
 
-      // Download file
-      XLSX.writeFile(workbook, filename);
+      // iOS Safari fix: Open in new tab + auto-click
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      link.target = "_blank"; // Critical for iOS
+      link.rel = "noopener";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
 
       toast({
-        title: "Download Complete",
-        description: `${filteredData.length} records exported to Excel successfully!`,
+        title: "Download Started",
+        description: `Excel file is downloading...`,
       });
     } catch (error) {
-      console.error("Error downloading Excel:", error);
+      console.error("Excel export failed:", error);
       toast({
         title: "Export Failed",
-        description: "Failed to download Excel file.",
+        description: "Could not generate Excel file.",
         variant: "destructive",
       });
     } finally {
@@ -256,15 +808,9 @@ export function AdminDashboard() {
         variant: "destructive",
       });
     }
-    if (
-      !confirm(
-        "Are you sure you want to delete this record? This action cannot be undone."
-      )
-    )
-      return;
     try {
       setIsLoading(true);
-      const res = await fetch(`/api/forms/${encodeURIComponent(id)}`, {
+      const res = await fetch(`/api/forms/${id}`, {
         method: "DELETE",
       });
       if (!res.ok) {
@@ -305,12 +851,32 @@ export function AdminDashboard() {
 
   const handleUpdate = useCallback(
     async (updatedData: any, formId: string, closeDialog: () => void) => {
+      const coreFields = [
+        "cardNo",
+        "salesPerson",
+        "date",
+        "country",
+        "cardFrontPhoto",
+        "cardBackPhoto",
+        "leadStatus",
+        "dealStatus",
+        "meetingAfterExhibition",
+        "description",
+        "extractionStatus",
+      ];
+
       const submissionData = {
         ...updatedData,
         date: updatedData.date
           ? new Date(updatedData.date).toISOString()
           : undefined,
+        additionalData: Object.fromEntries(
+          Object.entries(updatedData).filter(
+            ([key]) => !coreFields.includes(key)
+          )
+        ),
       };
+
       try {
         const res = await fetch(`/api/forms/${encodeURIComponent(formId)}`, {
           method: "PATCH",
@@ -325,9 +891,16 @@ export function AdminDashboard() {
           );
         }
 
-        const responseData = await res.json();
         setForms((prev) =>
-          prev.map((f) => (f.id === formId ? { ...f, ...submissionData } : f))
+          prev.map((f) =>
+            f.id === formId
+              ? {
+                  ...f,
+                  ...submissionData,
+                  additionalData: submissionData.additionalData,
+                }
+              : f
+          )
         );
 
         toast({
@@ -367,18 +940,21 @@ export function AdminDashboard() {
           );
         }
 
-        const responseData = await res.json();
+        // FIXED: Immediately update local state with the new extractedData
         setForms((prev) =>
           prev.map((f) =>
             f.id === formId ? { ...f, extractedData: updatedData } : f
           )
         );
+
         toast({
           title: "Extracted Data Updated",
           description: "Changes saved successfully!",
         });
         closeDialog();
-        fetchForms();
+
+        // FIXED: Refetch to ensure consistency, but local update ensures immediate UI refresh
+        setTimeout(() => fetchForms(), 500); // Small delay to avoid race condition
       } catch (err) {
         console.error("Error updating extracted data:", err);
         toast({
@@ -394,24 +970,31 @@ export function AdminDashboard() {
     [toast, fetchForms]
   );
 
-  const filteredForms = forms.filter((form) => {
-    if (selectedUser !== "all" && form.userId !== selectedUser) return false;
-    const q = search.toLowerCase();
-    return (
-      (form.cardNo || "").toLowerCase().includes(q) ||
-      (form.country || "").toLowerCase().includes(q) ||
-      (form.salesPerson || "").toLowerCase().includes(q) ||
-      ((form.mergedData?.companyName || "") as string)
-        .toLowerCase()
-        .includes(q) ||
-      ((form.mergedData?.name || "") as string).toLowerCase().includes(q) ||
-      ((form.mergedData?.email || "") as string).toLowerCase().includes(q) ||
-      ((form.mergedData?.contactNumbers || "") as string)
-        .toLowerCase()
-        .includes(q) ||
-      ((form.user?.email || "") as string).toLowerCase().includes(q)
-    );
-  });
+  const filteredForms = useMemo(
+    () =>
+      forms.filter((form) => {
+        if (selectedUser !== "all" && form.userId !== selectedUser)
+          return false;
+        const q = search.toLowerCase();
+        return (
+          (form.cardNo || "").toLowerCase().includes(q) ||
+          (form.country || "").toLowerCase().includes(q) ||
+          (form.salesPerson || "").toLowerCase().includes(q) ||
+          ((form.mergedData?.companyName || "") as string)
+            .toLowerCase()
+            .includes(q) ||
+          ((form.mergedData?.name || "") as string).toLowerCase().includes(q) ||
+          ((form.mergedData?.email || "") as string)
+            .toLowerCase()
+            .includes(q) ||
+          ((form.mergedData?.contactNumbers || "") as string)
+            .toLowerCase()
+            .includes(q) ||
+          ((form.user?.email || "") as string).toLowerCase().includes(q)
+        );
+      }),
+    [forms, search, selectedUser]
+  );
 
   const totalPages = Math.ceil(filteredForms.length / itemsPerPage);
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -450,12 +1033,10 @@ export function AdminDashboard() {
     };
 
     const handleSubmit = () => {
-      const updatedData = { ...form.extractedData, ...formData };
-      disabledFields.forEach((field) => {
-        if (form.extractedData?.[field] !== undefined) {
-          updatedData[field] = form.extractedData[field];
-        }
-      });
+      // FIXED: Simplify - use formData directly as it's the updated state
+      // No need to merge with original or override disabled (since disabled aren't changed)
+      const updatedData = { ...formData };
+
       if (form.id) {
         handleExtractedDataUpdate(updatedData, form.id, closeDialog);
       }
@@ -463,17 +1044,13 @@ export function AdminDashboard() {
 
     return (
       <div className="space-y-4">
-        {Object.entries(form.extractedData || {}).map(([key, value]) => (
+        {Object.entries(form.extractedData || {}).map(([key]) => (
           <div key={key} className="flex flex-col gap-2">
             <label className="text-sm font-medium">
               {key.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
             </label>
             <Input
-              value={
-                formData[key as keyof typeof formData] ??
-                (value as string) ??
-                ""
-              }
+              value={formData[key] || ""}
               onChange={(e) => handleChange(key, e.target.value)}
               className="w-full"
               disabled={disabledFields.includes(key)}
@@ -490,7 +1067,7 @@ export function AdminDashboard() {
             Cancel
           </Button>
           <Button
-            className="bg-[#62588b] hover:bg-[#31294e]"
+            className="bg-[#62588b] hover:bg-[#31294e] text-white"
             onClick={handleSubmit}
             disabled={
               !hasChanges || Object.keys(form.extractedData || {}).length === 0
@@ -507,17 +1084,19 @@ export function AdminDashboard() {
     const [view, setView] = useState<"raw" | "table">("table");
 
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Merged Information</CardTitle>
+      <Card className="bg-white dark:bg-gray-800 border border-[#e5e2f0] dark:border-gray-700 shadow-sm">
+        <CardHeader className="border-b border-[#e5e2f0] dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+          <CardTitle className="text-[#2d2a4a] dark:text-white">
+            Merged Information
+          </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <div className="flex gap-2 mb-4">
             <Button
               className={
                 view === "raw"
                   ? "bg-[#62588b] hover:bg-[#31294e] text-white"
-                  : ""
+                  : "border-[#483d73] text-[#483d73] hover:bg-[#f3f1f8] dark:hover:bg-gray-700"
               }
               variant={view === "raw" ? "default" : "outline"}
               onClick={() => setView("raw")}
@@ -528,7 +1107,7 @@ export function AdminDashboard() {
               className={
                 view === "table"
                   ? "bg-[#62588b] hover:bg-[#31294e] text-white"
-                  : ""
+                  : "border-[#483d73] text-[#483d73] hover:bg-[#f3f1f8] dark:hover:bg-gray-700"
               }
               variant={view === "table" ? "default" : "outline"}
               onClick={() => setView("table")}
@@ -536,9 +1115,10 @@ export function AdminDashboard() {
               Table Data
             </Button>
           </div>
+
           {view === "raw" ? (
-            <ScrollArea className="h-[calc(90vh-200px)] bg-muted p-4 rounded-md">
-              <pre className="text-sm whitespace-pre-wrap">
+            <ScrollArea className="h-[calc(90vh-200px)] bg-muted dark:bg-gray-900 p-4 rounded-md border border-[#e5e2f0] dark:border-gray-700">
+              <pre className="text-sm whitespace-pre-wrap text-gray-800 dark:text-gray-300 font-mono">
                 {formatData(data)}
               </pre>
             </ScrollArea>
@@ -547,23 +1127,26 @@ export function AdminDashboard() {
               <table className="w-full text-sm border-collapse">
                 <thead>
                   <tr>
-                    <th className="bg-gray-100 py-2 px-2 border text-left w-1/2">
+                    <th className="bg-gray-100 dark:bg-gray-700 py-2 px-2 border border-[#e5e2f0] dark:border-gray-600 text-left w-1/2 font-medium text-[#2d2a4a] dark:text-gray-200">
                       Field
                     </th>
-                    <th className="bg-gray-100 py-2 px-2 border text-left w-1/2">
+                    <th className="bg-gray-100 dark:bg-gray-700 py-2 px-2 border border-[#e5e2f0] dark:border-gray-600 text-left w-1/2 font-medium text-[#2d2a4a] dark:text-gray-200">
                       Value
                     </th>
                   </tr>
                 </thead>
                 <tbody>
                   {Object.entries(data).map(([key, value]) => (
-                    <tr key={key}>
-                      <td className="py-1 px-2 border w-1/2 whitespace-normal break-words ">
+                    <tr
+                      key={key}
+                      className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition"
+                    >
+                      <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words text-gray-800 dark:text-gray-200">
                         {key
                           .replace(/_/g, " ")
                           .replace(/\b\w/g, (l) => l.toUpperCase())}
                       </td>
-                      <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
+                      <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words text-gray-700 dark:text-gray-300">
                         {typeof value === "object" && value !== null
                           ? JSON.stringify(value, null, 2)
                           : String(value ?? "N/A")}
@@ -584,17 +1167,19 @@ export function AdminDashboard() {
     const mergedData = data.mergedData;
 
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Form Details</CardTitle>
+      <Card className="bg-white dark:bg-gray-800 border border-[#e5e2f0] dark:border-gray-700 shadow-sm">
+        <CardHeader className="border-b border-[#e5e2f0] dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+          <CardTitle className="text-[#2d2a4a] dark:text-white">
+            Form Details
+          </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <div className="flex gap-2 mb-4">
             <Button
               className={
                 view === "raw"
                   ? "bg-[#62588b] hover:bg-[#31294e] text-white"
-                  : ""
+                  : "border-[#483d73] text-[#483d73] hover:bg-[#f3f1f8] dark:hover:bg-gray-700"
               }
               variant={view === "raw" ? "default" : "outline"}
               onClick={() => setView("raw")}
@@ -605,7 +1190,7 @@ export function AdminDashboard() {
               className={
                 view === "table"
                   ? "bg-[#62588b] hover:bg-[#31294e] text-white"
-                  : ""
+                  : "border-[#483d73] text-[#483d73] hover:bg-[#f3f1f8] dark:hover:bg-gray-700"
               }
               variant={view === "table" ? "default" : "outline"}
               onClick={() => setView("table")}
@@ -613,9 +1198,10 @@ export function AdminDashboard() {
               Table Data
             </Button>
           </div>
+
           {view === "raw" ? (
-            <ScrollArea className="h-[calc(90vh-200px)] bg-muted p-4 rounded-md">
-              <pre className="text-sm whitespace-pre-wrap">
+            <ScrollArea className="h-[calc(90vh-200px)] bg-muted dark:bg-gray-900 p-4 rounded-md border border-[#e5e2f0] dark:border-gray-700">
+              <pre className="text-sm whitespace-pre-wrap text-gray-800 dark:text-gray-300 font-mono">
                 {formatData(data)}
               </pre>
             </ScrollArea>
@@ -624,28 +1210,27 @@ export function AdminDashboard() {
               <table className="w-full text-sm border-collapse">
                 <thead>
                   <tr>
-                    <th className="bg-gray-100 py-2 px-2 border text-left w-1/2">
+                    <th className="bg-gray-100 dark:bg-gray-700 py-2 px-2 border border-[#e5e2f0] dark:border-gray-600 text-left w-1/2 font-medium text-[#2d2a4a] dark:text-gray-200">
                       Field
                     </th>
-                    <th className="bg-gray-100 py-2 px-2 border text-left w-1/2">
+                    <th className="bg-gray-100 dark:bg-gray-700 py-2 px-2 border border-[#e5e2f0] dark:border-gray-600 text-left w-1/2 font-medium text-[#2d2a4a] dark:text-gray-200">
                       Value
                     </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {/* FIRST ROW: Card Image */}
-                  <tr>
-                    <td className="py-1 px-2 border w-1/2 whitespace-normal break-words font-medium">
+                  <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
+                    <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words font-medium text-[#2d2a4a] dark:text-white">
                       Card Image
                     </td>
-                    <td className="py-1 px-2 border w-1/2">
+                    <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2">
                       {data.cardFrontPhoto ? (
                         <button
                           onClick={() => setZoomedImage(data.cardFrontPhoto!)}
                           className="group relative block"
                         >
                           <img
-                            src={data.cardFrontPhoto}
+                            src={data.cardFrontPhoto || "/placeholder.svg"}
                             alt="Card"
                             className="max-w-32 max-h-20 object-contain rounded border transition group-hover:opacity-80"
                           />
@@ -654,121 +1239,149 @@ export function AdminDashboard() {
                           </div>
                         </button>
                       ) : (
-                        <span className="text-muted-foreground text-xs">
+                        <span className="text-muted-foreground dark:text-gray-500 text-xs">
                           No image
                         </span>
                       )}
                     </td>
                   </tr>
 
-                  <tr>
-                    <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
+                  <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
+                    <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words text-[#2d2a4a] dark:text-gray-300">
                       Card No
                     </td>
-                    <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
+                    <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words text-gray-800 dark:text-gray-200">
                       {data.cardNo ?? "N/A"}
                     </td>
                   </tr>
-                  <tr>
-                    <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
+                  <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
+                    <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words text-[#2d2a4a] dark:text-gray-300">
                       Sales Person
                     </td>
-                    <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
+                    <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words text-gray-800 dark:text-gray-200">
                       {data.salesPerson ?? "N/A"}
                     </td>
                   </tr>
-                  <tr>
-                    <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
+                  <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
+                    <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words text-[#2d2a4a] dark:text-gray-300">
                       Date
                     </td>
-                    <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
+                    <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words text-gray-800 dark:text-gray-200">
                       {data.date
                         ? new Date(data.date).toLocaleDateString()
                         : "N/A"}
                     </td>
                   </tr>
-                  <tr>
-                    <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
+                  <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
+                    <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words text-[#2d2a4a] dark:text-gray-300">
                       User
                     </td>
-                    <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
+                    <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words text-gray-800 dark:text-gray-200">
                       {data.user?.email || "N/A"}
                     </td>
                   </tr>
-                  <tr>
-                    <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
+                  <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
+                    <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words text-[#2d2a4a] dark:text-gray-300">
                       Company
                     </td>
-                    <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
-                      <div className="font-medium">
+                    <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words">
+                      <div className="font-medium text-gray-900 dark:text-white">
                         {mergedData?.companyName || "N/A"}
                       </div>
-                      <div className="text-[10px] text-muted-foreground">
+                      <div className="text-[10px] text-muted-foreground dark:text-gray-500">
                         {mergedData?.name || "No contact"}
                       </div>
                     </td>
                   </tr>
-                  <tr>
-                    <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
+                  <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
+                    <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words text-[#2d2a4a] dark:text-gray-300">
                       Contact Info
                     </td>
-                    <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
-                      {mergedData?.email && <div>{mergedData.email}</div>}
+                    <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words">
+                      {mergedData?.email && (
+                        <div className="text-gray-800 dark:text-gray-200">
+                          {mergedData.email}
+                        </div>
+                      )}
                       {mergedData?.contactNumbers && (
-                        <div className="text-[10px] text-muted-foreground">
+                        <div className="text-[10px] text-muted-foreground dark:text-gray-500">
                           {mergedData.contactNumbers.split(",")[0]}
                         </div>
                       )}
                     </td>
                   </tr>
-                  <tr>
-                    <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
+                  <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
+                    <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words text-[#2d2a4a] dark:text-gray-300">
                       Lead Status
                     </td>
-                    <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
+                    <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words text-gray-800 dark:text-gray-200">
                       {data.leadStatus ?? "N/A"}
                     </td>
                   </tr>
-                  <tr>
-                    <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
+                  <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
+                    <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words text-[#2d2a4a] dark:text-gray-300">
                       Deal Status
                     </td>
-                    <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
+                    <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words text-gray-800 dark:text-gray-200">
                       {data.dealStatus ?? "N/A"}
                     </td>
                   </tr>
-                  <tr>
-                    <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
+                  <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
+                    <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words text-[#2d2a4a] dark:text-gray-300">
                       Meeting
                     </td>
-                    <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
+                    <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words text-gray-800 dark:text-gray-200">
                       {data.meetingAfterExhibition ? "Yes" : "No"}
                     </td>
                   </tr>
-                  <tr>
-                    <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
+                  <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
+                    <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words text-[#2d2a4a] dark:text-gray-300">
                       Form Status
                     </td>
-                    <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
+                    <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words text-gray-800 dark:text-gray-200">
                       {data.status ?? "N/A"}
                     </td>
                   </tr>
-                  <tr>
-                    <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
+                  <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
+                    <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words text-[#2d2a4a] dark:text-gray-300">
                       Extraction Status
                     </td>
-                    <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
+                    <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words text-gray-800 dark:text-gray-200">
                       {data.extractionStatus ?? "N/A"}
                     </td>
                   </tr>
-                  <tr>
-                    <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
-                      Zoho Status
-                    </td>
-                    <td className="py-1 px-2 border w-1/2 whitespace-normal break-words">
-                      {data.zohoStatus ?? "N/A"}
-                    </td>
-                  </tr>
+
+                  {/* Dynamic Fields */}
+                  {data.additionalData &&
+                    Object.keys(data.additionalData).length > 0 && (
+                      <>
+                        <tr>
+                          <td
+                            colSpan={2}
+                            className="py-2 px-2 border border-[#e5e2f0] dark:border-gray-700 bg-gray-50 dark:bg-gray-900 font-medium text-sm text-[#2d2a4a] dark:text-white"
+                          >
+                            Custom Fields
+                          </td>
+                        </tr>
+                        {Object.entries(data.additionalData).map(
+                          ([key, value]) => (
+                            <tr
+                              key={key}
+                              className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition"
+                            >
+                              <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words text-[#2d2a4a] dark:text-gray-300">
+                                {key
+                                  .replace(/_/g, " ")
+                                  .replace(/\b\w/g, (l) => l.toUpperCase())}
+                              </td>
+                              <td className="py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 w-1/2 whitespace-normal break-words text-gray-800 dark:text-gray-200">
+                                {String(value ?? "N/A")}
+                              </td>
+                            </tr>
+                          )
+                        )}
+                      </>
+                    )}
                 </tbody>
               </table>
             </ScrollArea>
@@ -786,304 +1399,537 @@ export function AdminDashboard() {
     : null;
 
   return (
-    <div className="space-y-4 px-2 sm:px-4">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <Input
-          placeholder="Search forms..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full sm:w-64"
-        />
-        <div className="flex items-center gap-2">
-          <Select value={selectedUser} onValueChange={setSelectedUser}>
-            <SelectTrigger className="w-full sm:w-[200px]">
-              <SelectValue placeholder="Filter by user" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Users</SelectItem>
-              {users.map((u) => (
-                <SelectItem key={u.id} value={u.id}>
-                  {u.email}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          {/* REPLACED: Download Excel Button */}
-          <Button
-            onClick={handleDownloadExcel}
-            disabled={isDownloading || filteredForms.length === 0}
-            className="bg-[#483d73] hover:bg-[#31294e] text-white"
+    <div className="space-y-6 px-2 sm:px-4 py-6 bg-[#f3f1f8] dark:bg-gray-900 min-h-screen">
+      <Tabs defaultValue="overview" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 bg-white dark:bg-gray-800 border-b border-[#e5e2f0] dark:border-gray-700">
+          <TabsTrigger
+            value="overview"
+            className="data-[state=active]:bg-[#483d73] data-[state=active]:text-white"
           >
-            {isDownloading ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Exporting...
-              </>
-            ) : (
-              <>
-                <Download className="h-4 w-4 mr-2" />
-                Download Excel ({filteredForms.length})
-              </>
-            )}
-          </Button>
-        </div>
-      </div>
+            Dashboard Overview
+          </TabsTrigger>
+          <TabsTrigger
+            value="data"
+            className="data-[state=active]:bg-[#483d73] data-[state=active]:text-white"
+          >
+            Card Data
+          </TabsTrigger>
+        </TabsList>
 
-      <Card>
-        <CardContent className="p-0 mt-8">
-          <div className="w-full h-[30rem] flex flex-col">
-            <div className="w-full overflow-auto">
-              <table className="w-full text-sm border-collapse table-fixed min-w-[1350px]">
-                <thead className="sticky top-0 z-10">
-                  <tr>
-                    {/* FIRST COLUMN: Card Image */}
-                    <th className="bg-gray-100 py-2 px-2 border w-24">
-                      Card Image
-                    </th>
-                    <th className="bg-gray-100 py-2 px-2 border w-24">
-                      Card No
-                    </th>
-                    <th className="bg-gray-100 py-2 px-2 border w-28">
-                      Sales Person
-                    </th>
-                    <th className="bg-gray-100 py-2 px-2 border w-24">Date</th>
-                    <th className="bg-gray-100 py-2 px-2 border w-40">User</th>
-                    <th className="bg-gray-100 py-2 px-2 border w-32">
-                      Company
-                    </th>
-                    <th className="bg-gray-100 py-2 px-2 border w-32">
-                      Contact Info
-                    </th>
-                    <th className="bg-gray-100 py-2 px-2 border w-24">
-                      Lead Status
-                    </th>
-                    <th className="bg-gray-100 py-2 px-2 border w-24">
-                      Deal Status
-                    </th>
-                    <th className="bg-gray-100 py-2 px-2 border w-20">
-                      Meeting
-                    </th>
-                    <th className="bg-gray-100 py-2 px-2 border w-24">
-                      Form Status
-                    </th>
-                    <th className="bg-gray-100 py-2 px-2 border w-32">
-                      Extraction Status
-                    </th>
-                    <th className="bg-gray-100 py-2 px-2 border w-24">
-                      Zoho Status
-                    </th>
-                    <th className="bg-gray-100 py-2 px-2 border w-24">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {currentItems.length > 0 ? (
-                    currentItems
-                      .filter((form) => form.id) // Filter out forms without id
-                      .map((form) => {
-                        const mergedData = form.mergedData;
-                        return (
-                          <tr
-                            key={form.id!}
-                            className="text-xs hover:bg-gray-50"
-                          >
-                            {/* FIRST: Card Image */}
-                            <td className="py-1 px-2 border">
-                              {form.cardFrontPhoto ? (
-                                <button
-                                  onClick={() =>
-                                    setZoomedImage(form.cardFrontPhoto!)
-                                  }
-                                  className="group"
-                                >
-                                  <img
-                                    src={form.cardFrontPhoto}
-                                    alt="Card"
-                                    className="max-w-20 h-12 object-cover rounded border transition group-hover:opacity-80"
-                                  />
-                                </button>
-                              ) : (
-                                <span className="text-[10px] text-muted-foreground">
-                                  —
-                                </span>
-                              )}
-                            </td>
-                            <td className="py-1 px-2 border truncate">
-                              {form.cardNo ?? "N/A"}
-                            </td>
-                            <td className="py-1 px-2 border truncate">
-                              {form.salesPerson ?? "N/A"}
-                            </td>
-                            <td className="py-1 px-2 border truncate">
-                              {form.date
-                                ? new Date(form.date).toLocaleDateString()
-                                : "N/A"}
-                            </td>
-                            <td className="py-1 px-2 border truncate">
-                              {form.user?.email || "N/A"}
-                            </td>
-                            <td className="py-1 px-2 border">
-                              <div className="truncate font-medium">
-                                {mergedData?.companyName || "N/A"}
-                              </div>
-                              <div className="text-[10px] text-muted-foreground truncate">
-                                {mergedData?.name || "No contact"}
-                              </div>
-                            </td>
-                            <td className="py-1 px-2 border">
-                              {mergedData?.email && (
-                                <div className="truncate">
-                                  {mergedData.email}
-                                </div>
-                              )}
-                              {mergedData?.contactNumbers && (
-                                <div className="text-[10px] text-muted-foreground truncate">
-                                  {mergedData.contactNumbers.split(",")[0]}
-                                </div>
-                              )}
-                            </td>
-                            <td className="py-1 px-2 border truncate">
-                              {form.leadStatus ?? "N/A"}
-                            </td>
-                            <td className="py-1 px-2 border truncate">
-                              {form.dealStatus ?? "N/A"}
-                            </td>
-                            <td className="py-1 px-2 border truncate">
-                              {form.meetingAfterExhibition ? "Yes" : "No"}
-                            </td>
-                            <td className="py-1 px-2 border truncate">
-                              {form.status ?? "N/A"}
-                            </td>
-                            <td className="py-1 px-2 border truncate">
-                              {form.extractionStatus ?? "N/A"}
-                            </td>
-                            <td className="py-1 px-2 border truncate">
-                              {form.zohoStatus ?? "N/A"}
-                            </td>
-                            <td className="py-1 px-2 border">
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-6 w-6 text-[10px]"
-                                  >
-                                    <span className="sr-only">Open menu</span>
-                                    <MoreHorizontal className="h-3 w-3" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem
-                                    onClick={() => setOpenView(form.id!)}
-                                  >
-                                    <Eye className="mr-2 h-3 w-3" /> View
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={() => setOpenEdit(form.id!)}
-                                  >
-                                    <Edit className="mr-2 h-3 w-3" /> Edit
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={() => handleDelete(form.id!)}
-                                    className="focus:bg-destructive focus:text-destructive-foreground"
-                                  >
-                                    <Trash className="mr-2 h-3 w-3" /> Delete
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </td>
-                          </tr>
-                        );
-                      })
-                  ) : (
-                    <tr>
-                      <td colSpan={14} className="py-4 text-center border">
-                        {isLoading ? "Loading..." : "No forms found"}
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+        <TabsContent value="overview" className="space-y-6">
+          <DashboardOverview forms={forms} />
+        </TabsContent>
 
-            {/* Pagination */}
-            <div className="flex justify-between items-center mt-2">
-              <div className="flex gap-2 items-center">
-                <Button
-                  className="bg-[#483d73] hover:bg-[#31294e]"
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                >
-                  Prev
-                </Button>
-                <span>
-                  Page {currentPage} of {totalPages}
-                </span>
-                <Button
-                  className="bg-[#483d73] hover:bg-[#31294e]"
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                >
-                  Next
-                </Button>
-              </div>
-              <Select
-                value={String(itemsPerPage)}
-                onValueChange={handleItemsPerPageChange}
-              >
-                <SelectTrigger className="w-[80px]">
-                  <SelectValue />
+        <TabsContent value="data" className="space-y-4">
+          {/* ------------------- MOBILE VERSION ------------------- */}
+          <div className="sm:hidden flex flex-col gap-3">
+            <div className="flex w-full gap-2">
+              <Input
+                placeholder="Search forms..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="flex-1 h-9 px-2 text-sm bg-white dark:bg-gray-800 border-[#e5e2f0] dark:border-gray-700"
+              />
+              <Select value={selectedUser} onValueChange={setSelectedUser}>
+                <SelectTrigger className="h-9 px-2 text-sm w-32 bg-white dark:bg-gray-800 border-[#e5e2f0] dark:border-gray-700">
+                  <SelectValue placeholder="Users" />
                 </SelectTrigger>
                 <SelectContent>
-                  {[5, 10, 20, 50].map((num) => (
-                    <SelectItem key={num} value={String(num)}>
-                      {num}
+                  <SelectItem value="all">All Users</SelectItem>
+                  {users.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.email}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="flex w-full gap-2">
+              <Button
+                onClick={handleDownloadExcel}
+                disabled={isDownloading || filteredForms.length === 0}
+                className="flex-1 h-9 px-2 text-xs bg-[#483d73] hover:bg-[#352c55] text-white"
+              >
+                {isDownloading ? (
+                  <>
+                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                    Export
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-3.5 w-3.5 mr-1" />
+                    Download Excel ({filteredForms.length})
+                  </>
+                )}
+              </Button>
+
+              <Button
+                variant="outline"
+                onClick={() => setShowManage(true)}
+                className="flex-1 h-9 px-2 text-xs border-[#483d73] text-[#483d73] hover:bg-[#483d73]/10 dark:hover:bg-gray-700"
+              >
+                Manage Columns
+              </Button>
+            </div>
           </div>
-        </CardContent>
-      </Card>
+
+          {/* ------------------- DESKTOP VERSION ------------------- */}
+          <div className="hidden sm:flex flex-row justify-between items-center gap-3">
+            <Input
+              placeholder="Search forms..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-64 h-9 bg-white dark:bg-gray-800 border-[#e5e2f0] dark:border-gray-700"
+            />
+
+            <div className="flex items-center gap-2">
+              <Select value={selectedUser} onValueChange={setSelectedUser}>
+                <SelectTrigger className="w-48 text-xs h-9 bg-white dark:bg-gray-800 border-[#e5e2f0] dark:border-gray-700">
+                  <SelectValue placeholder="All Users" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Users</SelectItem>
+                  {users.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.email}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Button
+                onClick={handleDownloadExcel}
+                disabled={isDownloading || filteredForms.length === 0}
+                size="sm"
+                className="h-9 px-3 text-xs bg-[#483d73] hover:bg-[#352c55] text-white"
+              >
+                {isDownloading ? (
+                  <>
+                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                    Exporting...
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-3.5 w-3.5 mr-1" />
+                    Download Excel ({filteredForms.length})
+                  </>
+                )}
+              </Button>
+
+              <Button
+                variant="outline"
+                onClick={() => setShowManage(true)}
+                className="bg-[#483d73] hover:bg-[#31294e] text-white hover:text-white h-9 px-3 text-xs"
+              >
+                Manage Columns
+              </Button>
+            </div>
+          </div>
+
+          {/* ------------------- TABLE + PAGINATION ------------------- */}
+          <Card className="bg-white dark:bg-gray-800 shadow-lg border-none">
+            <CardContent className="p-0 mt-8">
+              <div className="w-full h-[30rem] flex flex-col">
+                <div className="w-full overflow-auto">
+                  <table className="w-full text-sm border-collapse table-fixed min-w-[1350px]">
+                    <thead className="sticky top-0 z-10 bg-gray-100 dark:bg-gray-800">
+                      <tr>
+                        {displayColumns.map((colId) => {
+                          const col = possibleColumns.find(
+                            (c) => c.id === colId
+                          );
+                          if (!col) return null;
+                          return (
+                            <th
+                              key={colId}
+                              className={`py-2 px-2 border border-[#e5e2f0] dark:border-gray-700 ${col.width} text-left text-xs font-medium text-gray-700 dark:text-gray-300`}
+                            >
+                              {col.label}
+                            </th>
+                          );
+                        })}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {currentItems.length > 0 ? (
+                        currentItems
+                          .filter((form) => form.id)
+                          .map((form) => (
+                            <tr
+                              key={form.id!}
+                              className="text-xs hover:bg-gray-50 dark:hover:bg-gray-700/50 transition"
+                            >
+                              {displayColumns.map((colId) => {
+                                const col = possibleColumns.find(
+                                  (c) => c.id === colId
+                                );
+                                if (!col) return null;
+                                return (
+                                  <td
+                                    key={colId}
+                                    className={`py-1 px-2 border border-[#e5e2f0] dark:border-gray-700 ${col.width} text-gray-800 dark:text-gray-300`}
+                                  >
+                                    {col.render(form)}
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          ))
+                      ) : (
+                        <tr>
+                          <td
+                            colSpan={displayColumns.length}
+                            className="py-8 text-center border border-[#e5e2f0] dark:border-gray-700 text-gray-600 dark:text-gray-400"
+                          >
+                            {isLoading ? "Loading..." : "No forms found"}
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="flex justify-between items-center mt-2 px-4 py-3 bg-white dark:bg-gray-800 border-t border-[#e5e2f0] dark:border-gray-700">
+                  <div className="flex gap-2 items-center">
+                    <Button
+                      className="bg-[#483d73] hover:bg-[#31294e] text-white"
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={currentPage === 1}
+                    >
+                      Prev
+                    </Button>
+                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                      Page {currentPage} of {totalPages}
+                    </span>
+                    <Button
+                      className="bg-[#483d73] hover:bg-[#31294e] text-white"
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                    >
+                      Next
+                    </Button>
+                  </div>
+
+                  <Select
+                    value={String(itemsPerPage)}
+                    onValueChange={handleItemsPerPageChange}
+                  >
+                    <SelectTrigger className="w-[80px] bg-white dark:bg-gray-800 border-[#e5e2f0] dark:border-gray-700">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[5, 10, 20, 50].map((num) => (
+                        <SelectItem key={num} value={String(num)}>
+                          {num}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Manage Columns Dialog*/}
+<Dialog open={showManage} onOpenChange={setShowManage}>
+  <DialogContent className="max-h-[90vh] max-w-lg bg-white dark:bg-gray-800 border border-[#e5e2f0] dark:border-gray-700">
+    <DialogHeader className="border-b border-[#e5e2f0] dark:border-gray-700 pb-4">
+      <DialogTitle className="text-[#2d2a4a] dark:text-white text-lg font-bold">
+        Manage Dashboard Columns
+      </DialogTitle>
+    </DialogHeader>
+
+    <ScrollArea className="max-h-[60vh] pr-4 py-4">
+      <div className="space-y-8">
+
+        {/* Optional Fields */}
+        <div className=" border-[#e5e2f0] dark:border-gray-700 pt-2">
+          <h4 className="font-bold text-sm mb-4 text-blue-700 dark:text-blue-400">
+            Optional Fields
+          </h4>
+          <div className="space-y-3">
+            {possibleColumns.some((col) => col.id === "description") && (
+              <div className="flex items-center space-x-3">
+                <Checkbox
+                  id="opt-user-desc"
+                  checked={visibleColumns.includes("description")}
+                  onCheckedChange={(checked) => {
+                    setVisibleColumns((prev) =>
+                      checked
+                        ? [...prev, "description"]
+                        : prev.filter((id) => id !== "description")
+                    );
+                  }}
+                />
+                <Label
+                  htmlFor="opt-user-desc"
+                  className="text-sm font-medium text-gray-800 dark:text-gray-200 cursor-pointer"
+                >
+                  Description
+                </Label>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Form Fields (User-Added via Drag & Drop) */}
+        <div className="border-t border-[#e5e2f0] dark:border-gray-700 pt-6">
+          <h4 className="font-bold text-sm mb-4 text-green-700 dark:text-green-400 flex items-center gap-2">
+            Form Fields
+          </h4>
+          {possibleColumns.filter((col) => col.id.startsWith("add_")).length > 0 ? (
+            <div className="grid gap-3">
+              {possibleColumns
+                .filter((col) => col.id.startsWith("add_"))
+                .sort((a, b) => a.label.localeCompare(b.label))
+                .map((col) => (
+                  <div key={col.id} className="flex items-center space-x-3">
+                    <Checkbox
+                      checked={visibleColumns.includes(col.id)}
+                      onCheckedChange={(checked) => {
+                        setVisibleColumns((prev) =>
+                          checked
+                            ? [...prev, col.id]
+                            : prev.filter((id) => id !== col.id)
+                        );
+                      }}
+                    />
+                    <Label className="text-sm font-medium text-gray-800 dark:text-gray-200 cursor-pointer">
+                      {col.label}
+                    </Label>
+                  </div>
+                ))}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500 dark:text-gray-400 italic">
+              No custom fields added yet
+            </p>
+          )}
+        </div>
+
+        {/* Extracted Fields (Only the 4 you want) */}
+        <div className="border-t border-[#e5e2f0] dark:border-gray-700 pt-6">
+          <h4 className="font-bold text-sm mb-4 text-purple-700 dark:text-purple-400 flex items-center gap-2">
+            Extracted Fields
+          </h4>
+          <div className="grid gap-3">
+            {["address", "contactNumbers", "email", "website"].map((key) => {
+              const col = possibleColumns.find((c) => c.id === `ext_${key}`);
+              if (!col) return null;
+
+              return (
+                <div key={col.id} className="flex items-center space-x-3">
+                  <Checkbox
+                    id={`extracted-${col.id}`}
+                    checked={visibleColumns.includes(col.id)}
+                    onCheckedChange={(checked) => {
+                      setVisibleColumns((prev) =>
+                        checked
+                          ? [...prev, col.id]
+                          : prev.filter((id) => id !== col.id)
+                      );
+                    }}
+                  />
+                  <Label
+                    htmlFor={`extracted-${col.id}`}
+                    className="text-sm font-medium text-gray-800 dark:text-gray-200 cursor-pointer"
+                  >
+                    {col.label}
+                  </Label>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </ScrollArea>
+
+    <div className="flex justify-end pt-4 border-t border-[#e5e2f0] dark:border-gray-700">
+      <Button
+        onClick={() => setShowManage(false)}
+        className="bg-[#483d73] hover:bg-[#31294e] text-white font-medium px-6"
+      >
+        Done
+      </Button>
+    </div>
+  </DialogContent>
+</Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+        <DialogContent className="bg-white dark:bg-gray-800 border border-[#e5e2f0] dark:border-gray-700">
+          <DialogHeader>
+            <DialogTitle className="text-[#2d2a4a] dark:text-white">
+              Confirm Delete
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-[#5a5570] dark:text-gray-300">
+              Are you sure you want to delete this record? This action cannot be
+              undone.
+            </p>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setConfirmDeleteOpen(false);
+                setPendingDeleteId(null);
+              }}
+              className="border-[#483d73] text-[#483d73] hover:bg-[#f3f1f8] dark:hover:bg-gray-700"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={async () => {
+                if (pendingDeleteId) {
+                  await handleDelete(pendingDeleteId);
+                  setConfirmDeleteOpen(false);
+                  setPendingDeleteId(null);
+                }
+              }}
+            >
+              Delete
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* View Dialog */}
       {selectedViewForm && selectedViewForm.id && (
         <Dialog open={true} onOpenChange={() => setOpenView(null)}>
-          <DialogContent className="max-w-4xl h-[90vh] overflow-hidden flex flex-col">
-            <DialogHeader>
-              <DialogTitle>
+          <DialogContent className="w-[95vw] max-w-lg sm:max-w-3xl lg:max-w-4xl h-[90vh] p-3 sm:p-6 overflow-hidden flex flex-col bg-white dark:bg-gray-800 border border-[#e5e2f0] dark:border-gray-700">
+            <DialogHeader className="border-b border-[#e5e2f0] dark:border-gray-700 pb-4">
+              <DialogTitle className="text-base sm:text-lg text-[#2d2a4a] dark:text-white">
                 Business Card - {selectedViewForm.cardNo || "N/A"}
               </DialogTitle>
             </DialogHeader>
+
             <div className="flex-grow overflow-y-auto">
               <Tabs defaultValue="merged" className="w-full">
-                <TabsList className="grid w-full grid-cols-4 sticky top-0 bg-background z-10">
-                  <TabsTrigger value="merged">Merged Data</TabsTrigger>
-                  <TabsTrigger value="extracted">Extracted Data</TabsTrigger>
-                  <TabsTrigger value="form">Form Data</TabsTrigger>
-                  <TabsTrigger value="images">Card Image</TabsTrigger>
+                <TabsList className="flex overflow-x-auto whitespace-nowrap sticky top-0 bg-white dark:bg-gray-800 z-20 border-b border-[#e5e2f0] dark:border-gray-700">
+                  <TabsTrigger
+                    className="flex-shrink-0 data-[state=active]:bg-[#483d73] data-[state=active]:text-white"
+                    value="merged"
+                  >
+                    Merged Data
+                  </TabsTrigger>
+                  <TabsTrigger
+                    className="flex-shrink-0 data-[state=active]:bg-[#483d73] data-[state=active]:text-white"
+                    value="extracted"
+                  >
+                    Extracted
+                  </TabsTrigger>
+                  <TabsTrigger
+                    className="flex-shrink-0 data-[state=active]:bg-[#483d73] data-[state=active]:text-white"
+                    value="form"
+                  >
+                    Form
+                  </TabsTrigger>
+                  <TabsTrigger
+                    className="flex-shrink-0 data-[state=active]:bg-[#483d73] data-[state=active]:text-white"
+                    value="images"
+                  >
+                    Images
+                  </TabsTrigger>
                 </TabsList>
-                <ScrollArea className="h-[calc(90vh-120px)]">
-                  <TabsContent value="merged">
+
+                <ScrollArea className="h-[calc(90vh-140px)] sm:h-[calc(90vh-150px)]">
+                  <TabsContent value="merged" className="space-y-6">
                     {(() => {
-                      const merged = {
-                        ...selectedViewForm,
-                        ...(selectedViewForm.extractedData || {}),
-                        description:
-                          (selectedViewForm.description || "") +
-                          "\nImg Desc: " +
-                          (selectedViewForm.extractedData?.description || ""),
-                      };
-                      return <MergedDataView data={merged} />;
+                      const manualDescription =
+                        selectedViewForm.description?.trim();
+                      const ocrDescription =
+                        selectedViewForm.extractedData?.description?.trim();
+
+                      return (
+                        <>
+                          <div className="space-y-4">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="w-full justify-between border-2 border-purple-200 bg-purple-50 hover:bg-purple-100 
+               dark:border-purple-700 dark:bg-purple-900/30 dark:hover:bg-purple-900/50"
+                              onClick={() => setShowNotes(!showNotes)}
+                            >
+                              <div className="flex items-center gap-2">
+                                <MessageSquare className="w-5 h-5 text-purple-700 dark:text-purple-400" />
+                                <span className="font-semibold text-purple-900 dark:text-purple-300">
+                                  {showNotes ? "Hide" : "Show"} Notes
+                                </span>
+                              </div>
+                              {showNotes ? (
+                                <ChevronUp className="w-5 h-5 text-purple-700 dark:text-purple-400" />
+                              ) : (
+                                <ChevronDown className="w-5 h-5 text-purple-700 dark:text-purple-400" />
+                              )}
+                            </Button>
+
+                            <AnimatePresence>
+                              {showNotes && (
+                                <motion.div
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: "auto", opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  transition={{ duration: 0.3 }}
+                                  className="overflow-hidden"
+                                >
+                                  <div className="space-y-4">
+                                    {manualDescription ? (
+                                      <Card
+                                        className="border-2 border-blue-300 bg-gradient-to-br from-blue-50 to-indigo-50 
+                            dark:border-purple-300  dark:from-blue-900/40 dark:to-purple-900/40 shadow-lg"
+                                      >
+                                        <CardHeader className="pb-3">
+                                          <CardTitle className="text-lg font-bold text-blue-900 dark:text-blue-900 flex items-center gap-2">
+                                            <User className="w-5 h-5" />
+                                            Customer Description
+                                          </CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
+                                          <p className="text-sm text-gray-800 dark:text-gray-800 whitespace-pre-wrap leading-relaxed font-medium">
+                                            {manualDescription}
+                                          </p>
+                                        </CardContent>
+                                      </Card>
+                                    ) : (
+                                      <div className="text-center py-6 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                                        <p className="text-sm text-gray-500 dark:text-gray-400 italic">
+                                          No notes added by the customer
+                                        </p>
+                                      </div>
+                                    )}
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
+
+                          <MergedDataView
+                            data={{
+                              ...selectedViewForm,
+                              ...(selectedViewForm.extractedData || {}),
+                              description:
+                                manualDescription ||
+                                ocrDescription ||
+                                "No description",
+                            }}
+                          />
+                        </>
+                      );
                     })()}
                   </TabsContent>
+
                   <TabsContent value="extracted">
-                    <Card>
+                    <Card className="bg-white dark:bg-gray-800">
                       <CardHeader>
-                        <CardTitle>Extracted Information</CardTitle>
+                        <CardTitle className="text-sm sm:text-base text-[#2d2a4a] dark:text-white">
+                          Extracted Information
+                        </CardTitle>
                       </CardHeader>
                       <CardContent>
                         <ExtractedDataForm
@@ -1093,19 +1939,23 @@ export function AdminDashboard() {
                       </CardContent>
                     </Card>
                   </TabsContent>
+
                   <TabsContent value="form">
                     <FormDataView data={selectedViewForm} />
                   </TabsContent>
+
                   <TabsContent value="images">
-                    <Card>
+                    <Card className="bg-white dark:bg-gray-800">
                       <CardHeader>
-                        <CardTitle>Card Image</CardTitle>
+                        <CardTitle className="text-sm sm:text-base text-[#2d2a4a] dark:text-white">
+                          Card Images
+                        </CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <ScrollArea className="h-[calc(90vh-200px)]">
+                        <ScrollArea className="h-[calc(90vh-220px)] sm:h-[calc(90vh-240px)]">
                           <div className="space-y-6">
                             <div>
-                              <h4 className="text-sm font-medium mb-3">
+                              <h4 className="text-sm font-medium mb-3 text-[#2d2a4a] dark:text-white">
                                 Front Side
                               </h4>
                               {selectedViewForm.cardFrontPhoto ? (
@@ -1120,18 +1970,19 @@ export function AdminDashboard() {
                                   <img
                                     src={selectedViewForm.cardFrontPhoto}
                                     alt="Card Front"
-                                    className="max-w-full max-h-96 object-contain rounded-md border hover:opacity-90 transition"
+                                    className="w-full max-h-64 sm:max-h-80 object-contain rounded-md border"
                                   />
                                 </button>
                               ) : (
-                                <div className="text-sm text-muted-foreground">
+                                <p className="text-xs text-muted-foreground dark:text-gray-500">
                                   No front image available
-                                </div>
+                                </p>
                               )}
                             </div>
+
                             {selectedViewForm.cardBackPhoto && (
                               <div>
-                                <h4 className="text-sm font-medium mb-3">
+                                <h4 className="text-sm font-medium mb-3 text-[#2d2a4a] dark:text-white">
                                   Back Side
                                 </h4>
                                 <button
@@ -1145,7 +1996,7 @@ export function AdminDashboard() {
                                   <img
                                     src={selectedViewForm.cardBackPhoto}
                                     alt="Card Back"
-                                    className="max-w-full max-h-96 object-contain rounded-md border hover:opacity-90 transition"
+                                    className="w-full max-h-64 sm:max-h-80 object-contain rounded-md border"
                                   />
                                 </button>
                               </div>
@@ -1162,51 +2013,69 @@ export function AdminDashboard() {
         </Dialog>
       )}
 
-      {/* Edit Dialog */}
+      {/* EDIT DIALOG */}
       {selectedEditForm && selectedEditForm.id && (
         <Dialog open={true} onOpenChange={() => setOpenEdit(null)}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>
-                Edit Form - {selectedEditForm.cardNo || "N/A"}
+          <DialogContent
+            className="max-w-4xl max-h-[92vh] p-4 sm:p-6 overflow-y-auto bg-white dark:bg-gray-800 border border-[#e5e2f0] dark:border-gray-700"
+            onOpenAutoFocus={(e) => e.preventDefault()}
+          >
+            <DialogHeader className="space-y-3 pb-4 border-b border-[#e5e2f0] dark:border-gray-700">
+              <DialogTitle className="text-lg sm:text-xl font-semibold text-[#2d2a4a] dark:text-white">
+                Edit Lead - {selectedEditForm.cardNo || "N/A"}
               </DialogTitle>
+              <p className="text-sm text-[#5a5570] dark:text-gray-400">
+                Update lead details and custom fields below
+              </p>
             </DialogHeader>
-            <ExhibitionForm
-              initialData={{
-                cardNo: selectedEditForm.cardNo || "",
-                salesPerson: selectedEditForm.salesPerson || "",
-                date: selectedEditForm.date
-                  ? new Date(selectedEditForm.date).toISOString().split("T")[0]
-                  : "",
-                country: selectedEditForm.country || "",
-                cardFrontPhoto: selectedEditForm.cardFrontPhoto || "",
-                cardBackPhoto: selectedEditForm.cardBackPhoto || "",
-                leadStatus: selectedEditForm.leadStatus || "",
-                dealStatus: selectedEditForm.dealStatus || "",
-                meetingAfterExhibition:
-                  selectedEditForm.meetingAfterExhibition || false,
 
-                description: selectedEditForm.description || "",
-              }}
-              onSubmit={(updatedData) =>
-                handleUpdate(updatedData, selectedEditForm.id!, () => {
-                  setOpenEdit(null);
-                })
-              }
-              isEdit={true}
-              formId={selectedEditForm.id!}
-              disabledFields={["cardNo", "date"]}
-            />
+            <div className="mt-5">
+              <ExhibitionForm
+                initialData={{
+                  cardNo: selectedEditForm.cardNo || "",
+                  salesPerson: selectedEditForm.salesPerson || "",
+                  date: selectedEditForm.date
+                    ? new Date(selectedEditForm.date)
+                        .toISOString()
+                        .split("T")[0]
+                    : "",
+                  country: selectedEditForm.country || "",
+                  cardFrontPhoto: selectedEditForm.cardFrontPhoto || "",
+                  cardBackPhoto: selectedEditForm.cardBackPhoto || "",
+                  leadStatus: selectedEditForm.leadStatus || "",
+                  dealStatus: selectedEditForm.dealStatus || "",
+                  meetingAfterExhibition:
+                    selectedEditForm.meetingAfterExhibition || false,
+                  description: selectedEditForm.description || "",
+                }}
+                onSubmit={(updatedData: any) =>
+                  handleUpdate(updatedData, selectedEditForm.id!, () =>
+                    setOpenEdit(null)
+                  )
+                }
+                isEdit={true}
+                formId={selectedEditForm.id!}
+                disabledFields={["cardNo", "date"]}
+                forceRestoreFields={Object.keys(
+                  selectedEditForm.additionalData || {}
+                )}
+                prefillValues={selectedEditForm.additionalData || {}}
+                builderMode="compact"
+                hidePublishButton={true}
+                disableFieldDragging={false}
+                maxImageHeight="180px"
+              />
+            </div>
           </DialogContent>
         </Dialog>
       )}
 
-      {/* Zoom Modal */}
+      {/* Zoomed Image */}
       {zoomedImage && (
         <Dialog open={true} onOpenChange={() => setZoomedImage(null)}>
-          <DialogContent className="max-w-3xl p-0 overflow-hidden">
+          <DialogContent className="max-w-3xl p-0 overflow-hidden bg-black">
             <img
-              src={zoomedImage}
+              src={zoomedImage || "/placeholder.svg"}
               alt="Zoomed Card"
               className="w-full h-auto max-h-[80vh] object-contain"
             />
@@ -1216,5 +2085,3 @@ export function AdminDashboard() {
     </div>
   );
 }
-
-export default AdminDashboard;
