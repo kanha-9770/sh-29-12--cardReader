@@ -213,7 +213,7 @@ export async function POST(req: Request) {
 
       if (!user) throw new Error("User not found");
 
-      const limit = user.formLimit ?? 15;
+      const limit = user.formLimit ?? 1500;
 
       // ✅ Lifetime cap check (never decreases)
       if (!user.isAdmin && user.formCount >= limit) {

@@ -67,6 +67,28 @@ import { CSS } from "@dnd-kit/utilities";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
 
+const INDUSTRY_OPTIONS = [
+  { value: "having_pcm", label: "Having PCM" },
+  { value: "offset_printer", label: "OFFSET PRINTER" },
+  { value: "paper_bag_machine", label: "Having Paper Bag Machine" },
+  { value: "salad_bowl_machine", label: "Having Salad Bowl Machine" },
+  { value: "paper_straw_machine", label: "Having Paper Straw Machine" },
+  { value: "paper_lid_machine", label: "Having PaperLidMachine" },
+  { value: "soup_bowl_machine", label: "Having Soup Bowl Machine" },
+  { value: "paper_container", label: "Paper Container Manufacturer" },
+  { value: "disposable_traders", label: "Disposable Traders" },
+  { value: "machine_trader", label: "Machine Trader" },
+  { value: "pp_manufacturer", label: "PP Manufacturer" },
+  { value: "paper_plate", label: "Paper Plate Manufacturer" },
+  { value: "cup_raw_material", label: "CUP RAW MATERIAL" },
+  { value: "tissue_manufacturer", label: "Tissue Manufacturer" },
+  { value: "sugarcane_bagasse", label: "Sugarcane Bagasse Manufacturers" },
+  { value: "spare_parts", label: "Spare Parts" },
+  { value: "related_industries", label: "Related Industries" },
+  { value: "other", label: "OTHER" },
+  { value: "dont_know", label: "I Don't Know" },
+] as const;
+
 type FieldType =
   | "text"
   | "email"
@@ -577,7 +599,7 @@ export function ExhibitionForm({
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const LIMIT = 15;
+  const LIMIT = 1500;
   const [submissionCount, setSubmissionCount] = useState<number>(0);
   const [isLoadingCount, setIsLoadingCount] = useState<boolean>(true);
   const [limitReached, setLimitReached] = useState<boolean>(false);
@@ -615,6 +637,7 @@ export function ExhibitionForm({
     dealStatus: initialData.dealStatus || "",
     meetingAfterExhibition: initialData.meetingAfterExhibition || false,
     description: initialData.description || "",
+    industry: initialData.industry || [],
     ...prefillValues,
   });
 
@@ -648,6 +671,17 @@ export function ExhibitionForm({
       required: true,
       colSpan: 2,
       placeholder: "name@company.com",
+    },
+    {
+      type: "checkbox",
+      label: "Industry Category",
+      name: "industry",
+      required: true,
+      colSpan: 4,
+      options: INDUSTRY_OPTIONS.map((o) => ({
+        label: o.label,
+        value: o.value,
+      })),
     },
   ];
 
@@ -886,6 +920,95 @@ export function ExhibitionForm({
       setFormData((prev) => ({ ...prev, [field.name]: val }));
     };
 
+    // THIS IS FOR THE NESSCO NOT FOR THE EVERYONE
+    // Multi-select checkbox group (e.g. Industry Category)
+    if (
+      field.type === "checkbox" &&
+      field.options &&
+      field.options.length > 1
+    ) {
+      const selected = Array.isArray(value) ? value : [];
+
+      const handleCheckedChange = (optionValue: string, checked: boolean) => {
+        if (optionValue === "dont_know") {
+          return checked ? onChange(["dont_know"]) : onChange([]);
+        }
+
+        if (checked) {
+          onChange([
+            ...selected.filter((v: string) => v !== "dont_know"),
+            optionValue,
+          ]);
+        } else {
+          onChange(selected.filter((v: string) => v !== optionValue));
+        }
+      };
+
+      return (
+        <div className="mt-4">
+          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"> 
+            {field.required && <span className="text-red-500">*</span>}
+          </p>
+          <p className="text-xs text-muted-foreground mb-4">
+            Select all that apply
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-96 overflow-y-auto p-4 border rounded-lg bg-gray-50 dark:bg-gray-900">
+            {field.options.map((opt) => (
+              <div key={opt.value} className="flex items-center space-x-3">
+                <Checkbox
+                  id={`${field.uid}-${opt.value}`}
+                  checked={selected.includes(opt.value)}
+                  onCheckedChange={(c) =>
+                    handleCheckedChange(opt.value, c as boolean)
+                  }
+                />
+                <Label
+                  htmlFor={`${field.uid}-${opt.value}`}
+                  className="font-normal cursor-pointer text-sm leading-none"
+                >
+                  {opt.label}
+                </Label>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    // Single checkbox (boolean)
+    if (field.type === "checkbox") {
+      return (
+        <div className="flex items-center space-x-3 mt-4">
+          <Checkbox
+            id={field.uid}
+            checked={!!value}
+            onCheckedChange={onChange}
+          />
+          <Label htmlFor={field.uid} className="font-normal cursor-pointer">
+            {field.label}{" "}
+            {field.required && <span className="text-red-500">*</span>}
+          </Label>
+        </div>
+      );
+    }
+
+    // Single checkbox
+    if (field.type === "checkbox") {
+      return (
+        <div className="flex items-center space-x-3 mt-4">
+          <Checkbox
+            id={field.uid}
+            checked={!!value}
+            onCheckedChange={onChange}
+          />
+          <Label htmlFor={field.uid} className="font-normal cursor-pointer">
+            {field.label}{" "}
+            {field.required && <span className="text-red-500">*</span>}
+          </Label>
+        </div>
+      );
+    }
+
     switch (field.type) {
       case "textarea":
         return (
@@ -1087,7 +1210,11 @@ export function ExhibitionForm({
 
   return (
     <>
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 py-6 sm:py-12">
+      <div  className={`${
+    isAdmin
+      ? "min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 py-6 sm:py-12"
+      : "w-full max-w-4xl mx-auto overflow-hidden bg-gradient-to-b dark:from-gray-900 dark:to-gray-800 py-6"
+  }`}>
         <div className="max-w-7xl mx-auto grid grid-cols-12 gap-6 px-4">
           <DndContext
             sensors={sensors}
@@ -1236,270 +1363,200 @@ export function ExhibitionForm({
             )}
 
             {/* Main Form */}
-            <div
-              className={isAdmin ? "col-span-12 lg:col-span-9" : "col-span-12"}
+<div
+  className={isAdmin ? "col-span-12 lg:col-span-9" : "col-span-12"}
+>
+  <Card className="shadow-xl bg-white dark:bg-gray-800">
+    <CardHeader>
+      <CardTitle className="text-gray-900 dark:text-white">
+        Exhibition Lead Capture
+      </CardTitle>
+      <p className="text-sm text-gray-600 dark:text-gray-400">
+        Submissions: {submissionCount} / {LIMIT}{" "}
+        {limitReached && " (Limit reached)"}
+      </p>
+    </CardHeader>
+
+    <CardContent 
+      className={isAdmin ? "space-y-8" : "space-y-6"} // Less space for normal users
+    >
+      {/* Card Number */}
+      <div className="space-y-1">
+        <Label className="text-xs text-gray-700 dark:text-gray-300">
+          Card Number <span className="text-red-500">*</span>
+        </Label>
+        <Input
+          value={formData.cardNo}
+          readOnly
+          className="bg-gray-100 dark:bg-gray-700"
+        />
+      </div>
+
+      {/* Image Uploads - More compact on small screens */}
+      <div className="grid grid-cols-2 gap-4">
+        {/* Front Card */}
+        <div>
+          <Label className="text-gray-700 dark:text-gray-300 text-sm">
+            Card Front <span className="text-red-500">*</span>
+          </Label>
+          <input type="file" accept="image/*" className="hidden" id="front" onChange={(e) => handleImageChange(e, "front")} />
+          <label
+            htmlFor="front"
+            className="block mt-2 h-40 sm:h-48 lg:h-56 border-2 border-dashed rounded-lg cursor-pointer flex items-center justify-center overflow-hidden relative hover:border-[#483d73] dark:hover:border-[#6350af] transition"
+          >
+            {frontImagePreview ? (
+              <div className="relative w-full h-full">
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); handleRemoveImage("front"); }}
+                  className="absolute top-2 right-2 z-10 bg-black/70 text-white w-7 h-7 rounded-full flex items-center justify-center text-sm hover:bg-black"
+                >
+                  ×
+                </button>
+                <Image src={frontImagePreview} alt="Front" fill className="object-cover" />
+              </div>
+            ) : (
+              <Upload className="w-10 h-10 text-gray-400" />
+            )}
+            <Button
+              onClick={(e) => { e.preventDefault(); openCamera("front"); }}
+              size="sm"
+              className="absolute bottom-2 right-2 bg-[#483d73]/90 hover:bg-[#483d73] text-white"
             >
-              <Card className="shadow-xl bg-white dark:bg-gray-800">
-                <CardHeader>
-                  <CardTitle className="text-gray-900 dark:text-white">
-                    Exhibition Lead Capture
-                  </CardTitle>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Submissions: {submissionCount} / {LIMIT}{" "}
-                    {limitReached && " (Limit reached)"}
-                  </p>
-                </CardHeader>
-                <CardContent className="space-y-8">
-                  <div className="space-y-1">
-                    <Label className="text-xs text-gray-700 dark:text-gray-300">
-                      Card Number <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      value={formData.cardNo}
-                      readOnly
-                      className="bg-gray-100 dark:bg-gray-700"
-                    />
-                  </div>
+              <Camera className="w-4 h-4" />
+            </Button>
+          </label>
+        </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label
-                        htmlFor="front"
-                        className="text-gray-700 dark:text-gray-300"
-                      >
-                        Card Front <span className="text-red-500">*</span>
-                      </Label>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        id="front"
-                        onChange={(e) => handleImageChange(e, "front")}
-                      />
-                      <label
-                        htmlFor="front"
-                        className="block h-32 md:h-48 border-2 border-dashed rounded-lg cursor-pointer flex items-center justify-center overflow-hidden mt-2 dark:hover:border-[#6350af] dark:border-[#374151] transition relative"
-                      >
-                        {frontImagePreview ? (
-                          <div className="relative w-full h-full">
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleRemoveImage("front");
-                              }}
-                              className="absolute top-2 right-2 z-10 bg-black/60 text-white w-6 h-6 rounded-full flex items-center justify-center hover:bg-black/80 transition"
-                            >
-                              ✕
-                            </button>
-                            <Image
-                              src={frontImagePreview}
-                              alt="Card front preview"
-                              fill
-                              className="object-cover rounded-lg"
-                            />
-                          </div>
-                        ) : (
-                          <Upload className="w-10 h-10 md:w-12 md:h-12 text-gray-400" />
-                        )}
-                        <Button
-                          onClick={() => openCamera("front")}
-                          size="sm"
-                          className="absolute bottom-1 right-1 bg-[#3a325e] backdrop-blur hover:bg-[#2e274b] text-white shadow-lg"
-                        >
-                          <Camera className="w-5 h-5" />
-                        </Button>
-                      </label>
-                    </div>
+        {/* Back Card */}
+        <div>
+          <Label className="text-gray-700 dark:text-gray-300 text-sm">
+            Card Back
+          </Label>
+          <input type="file" accept="image/*" className="hidden" id="back" onChange={(e) => handleImageChange(e, "back")} />
+          <label
+            htmlFor={!backImagePreview ? "back" : undefined}
+            className="block mt-2 h-40 sm:h-48 lg:h-56 border-2 border-dashed rounded-lg cursor-pointer flex items-center justify-center overflow-hidden relative hover:border-[#483d73] dark:hover:border-[#6350af] transition"
+          >
+            {backImagePreview ? (
+              <div className="relative w-full h-full">
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); handleRemoveImage("back"); }}
+                  className="absolute top-2 right-2 z-10 bg-black/70 text-white w-7 h-7 rounded-full flex items-center justify-center text-sm hover:bg-black"
+                >
+                  ×
+                </button>
+                <Image src={backImagePreview} alt="Back" fill className="object-cover" />
+              </div>
+            ) : (
+              <Upload className="w-10 h-10 text-gray-400" />
+            )}
+            <Button
+              onClick={(e) => { e.preventDefault(); openCamera("back"); }}
+              size="sm"
+              className="absolute bottom-2 right-2 bg-[#483d73]/90 hover:bg-[#483d73] text-white"
+            >
+              <Camera className="w-4 h-4" />
+            </Button>
+          </label>
+        </div>
+      </div>
 
-                    <div>
-                      <Label
-                        htmlFor="back"
-                        className="text-gray-700 dark:text-gray-300"
-                      >
-                        Card Back
-                      </Label>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        id="back"
-                        onChange={(e) => handleImageChange(e, "back")}
-                      />
-                      <label
-                        htmlFor={!backImagePreview ? "back" : undefined}
-                        className="block h-32 md:h-48 border-2 border-dashed rounded-lg cursor-pointer flex items-center justify-center overflow-hidden mt-2 hover:border-[#483d73] dark:border-[#374151] dark:hover:border-[#6350af] transition relative"
-                      >
-                        {backImagePreview ? (
-                          <div className="relative w-full h-full">
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleRemoveImage("back");
-                              }}
-                              className="absolute top-2 right-2 z-10 bg-black/60 text-white w-6 h-6 rounded-full flex items-center justify-center hover:bg-black/80 transition"
-                            >
-                              ✕
-                            </button>
-                            <Image
-                              src={backImagePreview}
-                              alt="Card back preview"
-                              fill
-                              className="object-cover rounded-lg"
-                            />
-                          </div>
-                        ) : (
-                          <Upload className="w-10 h-10 md:w-12 md:h-12 text-gray-400" />
-                        )}
-                        <Button
-                          onClick={() => openCamera("back")}
-                          size="sm"
-                          className="absolute bottom-1 right-1 bg-[#3a325e] backdrop-blur hover:bg-[#2e274b] text-white shadow-lg"
-                        >
-                          <Camera className="w-5 h-5" />
-                        </Button>
-                      </label>
-                    </div>
-                  </div>
+      {/* Lead Status */}
+      <div className="space-y-2">
+        <Label className="text-sm">Lead Status</Label>
+        <Select value={formData.leadStatus} onValueChange={(val) => setFormData(prev => ({ ...prev, leadStatus: val }))}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select lead status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="JUST LEAD">JUST LEAD</SelectItem>
+            <SelectItem value="QUALIFIED LEAD">QUALIFIED LEAD</SelectItem>
+            <SelectItem value="NEW DEAL">NEW DEAL</SelectItem>
+            <SelectItem value="OLD DEAL">OLD DEAL</SelectItem>
+            <SelectItem value="EXISTING CUSTOMER">EXISTING CUSTOMER</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
-                  <div className="space-y-1">
-                    <Label className="text-sm text-gray-700 dark:text-gray-300">
-                      Lead Status
-                    </Label>
-                    <Select
-                      value={formData.leadStatus}
-                      onValueChange={(val) =>
-                        setFormData((prev) => ({ ...prev, leadStatus: val }))
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select lead status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Hot">Hot</SelectItem>
-                        <SelectItem value="Warm">Warm</SelectItem>
-                        <SelectItem value="Cold">Cold</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+      {/* Description */}
+      <div className="space-y-2">
+        <Label className="text-sm">Description</Label>
+        <textarea
+          value={formData.description}
+          onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+          placeholder="Enter description..."
+          className="w-full min-h-20 rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-ring"
+          rows={3}
+        />
+      </div>
 
-                  <div className="space-y-1">
-                    <Label className="text-sm text-gray-700 dark:text-gray-300">
-                      Description
-                    </Label>
-                    <textarea
-                      value={formData.description}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          description: e.target.value,
-                        }))
-                      }
-                      placeholder="Enter description..."
-                      className="w-full min-h-24 rounded-md border border-input bg-background dark:bg-gray-800 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring dark:border-[#374151]"
-                    />
-                  </div>
+      {/* Meeting Switch */}
+      <div className="flex items-center gap-3 py-2">
+        <Switch
+          id="meeting"
+          checked={formData.meetingAfterExhibition}
+          onCheckedChange={(c) => setFormData(prev => ({ ...prev, meetingAfterExhibition: c }))}
+          className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-[#483d73] data-[state=checked]:to-[#352c55]"
+        />
+        <Label htmlFor="meeting" className="text-sm font-medium cursor-pointer">
+          Meeting After Exhibition
+        </Label>
+      </div>
 
-                  <div className="flex items-center space-x-3">
-                    <Switch
-                      id="meeting"
-                      checked={formData.meetingAfterExhibition}
-                      onCheckedChange={(checked) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          meetingAfterExhibition: checked,
-                        }))
-                      }
-                      className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-[#483d73] data-[state=checked]:to-[#352c55]"
-                    />
-                    <Label
-                      htmlFor="meeting"
-                      className="text-sm text-gray-700 dark:text-gray-300"
-                    >
-                      Meeting After Exhibition
-                    </Label>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <SortableContext
-                      items={formFields.map((f) => f.uid)}
-                      strategy={rectSortingStrategy}
-                    >
-                      <AnimatePresence>
-                        {formFields.length === 0 ? (
-                          <div className="col-span-full text-center py-20 text-gray-500 bg-gray-50/50 dark:bg-gray-800/50 rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-700">
-                            {isAdmin ? (
-                              <div className="space-y-4">
-                                <p className="text-xl font-semibold text-gray-700 dark:text-gray-300">
-                                  Start building your form
-                                </p>
-                                <p className="text-sm text-gray-600 dark:text-gray-400 max-w-md mx-auto">
-                                  Drag fields from the sidebar to add them, or
-                                  tap the ⚡ button on mobile
-                                </p>
-                                <p className="text-sm text-gray-600 dark:text-gray-400 max-w-md mx-auto">
-                                  You have to Publish the form to save changes
-                                </p>
-                              </div>
-                            ) : (
-                              <p className="text-lg font-medium text-gray-600 dark:text-gray-400">
-                                No additional fields required
-                              </p>
-                            )}
-                          </div>
-                        ) : (
-                          formFields.map((field) => (
-                            <div
-                              key={field.uid}
-                              className={`${
-                                field.colSpan === 1
-                                  ? "sm:col-span-1"
-                                  : field.colSpan === 2
-                                  ? "sm:col-span-2"
-                                  : field.colSpan === 3
-                                  ? "sm:col-span-3"
-                                  : "sm:col-span-full lg:col-span-4"
-                              }`}
-                            >
-                              <SortableFormField
-                                field={field}
-                                isAdmin={isAdmin}
-                                onEdit={setEditingField}
-                                onDelete={(uid) =>
-                                  setFormFields((prev) =>
-                                    prev.filter((f) => f.uid !== uid)
-                                  )
-                                }
-                              >
-                                <div>
-                                  <Label className="text-sm font-medium text-gray-900 dark:text-gray-200">
-                                    {field.label}{" "}
-                                    {field.required && (
-                                      <span className="text-red-500">*</span>
-                                    )}
-                                  </Label>
-                                  {renderFieldInput(field)}
-                                </div>
-                              </SortableFormField>
-                            </div>
-                          ))
-                        )}
-                      </AnimatePresence>
-                    </SortableContext>
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Button
-                    onClick={handleSubmit}
-                    disabled={isSubmitting || limitReached || !isFormValid}
-                    className="w-full bg-gradient-to-r from-[#483d73] to-[#352c55] text-white"
+      {/* Dynamic Fields Grid - Tighter & Cleaner for Normal Users */}
+      <div className={isAdmin ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6" : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"}>
+        <SortableContext items={formFields.map(f => f.uid)} strategy={rectSortingStrategy}>
+          <AnimatePresence>
+            {formFields.length === 0 ? (
+              <div className="col-span-full text-center py-16 text-gray-500">
+                <p className="text-lg font-medium">No additional fields required</p>
+              </div>
+            ) : (
+              formFields.map((field) => (
+                <div
+                  key={field.uid}
+                  className={
+                    field.colSpan === 1 ? "sm:col-span-1" :
+                    field.colSpan === 2 ? "sm:col-span-2" :
+                    field.colSpan === 3 ? "sm:col-span-3" :
+                    "sm:col-span-full"
+                  }
+                >
+                  <SortableFormField
+                    field={field}
+                    isAdmin={isAdmin}
+                    onEdit={setEditingField}
+                    onDelete={(uid) => setFormFields(prev => prev.filter(f => f.uid !== uid))}
                   >
-                    {isSubmitting ? "Submitting..." : "Submit Lead"}
-                  </Button>
-                </CardFooter>
-              </Card>
-            </div>
+                    <div className={!isAdmin ? "space-y-2" : ""}>
+                      <Label className="text-sm font-medium text-gray-900 dark:text-gray-200">
+                        {field.label}
+                        {field.required && <span className="text-red-500 ml-1">*</span>}
+                      </Label>
+                      {renderFieldInput(field)}
+                    </div>
+                  </SortableFormField>
+                </div>
+              ))
+            )}
+          </AnimatePresence>
+        </SortableContext>
+      </div>
+    </CardContent>
+
+    <CardFooter>
+      <Button
+        onClick={handleSubmit}
+        disabled={isSubmitting || limitReached || !isFormValid}
+        className="w-full bg-gradient-to-r from-[#483d73] to-[#352c55] text-white font-medium py-6 text-lg"
+      >
+        {isSubmitting ? "Submitting..." : "Submit Lead"}
+      </Button>
+    </CardFooter>
+  </Card>
+</div>
             {publishModalOpen && (
               <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[100] p-4">
                 <motion.div

@@ -42,7 +42,7 @@ export async function POST(req: Request) {
     }
 
     // Plan limits
-    let limit = 15;
+    let limit = 1500;
     const lower = plan.toLowerCase();
     if (lower === "starter") limit = 500;
     if (lower === "professional" || lower === "pro") limit = 2000;

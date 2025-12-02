@@ -77,7 +77,7 @@ export default function VerifyOTPPage() {
   }
 
   return (
-    <main className="flex items-center justify-center min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
+    <main className="flex items-center h-screen justify-center  bg-gradient-to-b from-gray-50 to-gray-100">
       <Card className="w-full max-w-md rounded-lg bg-white shadow-sm border border-gray-200">
         <CardHeader className="p-8 text-center">
           <CardTitle className="text-3xl font-light text-gray-900 tracking-wide">

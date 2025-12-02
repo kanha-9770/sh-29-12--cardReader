@@ -1,0 +1,22 @@
+// lib/industries.ts  ← create this file
+export const INDUSTRY_OPTIONS = [
+  { value: "having_pcm", label: "Having PCM" },
+  { value: "offset_printer", label: "OFFSET PRINTER" },
+  { value: "paper_bag_machine", label: "Having Paper Bag Machine" },
+  { value: "salad_bowl_machine", label: "Having Salad Bowl Machine" },
+  { value: "paper_straw_machine", label: "Having Paper Straw Machine" },
+  { value: "paper_lid_machine", label: "Having PaperLidMachine" },
+  { value: "soup_bowl_machine", label: "Having Soup Bowl Machine" },
+  { value: "paper_container", label: "Paper Container Manufacturer" },
+  { value: "disposable_traders", label: "Disposable Traders" },
+  { value: "machine_trader", label: "Machine Trader" },
+  { value: "pp_manufacturer", label: "PP Manufacturer" },
+  { value: "paper_plate", label: "Paper Plate Manufacturer" },
+  { value: "cup_raw_material", label: "CUP RAW MATERIAL" },
+  { value: "tissue_manufacturer", label: "Tissue Manufacturer" },
+  { value: "sugarcane_bagasse", label: "Sugarcane Bagasse Manufacturers" },
+  { value: "spare_parts", label: "Spare Parts" },
+  { value: "related_industries", label: "Related Industries" },
+  { value: "other", label: "OTHER" },
+  { value: "dont_know", label: "I Don't Know" },
+] as const;

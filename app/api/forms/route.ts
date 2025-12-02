@@ -75,7 +75,7 @@ export async function POST(req: Request) {
     // Free plan limit check
     if (currentUser.subscriptionPlan === "FREE") {
       const count = await prisma.form.count({ where: { userId: currentUser.id } });
-      const limit = currentUser.formLimit ?? 15;
+      const limit = currentUser.formLimit ?? 1500;
       if (count >= limit) {
         return NextResponse.json(
           { error: "Limit reached", message: "Upgrade your plan to submit more forms" },

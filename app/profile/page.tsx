@@ -159,7 +159,7 @@ export default function ProfilePage() {
                     {user?.formCount || 0}
                   </p>
                   <p className="text-sm text-muted-foreground dark:text-gray-400">
-                    of {user?.formLimit || 15} cards submitted
+                    of {user?.formLimit || 1500} cards submitted
                   </p>
                 </div>
                 <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 mt-4">
@@ -167,7 +167,7 @@ export default function ProfilePage() {
                     className="bg-[#483d73] dark:bg-purple-500 h-3 rounded-full transition-all duration-700"
                     style={{
                       width: `${Math.min(
-                        ((user?.formCount || 0) / (user?.formLimit || 15)) * 100,
+                        ((user?.formCount || 0) / (user?.formLimit || 1500)) * 100,
                         100
                       )}%`,
                     }}

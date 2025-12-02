@@ -24,7 +24,7 @@ model User {
   createdAt      DateTime @default(now())
   forms          Form[]
   subscriptionPlan String? @default("FREE")
-  formLimit      Int?     @default(15)
+  formLimit      Int?     @default(1500)
   formCount        Int      @default(0) // 🔥 Stores number of forms submitted
   resetToken        String?
   resetTokenExpiry  DateTime?
