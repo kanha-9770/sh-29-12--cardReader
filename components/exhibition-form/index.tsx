@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Checkbox } from "@/components/ui/checkbox"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group" // Added Dialog import from shadcn
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import Image from "next/image"
 import { Upload, X, Camera, RefreshCw, GripVertical, Trash2, Settings, Zap, Globe, Columns } from "lucide-react"
@@ -158,12 +158,10 @@ function CameraModal({
         <DialogHeader className="p-4 bg-gray-200 dark:bg-gray-700 border-b border-gray-300 dark:border-gray-600">
           <DialogTitle className="text-lg font-semibold text-gray-900 dark:text-white">Capture Photo</DialogTitle>
         </DialogHeader>
-
         <div className="relative bg-black">
           <video ref={videoRef} autoPlay playsInline muted className="w-full h-[260px] sm:h-[320px] object-cover" />
           <canvas ref={canvasRef} className="hidden" />
         </div>
-
         <DialogFooter className="p-4 bg-gray-200 dark:bg-gray-700 flex justify-between items-center gap-4 flex-col sm:flex-row">
           <Button
             variant="outline"
@@ -218,9 +216,9 @@ function SidebarFieldBlock({
       {...attributes}
       {...listeners}
       onClick={handleClick}
-      className={`flex items-center justify-between p-3 border rounded-lg
-         cursor-grab hover:bg-gray-50 dark:hover:bg-gray-700 transition-all
-         ${isDragging ? "opacity-50 scale-105 shadow-lg" : ""}`}
+      className={`flex items-center justify-between p-3 border rounded-lg 
+        cursor-grab hover:bg-gray-50 dark:hover:bg-gray-700 transition-all 
+        ${isDragging ? "opacity-50 scale-105 shadow-lg" : ""}`}
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
     >
@@ -249,6 +247,7 @@ function SortableFormField({
     id: field.uid,
     disabled: !isAdmin,
   })
+
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -435,9 +434,9 @@ function FieldEditor({
                   size="sm"
                   onClick={() => setEdited({ ...edited, colSpan: span as any })}
                   className={`flex items-center gap-2
-                     ${
-                       edited.colSpan === span ? "bg-gradient-to-r from-[#483d73] to-[#352c55] text-white border-0" : ""
-                     }`}
+                    ${
+                      edited.colSpan === span ? "bg-gradient-to-r from-[#483d73] to-[#352c55] text-white border-0" : ""
+                    }`}
                 >
                   <Columns className="w-4 h-4" />
                   {span}/4
@@ -558,6 +557,7 @@ export function ExhibitionForm({
   const [publishModalOpen, setPublishModalOpen] = useState(false)
   const freshDefaults = useMemo(() => defaultDynamicFields.map((f) => ({ ...f, uid: uid("f_") })), [])
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false)
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 8 },
@@ -574,11 +574,13 @@ export function ExhibitionForm({
           uid: f.uid || uid("f_"),
         }))
         setFormFields(loaded.length > 0 ? loaded : [])
+
         const sessionRes = await fetch("/api/auth/me")
         if (sessionRes.ok) {
           const session = await sessionRes.json()
           setIsAdmin(session?.user?.isAdmin === true)
         }
+
         const countRes = await fetch("/api/form-count")
         if (countRes.ok) {
           const { count } = await countRes.json()
@@ -592,6 +594,7 @@ export function ExhibitionForm({
         setIsLoadingCount(false)
       }
     }
+
     loadEverything()
   }, [freshDefaults])
 
@@ -616,21 +619,24 @@ export function ExhibitionForm({
       toast.error("Cannot publish empty form")
       return
     }
-    setPublishModalOpen(true) // Opens the beautiful modal
+    setPublishModalOpen(true)
   }
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>, type: "front" | "back") => {
     const file = e.target.files?.[0]
     if (!file) return
+
     const reader = new FileReader()
     reader.onload = () => {
       if (type === "front") setFrontImagePreview(reader.result as string)
       else setBackImagePreview(reader.result as string)
     }
     reader.readAsDataURL(file)
+
     const fd = new FormData()
     fd.append("image", file)
     fd.append("type", type)
+
     const res = await fetch("/api/upload-image", { method: "POST", body: fd })
     if (res.ok) {
       const data = await res.json()
@@ -645,6 +651,7 @@ export function ExhibitionForm({
   const handleSubmit = async () => {
     if (!formData.cardFrontPhoto) return toast.error("Front photo required")
     if (limitReached) return toast.error("Limit reached")
+
     setIsSubmitting(true)
     try {
       const submission = {
@@ -676,14 +683,18 @@ export function ExhibitionForm({
           ),
         ),
       }
+
       const res = await fetch("/api/submit-form", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(submission),
       })
+
       if (res.ok) {
         toast.success("Submitted!")
-        router.push("/dashboard")
+        setTimeout(() => {
+          window.location.reload()
+        }, 1500)
       } else {
         const err = await res.json()
         toast.error(err.message || "Failed")
@@ -702,8 +713,10 @@ export function ExhibitionForm({
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
     if (!over) return
+
     const activeId = String(active.id)
     const overId = String(over?.id)
+
     if (activeId.startsWith("sidebar-")) {
       const type = activeId.replace("sidebar-", "") as FieldType
       const newField: BuilderField = {
@@ -715,11 +728,13 @@ export function ExhibitionForm({
         colSpan: 2,
         options: type === "select" || type === "radio" ? [{ label: "Option 1", value: "option1" }] : undefined,
       }
+
       let insertIndex = formFields.length
       if (overId && !overId.startsWith("sidebar-")) {
         const overIndex = formFields.findIndex((f) => f.uid === overId)
         if (overIndex !== -1) insertIndex = overIndex + 1
       }
+
       setFormFields((prev) => {
         const updated = [...prev]
         updated.splice(insertIndex, 0, newField)
@@ -734,6 +749,7 @@ export function ExhibitionForm({
         return arrayMove(fields, oldIndex, newIndex)
       })
     }
+
     setActiveDragId(null)
   }
 
@@ -751,6 +767,7 @@ export function ExhibitionForm({
   const renderFieldInput = (field: BuilderField, isAdmin: boolean) => {
     const value = formData[field.name] || ""
     const baseClass = "mt-2"
+
     const onChange = (val: any) => {
       setFormData((prev) => ({ ...prev, [field.name]: val }))
     }
@@ -768,6 +785,7 @@ export function ExhibitionForm({
           onChange(selected.filter((v: string) => v !== optionValue))
         }
       }
+
       return (
         <div className="mt-4">
           <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -910,9 +928,11 @@ export function ExhibitionForm({
     const url = URL.createObjectURL(file)
     if (cameraSide === "front") setFrontImagePreview(url)
     else setBackImagePreview(url)
+
     const fd = new FormData()
     fd.append("image", file, `card-${cameraSide}.jpg`)
     fd.append("type", cameraSide)
+
     try {
       const res = await fetch("/api/upload-image", {
         method: "POST",
@@ -985,8 +1005,8 @@ export function ExhibitionForm({
                   <button
                     onClick={() => setMobileDrawerOpen(true)}
                     className="bg-gradient-to-r from-[#483d73] to-[#352c55] text-white
-               rounded-full p-5 shadow-2xl hover:scale-110 transition-all
-               flex items-center justify-center"
+              rounded-full p-5 shadow-2xl hover:scale-110 transition-all
+              flex items-center justify-center"
                   >
                     <Zap className="w-5 h-5" />
                   </button>
@@ -1062,6 +1082,7 @@ export function ExhibitionForm({
                 </AnimatePresence>
               </>
             )}
+
             {/* Desktop Sidebar */}
             {isAdmin && (
               <div className="hidden lg:block col-span-12 lg:col-span-3 bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 sticky top-6 h-fit">
@@ -1097,6 +1118,7 @@ export function ExhibitionForm({
                 </div>
               </div>
             )}
+
             {/* Main Form */}
             <div className={isAdmin ? "col-span-12 lg:col-span-9" : "col-span-12"}>
               <Card className="shadow-xl bg-white dark:bg-gray-800">
@@ -1116,6 +1138,7 @@ export function ExhibitionForm({
                     </Label>
                     <Input value={formData.cardNo} readOnly className="bg-gray-100 dark:bg-gray-700" />
                   </div>
+
                   {/* Image Uploads - More compact on small screens */}
                   <div className="grid grid-cols-2 gap-4">
                     {/* Front Card */}
@@ -1168,6 +1191,7 @@ export function ExhibitionForm({
                         </Button>
                       </label>
                     </div>
+
                     {/* Back Card */}
                     <div>
                       <Label className="text-gray-700 dark:text-gray-300 text-sm">Card Back</Label>
@@ -1217,6 +1241,7 @@ export function ExhibitionForm({
                       </label>
                     </div>
                   </div>
+
                   {/* Lead Status */}
                   <div className="space-y-2">
                     <Label className="text-sm">Lead Status</Label>
@@ -1236,6 +1261,7 @@ export function ExhibitionForm({
                       </SelectContent>
                     </Select>
                   </div>
+
                   {/* Description */}
                   <div className="space-y-2">
                     <Label className="text-sm">Description</Label>
@@ -1252,6 +1278,7 @@ export function ExhibitionForm({
                       rows={3}
                     />
                   </div>
+
                   {/* Meeting Switch */}
                   <div className="flex items-center gap-3 py-2">
                     <Switch
@@ -1269,6 +1296,7 @@ export function ExhibitionForm({
                       Meeting After Exhibition
                     </Label>
                   </div>
+
                   {/* Dynamic Fields Grid - Tighter & Cleaner for Normal Users */}
                   <div
                     className={
@@ -1329,6 +1357,7 @@ export function ExhibitionForm({
                 </CardFooter>
               </Card>
             </div>
+
             {publishModalOpen && (
               <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[100] p-4">
                 <motion.div
@@ -1405,7 +1434,9 @@ export function ExhibitionForm({
                 </motion.div>
               </div>
             )}
+
             <CameraModal isOpen={cameraOpen} onClose={() => setCameraOpen(false)} onCapture={handleCapture} />
+
             <DragOverlay>
               {activeDragId && activeDragId.toString().startsWith("sidebar-") ? (
                 <FieldDragOverlay type={activeDragId.toString().replace("sidebar-", "") as FieldType} />
@@ -1414,6 +1445,7 @@ export function ExhibitionForm({
           </DndContext>
         </div>
       </div>
+
       {editingField && (
         <FieldEditor
           field={editingField}
