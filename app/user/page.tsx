@@ -476,7 +476,6 @@
 //   );
 // }
 
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -492,6 +491,8 @@ import {
   Trash2,
   Building2,
   Loader2,
+  Eye,
+  EyeOff,
   Shield,
 } from "lucide-react";
 
@@ -523,6 +524,8 @@ export default function UserPage() {
   const [error, setError] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // ✅ FETCH CURRENT USER
   useEffect(() => {
@@ -732,173 +735,203 @@ export default function UserPage() {
   }
 
   // ✅ UI
- return (
-  <div className="min-h-screen bg-[#f3f1f8] dark:bg-gray-900 py-14 transition-colors duration-300">
-    <div className="container mx-auto px-4 max-w-6xl">
-
-      {/* HEADER */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col md:flex-row justify-between items-center mb-10"
-      >
-        <div className="flex items-center gap-3">
-          <Users className="h-9 w-9 text-[#483d73] dark:text-purple-400" />
-          <h1 className="text-3xl md:text-4xl font-bold text-[#2d2a4a] dark:text-white">
-            User Management
-          </h1>
-        </div>
-
-        <motion.div whileTap={{ scale: 0.95 }}>
-          <Button
-            onClick={handleAddUser}
-            className="bg-[#483d73] hover:bg-[#5a5570] dark:bg-purple-600 dark:hover:bg-purple-700 text-white mt-4 md:mt-0"
-          >
-            <Plus className="mr-2 h-4 w-4" /> Add User
-          </Button>
-        </motion.div>
-      </motion.div>
-
-      {/* ORGANIZATION */}
-      <Card className="mb-8 bg-white dark:bg-gray-800 border-none shadow">
-        <CardContent className="flex items-center gap-4 p-4">
-          <Building2 className="text-purple-500" />
-          <div>
-            <p className="text-sm font-semibold dark:text-gray-300">
-              Organization ID
-            </p>
-            <p className="font-mono text-gray-600 dark:text-gray-400">
-              {organizationId}
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* USER LIST */}
-      <Card className="bg-white dark:bg-gray-800 border-none shadow-xl">
-        <CardHeader>
-          <CardTitle className="dark:text-white">
-            All Users ({sortedUsers.length})
-          </CardTitle>
-        </CardHeader>
-
-        <CardContent>
-          <AnimatePresence>
-            {sortedUsers.length === 0 ? (
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="text-center text-gray-500 dark:text-gray-400 py-10"
-              >
-                No users yet.
-              </motion.p>
-            ) : (
-              <ul className="divide-y dark:divide-gray-700">
-                {sortedUsers.map((u) => (
-                  <motion.li
-                    key={u.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    className="flex justify-between items-center py-4"
-                  >
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <p className="font-semibold dark:text-white">{u.name}</p>
-
-                        {u.isAdmin && (
-                          <span className="px-2 py-0.5 rounded-full text-xs bg-purple-600 text-white">
-                            Admin
-                          </span>
-                        )}
-                      </div>
-
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {u.email}
-                      </p>
-                    </div>
-
-                    {!u.isAdmin ? (
-                      <motion.button
-                        whileHover={{ scale: 1.15 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => handleDeleteUser(u.id)}
-                        className="text-red-500 hover:text-red-600 p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30"
-                      >
-                        <Trash2 />
-                      </motion.button>
-                    ) : (
-                      <span className="text-xs italic text-gray-400">
-                        Protected
-                      </span>
-                    )}
-                  </motion.li>
-                ))}
-              </ul>
-            )}
-          </AnimatePresence>
-        </CardContent>
-      </Card>
-    </div>
-
-    {/* MODAL */}
-    <AnimatePresence>
-      {showForm && (
+  return (
+    <div className="min-h-screen bg-[#f3f1f8] dark:bg-gray-900 py-14 transition-colors duration-300">
+      <div className="container mx-auto px-4 max-w-6xl">
+        {/* HEADER */}
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={handleCloseForm}
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col md:flex-row justify-between items-center mb-10"
         >
-          <motion.div
-            initial={{ scale: 0.9, y: 40 }}
-            animate={{ scale: 1, y: 0 }}
-            exit={{ scale: 0.9, y: 40 }}
-            onClick={(e) => e.stopPropagation()}
-            className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-[400px]"
-          >
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold dark:text-white">
-                Create User
-              </h2>
-              <button
-                onClick={handleCloseForm}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X />
-              </button>
-            </div>
+          <div className="flex items-center gap-3">
+            <Users className="h-9 w-9 text-[#483d73] dark:text-purple-400" />
+            <h1 className="text-3xl md:text-4xl font-bold text-[#2d2a4a] dark:text-white">
+              User Management
+            </h1>
+          </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <Input name="name" placeholder="Name" onChange={handleChange} />
-              <Input name="email" placeholder="Email" onChange={handleChange} />
-              <Input
-                name="password"
-                type="password"
-                placeholder="Password"
-                onChange={handleChange}
-              />
-              <Input
-                name="confirmPassword"
-                type="password"
-                placeholder="Confirm Password"
-                onChange={handleChange}
-              />
-
-              <Button
-                type="submit"
-                disabled={isCreating}
-                className="w-full bg-[#483d73] hover:bg-[#5a5570] dark:bg-purple-600"
-              >
-                {isCreating ? "Creating..." : "Create User"}
-              </Button>
-            </form>
+          <motion.div whileTap={{ scale: 0.95 }}>
+            <Button
+              onClick={handleAddUser}
+              className="bg-[#483d73] hover:bg-[#5a5570] dark:bg-purple-600 dark:hover:bg-purple-700 text-white mt-4 md:mt-0"
+            >
+              <Plus className="mr-2 h-4 w-4" /> Add User
+            </Button>
           </motion.div>
         </motion.div>
-      )}
-    </AnimatePresence>
-  </div>
-);
 
+        {/* ORGANIZATION */}
+        <Card className="mb-8 bg-white dark:bg-gray-800 border-none shadow">
+          <CardContent className="flex items-center gap-4 p-4">
+            <Building2 className="text-purple-500" />
+            <div>
+              <p className="text-sm font-semibold dark:text-gray-300">
+                Organization ID
+              </p>
+              <p className="font-mono text-gray-600 dark:text-gray-400">
+                {organizationId}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* USER LIST */}
+        <Card className="bg-white dark:bg-gray-800 border-none shadow-xl">
+          <CardHeader>
+            <CardTitle className="dark:text-white">
+              All Users ({sortedUsers.length})
+            </CardTitle>
+          </CardHeader>
+
+          <CardContent>
+            <AnimatePresence>
+              {sortedUsers.length === 0 ? (
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-center text-gray-500 dark:text-gray-400 py-10"
+                >
+                  No users yet.
+                </motion.p>
+              ) : (
+                <ul className="divide-y dark:divide-gray-700">
+                  {sortedUsers.map((u) => (
+                    <motion.li
+                      key={u.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      className="flex justify-between items-center py-4"
+                    >
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="font-semibold dark:text-white">
+                            {u.name}
+                          </p>
+
+                          {u.isAdmin && (
+                            <span className="px-2 py-0.5 rounded-full text-xs bg-purple-600 text-white">
+                              Admin
+                            </span>
+                          )}
+                        </div>
+
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {u.email}
+                        </p>
+                      </div>
+
+                      {!u.isAdmin ? (
+                        <motion.button
+                          whileHover={{ scale: 1.15 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={() => handleDeleteUser(u.id)}
+                          className="text-red-500 hover:text-red-600 p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30"
+                        >
+                          <Trash2 />
+                        </motion.button>
+                      ) : (
+                        <span className="text-xs italic text-gray-400">
+                          Protected
+                        </span>
+                      )}
+                    </motion.li>
+                  ))}
+                </ul>
+              )}
+            </AnimatePresence>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* MODAL */}
+      <AnimatePresence>
+        {showForm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={handleCloseForm}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 40 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 40 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-[400px]"
+            >
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold dark:text-white">
+                  Create User
+                </h2>
+                <button
+                  onClick={handleCloseForm}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X />
+                </button>
+              </div>
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <Input name="name" placeholder="Name" onChange={handleChange} />
+                <Input
+                  name="email"
+                  placeholder="Email"
+                  onChange={handleChange}
+                />
+                <div className="relative">
+                  <Input
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Password"
+                    onChange={handleChange}
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+
+                <div className="relative">
+                  <Input
+                    name="confirmPassword"
+                    type={showConfirmPassword ? "text" : "password"}
+                    placeholder="Confirm Password"
+                    onChange={handleChange}
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    tabIndex={-1}
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff size={18} />
+                    ) : (
+                      <Eye size={18} />
+                    )}
+                  </button>
+                </div>
+                <Button
+                  type="submit"
+                  disabled={isCreating}
+                  className="w-full bg-[#483d73] hover:bg-[#5a5570] dark:bg-purple-600"
+                >
+                  {isCreating ? "Creating..." : "Create User"}
+                </Button>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
 }
