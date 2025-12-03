@@ -114,7 +114,7 @@ async function processFormInBackground(form: any) {
       cardNo: form.cardNo,
       salesPerson: form.salesPerson,
       date: form.date,
-      country: form.country,
+      country: extractedData?.country,
       cardFrontPhoto: form.cardFrontPhoto,
       cardBackPhoto: form.cardBackPhoto,
       leadStatus: form.leadStatus,
@@ -129,6 +129,7 @@ async function processFormInBackground(form: any) {
       address: extractedData.address,
       contactNumbers: extractedData.contactNumbers,
       state: extractedData.state,
+      city: extractedData?.city,
       extractedCountry: extractedData.country,
       status: "COMPLETED",
     };
