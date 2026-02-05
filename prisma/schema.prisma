@@ -1,62 +1,60 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 datasource db {
-  provider   = "postgresql"
-  url        = env("DATABASE_URL")
-  directUrl  = env("DIRECT_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 generator client {
   provider = "prisma-client-js"
 }
 
-
 model User {
-  id             String   @id @default(cuid())
-  name           String?
-  email          String   @unique
-  password       String
-  isAdmin        Boolean  @default(false)
-  organizationId Int?
-  organization   Organization? @relation("OrganizationUsers", fields: [organizationId], references: [id])
-  isDeleted      Boolean  @default(false)
-  createdAt      DateTime @default(now())
-  forms          Form[]
-  subscriptionPlan String? @default("FREE")
-  formLimit      Int?     @default(15)
-  formCount        Int      @default(0) // 🔥 Stores number of forms submitted
-  resetToken        String?
-  resetTokenExpiry  DateTime?
+  id               String       @id @default(cuid())
+  name             String?
+  email            String       @unique
+  password         String
+  isAdmin          Boolean      @default(false)
+  organizationId   Int?
+  organization     Organization? @relation("OrganizationUsers", fields: [organizationId], references: [id])
+  isDeleted        Boolean      @default(false)
+  createdAt        DateTime     @default(now())
+  forms            Form[]
+  subscriptionPlan String?      @default("FREE")
+  formLimit        Int?         @default(15)
+  formCount        Int          @default(0)
+  resetToken       String?
+  resetTokenExpiry DateTime?
 }
 
 model Form {
-  id                     String   @id @default(cuid())
-  cardNo                 String
-  salesPerson            String
-  date                   DateTime
-  country                String
-  cardFrontPhoto         String
-  cardBackPhoto          String?
-  leadStatus             String
-  dealStatus             String
-  meetingAfterExhibition Boolean
-  industryCategories     String
-  description            String   @db.Text
-  userId                 String
-  user                   User     @relation(fields: [userId], references: [id])
-  organizationId         Int?
-  organization           Organization? @relation(fields: [organizationId], references: [id])
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
-  extractedData          ExtractedData?
-  mergedData             MergedData?
-  status                 String   @default("PENDING")
-  extractionStatus       String   @default("PENDING")
-  zohoStatus             String   @default("PENDING")
-  additionalData         Json?    @db.Json
-  emailSent              Boolean  @default(false)
-  submittedFieldSnapshot  Json?    @db.Json
+  id                      String         @id @default(cuid())
+  cardNo                  String
+  salesPerson             String
+  date                    DateTime
+  country                 String
+  cardFrontPhoto          String
+  cardBackPhoto           String?
+  leadStatus              String
+  dealStatus              String
+  meetingAfterExhibition  Boolean
+  industryCategories      String
+  description             String         @db.Text
+  userId                  String
+  user                    User           @relation(fields: [userId], references: [id])
+  organizationId          Int?
+  organization            Organization?  @relation(fields: [organizationId], references: [id])
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
+  extractedData           ExtractedData?
+  mergedData              MergedData?
+  status                  String         @default("PENDING")
+  extractionStatus        String         @default("PENDING")
+  zohoStatus              String         @default("PENDING")
+  additionalData          Json?          @db.Json
+  emailSent               Boolean        @default(false)
+  submittedFieldSnapshot  Json?          @db.Json
 }
 
 model ExtractedData {
@@ -108,14 +106,16 @@ model MergedData {
 }
 
 model Organization {
-  id           Int      @id @default(autoincrement())
-  uniqueOrgId  String   @unique
-  name         String?
-  createdBy    String
-  createdAt    DateTime @default(now())
-  users        User[]   @relation("OrganizationUsers")
-  forms        Form[]
-  formTemplate FormTemplate?
+  id              Int               @id @default(autoincrement())
+  uniqueOrgId     String            @unique
+  name            String?
+  createdBy       String
+  createdAt       DateTime          @default(now())
+
+  users           User[]            @relation("OrganizationUsers")
+  forms           Form[]
+  formTemplate    FormTemplate?
+  zohoIntegration ZohoIntegration?
 }
 
 model EmailLog {
@@ -131,14 +131,40 @@ model EmailLog {
 }
 
 model FormTemplate {
-  id             String   @id @default(cuid())
+  id             String      @id @default(cuid())
   organizationId Int?
   organization   Organization? @relation(fields: [organizationId], references: [id])
-  fields         Json     @default("[]")
-  isPublished     Boolean   @default(false)  
-  publishedAt     DateTime?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  fields         Json        @default("[]")
+  isPublished    Boolean     @default(false)
+  publishedAt    DateTime?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
 
   @@unique([organizationId])
+}
+
+model ZohoIntegration {
+  id             String      @id @default(cuid())
+  organizationId Int         @unique
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+
+  apiEndpoint    String?     
+
+  // Optional legacy fields (you can keep or remove)
+  clientId       String?
+  clientSecret   String?
+  scope          String?
+  soid           String?
+  datacenter     String?     @default("in")
+
+  connectedAt    DateTime?   @default(now())
+  lastTokenFetch DateTime?
+  status         String      @default("DISCONNECTED")
+  errorMessage   String?     @db.Text
+
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@index([organizationId])
 }

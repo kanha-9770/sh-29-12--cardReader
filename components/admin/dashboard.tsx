@@ -38,6 +38,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
 import type { FormData } from "@/types/form";
 import { ExhibitionForm } from "@/components/exhibition-form";
 import { DashboardOverview } from "@/components/admin/dashboard-overview";
@@ -651,154 +653,74 @@ const fetchForms = useCallback(async (silent = false) => {
   };
 
 
-  // Auto-refresh when OCR is in progress
-useEffect(() => {
-  const hasPendingOCR = forms.some(f =>
-    ["PENDING", "PROCESSING"].includes(f.extractionStatus || "")
-  );
 
-  if (!hasPendingOCR) return;
 
-  // Start polling
-// FINAL: Refresh only ONCE after 12 seconds
-useEffect(() => {
-  const hasPendingOCR = forms.some(f =>
-    ["PENDING", "PROCESSING"].includes(f.extractionStatus || "")
-  );
+const handleDownloadExcel = async () => {
+  try {
+    setIsDownloading(true);
 
-  if (!hasPendingOCR) return;
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet("Business Cards");
 
-  // Clear any old timer
-  if ((window as any)._ocrCheckTimer) {
-    clearTimeout((window as any)._ocrCheckTimer);
-  }
+    sheet.columns = [
+      { header: "Card Image", key: "image", width: 20 },
+      { header: "Card No", key: "cardNo", width: 20 },
+      { header: "Name", key: "name", width: 25 },
+      { header: "Company", key: "company", width: 30 },
+      { header: "Email", key: "email", width: 30 },
+      { header: "City", key: "city", width: 15 },
+      { header: "Country", key: "country", width: 15 }
+    ];
 
-  // Set new one-time check
-  (window as any)._ocrCheckTimer = setTimeout(() => {
-    fetchForms(true);
-    toast({
-      title: "Data Updated",
-      description: "OCR completed and data is now visible!",
-      duration: 5000,
-    });
-  }, 12000); // 12 seconds after upload
+    let rowIndex = 2;
 
-  return () => {
-    clearTimeout((window as any)._ocrCheckTimer);
-    (window as any)._ocrCheckTimer = null;
-  };
-}, [forms, fetchForms, toast]);
+    for (const form of filteredForms) {
 
-  return () => clearInterval(interval);
-}, [forms, fetchForms]);
-
-  const handleDownloadExcel = async () => {
-    try {
-      setIsDownloading(true);
-
-      const filteredData = forms.filter((form) => {
-        if (selectedUser !== "all" && form.userId !== selectedUser)
-          return false;
-        const q = search.toLowerCase();
-        return (
-          (form.cardNo || "").toLowerCase().includes(q) ||
-          (form.country || "").toLowerCase().includes(q) ||
-          (form.salesPerson || "").toLowerCase().includes(q) ||
-          ((form.mergedData?.companyName || "") as string)
-            .toLowerCase()
-            .includes(q) ||
-          ((form.mergedData?.name || "") as string).toLowerCase().includes(q) ||
-          ((form.mergedData?.email || "") as string)
-            .toLowerCase()
-            .includes(q) ||
-          ((form.mergedData?.contactNumbers || "") as string)
-            .toLowerCase()
-            .includes(q) ||
-          ((form.user?.email || "") as string).toLowerCase().includes(q)
-        );
+      // Add normal row first
+      sheet.addRow({
+        cardNo: form.cardNo || "",
+        name: form.mergedData?.name || "",
+        company: form.mergedData?.companyName || "",
+        email: form.extractedData?.email || "",
+        city: form.extractedData?.city || "",
+        country: form.extractedData?.country || ""
       });
 
-      if (filteredData.length === 0) {
-        toast({
-          title: "No Data",
-          description: "No data available to export.",
-          variant: "default",
+      // If image exists → embed into Excel
+      if (form.cardFrontPhoto) {
+        const imageBuffer = await fetch(form.cardFrontPhoto)
+          .then(res => res.arrayBuffer());
+
+        const imageId = workbook.addImage({
+          buffer: imageBuffer,
+          extension: "jpeg"
         });
-        return;
+
+        sheet.addImage(imageId, {
+          tl: { col: 0, row: rowIndex - 1 },
+          ext: { width: 50, height: 35 }
+        });
+
+        sheet.getRow(rowIndex).height = 30;
       }
 
-      const excelData = filteredData.map((form) => ({
-        "Card Image": form.cardFrontPhoto || "",
-        "Card No": form.cardNo || "",
-        Date: form.date ? new Date(form.date).toLocaleDateString() : "",
-        "User Email": form.user?.email || "",
-        "Company Name":
-          form.extractedData?.companyName || form.mergedData?.companyName || "",
-        "Contact Name": form.mergedData?.name || "",
-        "Contact Email": form.extractedData?.email || "",
-        "Contact Number": form.extractedData?.contactNumbers || "",
-        Address: form.extractedData?.address || "",
-        Website: form.extractedData?.website || "",
-        Country: form.extractedData?.country || "",
-        City: form.extractedData?.city || "",
-        State: form.extractedData?.state || "",
-        "Lead Status": form.leadStatus || "",
-        "Meeting After Exhibition": form.meetingAfterExhibition ? "Yes" : "No",
-        Description: form.description || "",
-        "Card Back Image": form.cardBackPhoto || "",
-        // All custom fields from the form builder
-        ...form.additionalData,
-      }));
-
-      const workbook = XLSX.utils.book_new();
-      const worksheet = XLSX.utils.json_to_sheet(excelData);
-      worksheet["!cols"] = Array(23).fill({ wch: 20 });
-
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Business Cards");
-
-      // THIS IS THE FIX FOR iPHONE
-      const excelBuffer = XLSX.write(workbook, {
-        bookType: "xlsx",
-        type: "array",
-      });
-      const data = new Blob([excelBuffer], {
-        type: "application/octet-stream",
-      });
-      const url = window.URL.createObjectURL(data);
-      const timestamp = new Date()
-        .toISOString()
-        .slice(0, 19)
-        .replace(/:/g, "-");
-      const filename = `Business_Cards_${new Date()
-        .toISOString()
-        .slice(0, 10)}.xlsx`;
-
-      // iOS Safari fix: Open in new tab + auto-click
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = filename;
-      link.target = "_blank"; // Critical for iOS
-      link.rel = "noopener";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-
-      toast({
-        title: "Download Started",
-        description: `Excel file is downloading...`,
-      });
-    } catch (error) {
-      console.error("Excel export failed:", error);
-      toast({
-        title: "Export Failed",
-        description: "Could not generate Excel file.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsDownloading(false);
+      rowIndex++;
     }
-  };
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    saveAs(new Blob([buffer]), "Business_Cards.xlsx");
+
+  } catch (error) {
+    console.error(error);
+    toast({
+      title: "Export Failed",
+      description: "Could not generate Excel file with images.",
+      variant: "destructive"
+    });
+  } finally {
+    setIsDownloading(false);
+  }
+};
 
   const handleDelete = async (id?: string) => {
     if (!id) {

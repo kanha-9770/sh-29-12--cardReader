@@ -627,6 +627,346 @@
 //     </nav>
 //   );
 // }
+
+
+
+// "use client";
+
+// import Link from "next/link";
+// import { useRouter } from "next/navigation";
+// import { Button } from "@/components/ui/button";
+// import { useToast } from "@/components/ui/use-toast";
+// import { useEffect, useState } from "react";
+// import {
+//   User,
+//   LogOut,
+//   LayoutDashboard,
+//   ScanLine,
+//   Users,
+//   DollarSign,
+//   HelpCircle,
+//   Moon,
+//   Sun,
+//   Sparkles,
+// } from "lucide-react";
+
+// import {
+//   DropdownMenu,
+//   DropdownMenuContent,
+//   DropdownMenuItem,
+//   DropdownMenuLabel,
+//   DropdownMenuSeparator,
+//   DropdownMenuTrigger,
+// } from "@/components/ui/dropdown-menu";
+
+// import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+// import { generateAvatar } from "@/lib/avatar";
+
+// interface UserType {
+//   id: string;
+//   email: string;
+//   name?: string;
+//   isAdmin: boolean;
+//   avatar?: string;
+// }
+
+// export function Navbar() {
+//   const [user, setUser] = useState<UserType | null>(null);
+//   const [isDarkMode, setIsDarkMode] = useState<boolean | null>(null); // null = not initialized
+//   const router = useRouter();
+//   const { toast } = useToast();
+
+//   // Fetch user
+//   useEffect(() => {
+//     const fetchUser = async () => {
+//       try {
+//         const res = await fetch("/api/auth/me", { cache: "no-store" });
+//         if (res.ok) {
+//           const data = await res.json();
+//           setUser(data.user);
+//         }
+//       } catch (err) {
+//         setUser(null);
+//       }
+//     };
+//     fetchUser();
+//   }, []);
+
+//   // Dark mode initialization — only runs once
+//   useEffect(() => {
+//     const saved = localStorage.getItem("darkMode");
+//     const prefersDark = window.matchMedia(
+//       "(prefers-color-scheme: dark)"
+//     ).matches;
+
+//     if (saved !== null) {
+//       const dark = saved === "true";
+//       setIsDarkMode(dark);
+//       document.documentElement.classList.toggle("dark", dark);
+//     } else {
+//       setIsDarkMode(prefersDark);
+//       document.documentElement.classList.toggle("dark", prefersDark);
+//     }
+//   }, []);
+
+//   // Listen to system theme changes — only if user hasn't chosen manually
+//   useEffect(() => {
+//     if (localStorage.getItem("darkMode") !== null) return; // User has preference → ignore system
+
+//     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+//     const handler = (e: MediaQueryListEvent) => {
+//       const systemDark = e.matches;
+//       setIsDarkMode(systemDark);
+//       document.documentElement.classList.toggle("dark", systemDark);
+//     };
+
+//     mediaQuery.addEventListener("change", handler);
+//     return () => mediaQuery.removeEventListener("change", handler);
+//   }, []);
+
+//   const toggleDarkMode = () => {
+//     const newDarkMode = !isDarkMode;
+//     setIsDarkMode(newDarkMode);
+//     document.documentElement.classList.toggle("dark", newDarkMode);
+//     localStorage.setItem("darkMode", String(newDarkMode));
+//   };
+
+//   const handleLogout = async () => {
+//     await fetch("/api/auth/logout", { method: "POST" });
+//     setUser(null);
+//     router.refresh();
+//     router.push("/login");
+//     toast({ title: "Logged out successfully", description: "See you soon!" });
+//   };
+
+//   const getInitials = () => {
+//     if (user?.name) {
+//       return user.name
+//         .split(" ")
+//         .map((n) => n[0])
+//         .slice(0, 2)
+//         .join("")
+//         .toUpperCase();
+//     }
+//     return user?.email.slice(0, 2).toUpperCase() || "U";
+//   };
+
+//   // Prevent flash of wrong theme
+//   if (isDarkMode === null) {
+//     return (
+//       <nav className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 sticky top-0 z-50">
+//         <div className="container mx-auto px-4 py-3">
+//           <div className="h-10" /> {/* Skeleton */}
+//         </div>
+//       </nav>
+//     );
+//   }
+
+//   return (
+//     <nav className="border-b border-[#e5e2f0] dark:border-gray-700 bg-white/90 dark:bg-gray-900/95 backdrop-blur-sm sticky top-0 z-50 transition-all duration-300">
+//       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+//         {/* Logo */}
+//         <Link href="/" className="flex items-center gap-2 group">
+//           <div className="font-bold text-2xl text-[#2d2a4a] dark:text-white transition-all group-hover:scale-105">
+//             CardSync
+//             <span className="block text-sm font-medium text-[#483d73] dark:text-purple-400">
+//               With AI
+//             </span>
+//           </div>
+//         </Link>
+
+//         {/* Desktop Navigation */}
+//         <div className="hidden md:flex items-center gap-8">
+//           <Link
+//             href="/"
+//             className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-[#483d73] dark:hover:text-purple-400 transition"
+//           >
+//             Home
+//           </Link>
+//           <Link
+//             href="/dashboard"
+//             className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-[#483d73] dark:hover:text-purple-400 transition"
+//           >
+//             Dashboard
+//           </Link>
+//           <Link
+//             href="/form"
+//             className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-[#483d73] dark:hover:text-purple-400 transition"
+//           >
+//             Scan Card
+//           </Link>
+//           <Link
+//             href="/feature"
+//             className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-[#483d73] dark:hover:text-purple-400 transition"
+//           >
+//             Features
+//           </Link>
+//           {user?.isAdmin && (
+//             <>
+//               <Link
+//                 href="/pricing"
+//                 className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-[#483d73] dark:hover:text-purple-400 transition"
+//               >
+//                 Pricing
+//               </Link>
+//               <Link
+//                 href="/user"
+//                 className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-[#483d73] dark:hover:text-purple-400 transition"
+//               >
+//                 User Management
+//               </Link>
+//             </>
+//           )}
+//         </div>
+
+//         {/* User Menu */}
+//         {user ? (
+//           <DropdownMenu>
+//             <DropdownMenuTrigger asChild>
+//               <Button
+//                 variant="ghost"
+//                 size="sm"
+//                 className="relative rounded-full p-1 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+//               >
+//                 <Avatar className="h-9 w-9 ring-2 ring-[#483d73]/20 dark:ring-purple-500/30">
+//                   <AvatarImage
+//                     src={user.avatar || generateAvatar(user.email)}
+//                   />
+//                   <AvatarFallback className="bg-[#483d73] dark:bg-purple-600 text-white text-sm font-bold">
+//                     {getInitials()}
+//                   </AvatarFallback>
+//                 </Avatar>
+//               </Button>
+//             </DropdownMenuTrigger>
+
+//             <DropdownMenuContent align="end" className="w-64 mt-2 p-2">
+//               <DropdownMenuLabel>
+//                 <div className="flex items-center gap-3">
+//                   <Avatar className="h-10 w-10">
+//                     <AvatarImage
+//                       src={user.avatar || generateAvatar(user.email)}
+//                     />
+//                     <AvatarFallback>{getInitials()}</AvatarFallback>
+//                   </Avatar>
+//                   <div>
+//                     <p className="font-semibold text-sm">
+//                       {user.name || user.email.split("@")[0]}
+//                     </p>
+//                     <p className="text-xs text-muted-foreground">
+//                       {user.email}
+//                     </p>
+//                   </div>
+//                 </div>
+//               </DropdownMenuLabel>
+
+//               <DropdownMenuSeparator />
+
+//               <DropdownMenuItem asChild>
+//                 <Link
+//                   href="/profile"
+//                   className="flex items-center gap-3 cursor-pointer"
+//                 >
+//                   <User className="h-4 w-4" />
+//                   <span>My Profile</span>
+//                 </Link>
+//               </DropdownMenuItem>
+
+//               <DropdownMenuItem asChild className="md:hidden">
+//                 <Link href="/dashboard" className="flex items-center gap-3">
+//                   <LayoutDashboard className="h-4 w-4" />
+//                   <span>Dashboard</span>
+//                 </Link>
+//               </DropdownMenuItem>
+
+//               <DropdownMenuItem asChild className="md:hidden">
+//                 <Link href="/form" className="flex items-center gap-3">
+//                   <ScanLine className="h-4 w-4" />
+//                   <span>Scan Card</span>
+//                 </Link>
+//               </DropdownMenuItem>
+//               <DropdownMenuItem asChild className="md:hidden">
+//                 <Link href="/feature" className="flex items-center gap-3">
+//                   <Sparkles className="h-4 w-4" />
+//                   <span>Features</span>
+//                 </Link>
+//               </DropdownMenuItem>
+
+//               <DropdownMenuSeparator />
+
+//               <DropdownMenuItem className="font-medium text-sm text-muted-foreground">
+//                 Settings
+//               </DropdownMenuItem>
+
+//               {/* Dark Mode Toggle */}
+//               <DropdownMenuItem
+//                 onClick={toggleDarkMode}
+//                 className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800"
+//               >
+//                 <div className="flex items-center gap-3 w-full">
+//                   {isDarkMode ? (
+//                     <Moon className="h-4 w-4 text-purple-400" />
+//                   ) : (
+//                     <Sun className="h-4 w-4 text-yellow-500" />
+//                   )}
+//                   <span className="font-medium">
+//                     {isDarkMode ? "Dark Mode" : "Light Mode"}
+//                   </span>
+//                 </div>
+//               </DropdownMenuItem>
+
+//               <DropdownMenuItem className="cursor-pointer">
+//                 <Link href="/help" className="flex items-center gap-3">
+//                   <HelpCircle className="h-4 w-4" />
+//                   <span>Help & Support</span>
+//                 </Link>
+//               </DropdownMenuItem>
+
+//               {user.isAdmin && (
+//                 <>
+//                   <DropdownMenuSeparator />
+//                   <DropdownMenuItem className="font-semibold text-purple-600 dark:text-purple-400">
+//                     Admin Tools
+//                   </DropdownMenuItem>
+//                   <DropdownMenuItem asChild>
+//                     <Link href="/user" className="flex items-center gap-3">
+//                       <Users className="h-4 w-4" />
+//                       <span>User Management</span>
+//                     </Link>
+//                   </DropdownMenuItem>
+//                   <DropdownMenuItem asChild>
+//                     <Link href="/pricing" className="flex items-center gap-3">
+//                       <DollarSign className="h-4 w-4" />
+//                       <span>Pricing Plans</span>
+//                     </Link>
+//                   </DropdownMenuItem>
+//                 </>
+//               )}
+
+//               <DropdownMenuSeparator />
+
+//               <DropdownMenuItem
+//                 onClick={handleLogout}
+//                 className="text-red-600 dark:text-red-400 font-medium"
+//               >
+//                 <LogOut className="h-4 w-4 mr-3" />
+//                 <span>Log out</span>
+//               </DropdownMenuItem>
+//             </DropdownMenuContent>
+//           </DropdownMenu>
+//         ) : (
+//           <Button
+//             asChild
+//             className="bg-[#483d73] hover:bg-[#352c55] dark:bg-purple-600 dark:hover:bg-purple-700 font-medium"
+//           >
+//             <Link href="/login">Sign In</Link>
+//           </Button>
+//         )}
+//       </div>
+//     </nav>
+//   );
+// }
+
+
 "use client";
 
 import Link from "next/link";
@@ -645,6 +985,8 @@ import {
   Moon,
   Sun,
   Sparkles,
+  Settings,
+  Plug,
 } from "lucide-react";
 
 import {
@@ -669,7 +1011,7 @@ interface UserType {
 
 export function Navbar() {
   const [user, setUser] = useState<UserType | null>(null);
-  const [isDarkMode, setIsDarkMode] = useState<boolean | null>(null); // null = not initialized
+  const [isDarkMode, setIsDarkMode] = useState<boolean | null>(null);
   const router = useRouter();
   const { toast } = useToast();
 
@@ -689,12 +1031,10 @@ export function Navbar() {
     fetchUser();
   }, []);
 
-  // Dark mode initialization — only runs once
+  // Dark mode initialization
   useEffect(() => {
     const saved = localStorage.getItem("darkMode");
-    const prefersDark = window.matchMedia(
-      "(prefers-color-scheme: dark)"
-    ).matches;
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
 
     if (saved !== null) {
       const dark = saved === "true";
@@ -706,9 +1046,8 @@ export function Navbar() {
     }
   }, []);
 
-  // Listen to system theme changes — only if user hasn't chosen manually
   useEffect(() => {
-    if (localStorage.getItem("darkMode") !== null) return; // User has preference → ignore system
+    if (localStorage.getItem("darkMode") !== null) return;
 
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
     const handler = (e: MediaQueryListEvent) => {
@@ -748,12 +1087,11 @@ export function Navbar() {
     return user?.email.slice(0, 2).toUpperCase() || "U";
   };
 
-  // Prevent flash of wrong theme
   if (isDarkMode === null) {
     return (
       <nav className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-3">
-          <div className="h-10" /> {/* Skeleton */}
+          <div className="h-10" />
         </div>
       </nav>
     );
@@ -826,9 +1164,7 @@ export function Navbar() {
                 className="relative rounded-full p-1 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
               >
                 <Avatar className="h-9 w-9 ring-2 ring-[#483d73]/20 dark:ring-purple-500/30">
-                  <AvatarImage
-                    src={user.avatar || generateAvatar(user.email)}
-                  />
+                  <AvatarImage src={user.avatar || generateAvatar(user.email)} />
                   <AvatarFallback className="bg-[#483d73] dark:bg-purple-600 text-white text-sm font-bold">
                     {getInitials()}
                   </AvatarFallback>
@@ -840,18 +1176,14 @@ export function Navbar() {
               <DropdownMenuLabel>
                 <div className="flex items-center gap-3">
                   <Avatar className="h-10 w-10">
-                    <AvatarImage
-                      src={user.avatar || generateAvatar(user.email)}
-                    />
+                    <AvatarImage src={user.avatar || generateAvatar(user.email)} />
                     <AvatarFallback>{getInitials()}</AvatarFallback>
                   </Avatar>
                   <div>
                     <p className="font-semibold text-sm">
                       {user.name || user.email.split("@")[0]}
                     </p>
-                    <p className="text-xs text-muted-foreground">
-                      {user.email}
-                    </p>
+                    <p className="text-xs text-muted-foreground">{user.email}</p>
                   </div>
                 </div>
               </DropdownMenuLabel>
@@ -859,10 +1191,7 @@ export function Navbar() {
               <DropdownMenuSeparator />
 
               <DropdownMenuItem asChild>
-                <Link
-                  href="/profile"
-                  className="flex items-center gap-3 cursor-pointer"
-                >
+                <Link href="/profile" className="flex items-center gap-3 cursor-pointer">
                   <User className="h-4 w-4" />
                   <span>My Profile</span>
                 </Link>
@@ -881,6 +1210,7 @@ export function Navbar() {
                   <span>Scan Card</span>
                 </Link>
               </DropdownMenuItem>
+
               <DropdownMenuItem asChild className="md:hidden">
                 <Link href="/feature" className="flex items-center gap-3">
                   <Sparkles className="h-4 w-4" />
@@ -890,9 +1220,7 @@ export function Navbar() {
 
               <DropdownMenuSeparator />
 
-              <DropdownMenuItem className="font-medium text-sm text-muted-foreground">
-                Settings
-              </DropdownMenuItem>
+             
 
               {/* Dark Mode Toggle */}
               <DropdownMenuItem
@@ -936,6 +1264,17 @@ export function Navbar() {
                       <span>Pricing Plans</span>
                     </Link>
                   </DropdownMenuItem>
+                   {/* Settings Section - only visible to admins */}
+              {user.isAdmin && (
+                <>
+                  <DropdownMenuItem asChild>
+                    <Link href="/settings" className="flex items-center gap-3 cursor-pointer">
+                      <Settings className="h-4 w-4" />
+                      <span>Settings</span>
+                    </Link>
+                  </DropdownMenuItem>
+                </>
+              )}
                 </>
               )}
 

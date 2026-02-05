@@ -27,7 +27,6 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import Image from "next/image";
 import {
   Upload,
@@ -37,13 +36,11 @@ import {
   GripVertical,
   Trash2,
   Settings,
-  ChevronDown,
-  Calendar,
   Zap,
   Globe,
   Columns,
 } from "lucide-react";
-import { toast, Toaster } from "sonner";
+import { toast } from "sonner";
 import { rectSortingStrategy } from "@dnd-kit/sortable";
 import {
   DndContext,
@@ -93,6 +90,12 @@ interface BuilderField {
   options?: FieldOption[];
   accept?: string;
   colSpan?: 1 | 2 | 3 | 4;
+  dependsOn?: string;
+  dependentOptions?: Record<string, FieldOption[]>;
+  visibleIf?: {
+    dependsOn: string;
+    value: string;
+  };
 }
 
 function uid(prefix = "") {
@@ -370,12 +373,14 @@ function FieldEditor({
   field,
   onSave,
   onClose,
+  allFields,
 }: {
   field: BuilderField;
   onSave: (updated: BuilderField) => void;
   onClose: () => void;
+  allFields: BuilderField[];
 }) {
-  const [edited, setEdited] = useState(field);
+  const [edited, setEdited] = useState<BuilderField>({ ...field });
 
   const addOption = () => {
     setEdited({
@@ -397,6 +402,44 @@ function FieldEditor({
     });
   };
 
+  const addChildOption = (groupKey: string) => {
+    const current = edited.dependentOptions?.[groupKey] || [];
+    const newOpt = { label: "", value: "" };
+    setEdited((prev) => ({
+      ...prev,
+      dependentOptions: {
+        ...prev.dependentOptions,
+        [groupKey]: [...current, newOpt],
+      },
+    }));
+  };
+
+  const updateChildOption = (groupKey: string, idx: number, key: "label" | "value", val: string) => {
+    const group = edited.dependentOptions?.[groupKey] || [];
+    const updated = group.map((o, i) =>
+      i === idx ? { ...o, [key]: val } : o
+    );
+    setEdited((prev) => ({
+      ...prev,
+      dependentOptions: {
+        ...prev.dependentOptions,
+        [groupKey]: updated,
+      },
+    }));
+  };
+
+  const removeChildOption = (groupKey: string, idx: number) => {
+    const group = edited.dependentOptions?.[groupKey] || [];
+    const filtered = group.filter((_, i) => i !== idx);
+    setEdited((prev) => ({
+      ...prev,
+      dependentOptions: {
+        ...prev.dependentOptions,
+        [groupKey]: filtered,
+      },
+    }));
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <motion.div
@@ -414,15 +457,17 @@ function FieldEditor({
               className="mt-1"
             />
           </div>
+
           <div>
             <Label className="text-gray-900 dark:text-gray-200">Field Name (unique key) *</Label>
             <Input
               value={edited.name}
               onChange={(e) => setEdited({ ...edited, name: e.target.value })}
-              placeholder="e.g. company_name"
+              placeholder="e.g. country"
               className="mt-1"
             />
           </div>
+
           {["text", "email", "textarea"].includes(edited.type) && (
             <div>
               <Label className="text-gray-900 dark:text-gray-200">Placeholder</Label>
@@ -435,41 +480,252 @@ function FieldEditor({
               />
             </div>
           )}
+
           {(edited.type === "select" || edited.type === "radio") && (
-            <div>
-              <Label className="text-gray-900 dark:text-gray-200">Options</Label>
-              <div className="space-y-2 mt-2">
-                {(edited.options || []).map((opt, idx) => (
-                  <div key={idx} className="flex gap-2">
-                    <Input
-                      placeholder="Label"
-                      value={opt.label}
-                      onChange={(e) =>
-                        updateOption(idx, "label", e.target.value)
-                      }
-                    />
-                    <Input
-                      placeholder="Value"
-                      value={opt.value}
-                      onChange={(e) =>
-                        updateOption(idx, "value", e.target.value)
-                      }
-                    />
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => removeOption(idx)}
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
-                  </div>
-                ))}
-                <Button size="sm" variant="outline" onClick={addOption}>
-                  Add Option
-                </Button>
+            <>
+              <div>
+                <Label className="text-gray-900 dark:text-gray-200">
+                  Options {edited.dependsOn ? "(fallback when no dependency)" : ""}
+                </Label>
+                <div className="space-y-2 mt-2">
+                  {(edited.options || []).map((opt, idx) => (
+                    <div key={idx} className="flex gap-2">
+                      <Input
+                        placeholder="Label"
+                        value={opt.label}
+                        onChange={(e) => updateOption(idx, "label", e.target.value)}
+                      />
+                      <Input
+                        placeholder="Value"
+                        value={opt.value}
+                        onChange={(e) => updateOption(idx, "value", e.target.value)}
+                      />
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => removeOption(idx)}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button size="sm" variant="outline" onClick={addOption}>
+                    Add Option
+                  </Button>
+                </div>
               </div>
-            </div>
+
+              {edited.type === "select" && (
+                <div className="border-t pt-5 mt-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <Label className="text-base font-medium">Make this dropdown dependent on another field</Label>
+                    <Switch
+                      checked={!!edited.dependsOn}
+                      onCheckedChange={(checked) => {
+                        setEdited({
+                          ...edited,
+                          dependsOn: checked ? "" : undefined,
+                          dependentOptions: checked ? {} : undefined,
+                        });
+                      }}
+                    />
+                  </div>
+
+                  {edited.dependsOn !== undefined && (
+                    <div className="space-y-6 mt-4 pl-3 border-l-2 border-purple-200 dark:border-purple-800">
+                      <div>
+                        <Label className="mb-1.5 block">Depends on field</Label>
+                        <Select
+                          value={edited.dependsOn}
+                          onValueChange={(val) => {
+                            setEdited({
+                              ...edited,
+                              dependsOn: val,
+                              dependentOptions: {},
+                            });
+                          }}
+                        >
+                          <SelectTrigger className="mt-1">
+                            <SelectValue placeholder="Select parent field" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {allFields
+                              .filter(
+                                (f) =>
+                                  f.type === "select" &&
+                                  f.uid !== edited.uid &&
+                                  f.name
+                              )
+                              .map((f) => (
+                                <SelectItem key={f.uid} value={f.name}>
+                                  {f.label} ({f.name})
+                                </SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {edited.dependsOn && (
+                        <div className="space-y-5">
+                          <Label className="text-sm font-medium">Dependent options per parent value</Label>
+
+                          {(() => {
+                            const parentField = allFields.find((f) => f.name === edited.dependsOn);
+                            const parentOptions = parentField?.options || [];
+
+                            if (parentOptions.length === 0) {
+                              return (
+                                <div className="text-sm text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 p-3 rounded-md">
+                                  Parent field has no options yet. Add options to the parent first.
+                                </div>
+                              );
+                            }
+
+                            return parentOptions.map((parentOpt) => {
+                              const groupKey = parentOpt.value;
+                              const currentGroupOptions = edited.dependentOptions?.[groupKey] || [];
+
+                              return (
+                                <div key={groupKey} className="border rounded-md p-4 bg-gray-50 dark:bg-gray-900/40">
+                                  <div className="font-medium mb-3 text-gray-800 dark:text-gray-200">
+                                    When "{parentOpt.label}" is selected:
+                                  </div>
+                                  <div className="space-y-2">
+                                    {currentGroupOptions.map((opt, idx) => (
+                                      <div key={idx} className="flex gap-2 items-center">
+                                        <Input
+                                          placeholder="Label"
+                                          value={opt.label}
+                                          onChange={(e) => updateChildOption(groupKey, idx, "label", e.target.value)}
+                                          className="flex-1"
+                                        />
+                                        <Input
+                                          placeholder="Value"
+                                          value={opt.value}
+                                          onChange={(e) => updateChildOption(groupKey, idx, "value", e.target.value)}
+                                          className="flex-1"
+                                        />
+                                        <Button
+                                          size="icon"
+                                          variant="ghost"
+                                          onClick={() => removeChildOption(groupKey, idx)}
+                                        >
+                                          <X className="h-4 w-4" />
+                                        </Button>
+                                      </div>
+                                    ))}
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => addChildOption(groupKey)}
+                                      className="mt-2"
+                                    >
+                                      + Add option
+                                    </Button>
+                                  </div>
+                                </div>
+                              );
+                            });
+                          })()}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
           )}
+
+          {/* New: Conditional Visibility Section */}
+          <div className="border-t pt-5 mt-5">
+            <div className="flex items-center justify-between mb-4">
+              <Label className="text-base font-medium">Make this field conditionally visible</Label>
+              <Switch
+                checked={!!edited.visibleIf}
+                onCheckedChange={(checked) => {
+                  setEdited({
+                    ...edited,
+                    visibleIf: checked ? { dependsOn: "", value: "" } : undefined,
+                  });
+                }}
+              />
+            </div>
+
+            {edited.visibleIf && (
+              <div className="space-y-5 pl-3 border-l-2 border-blue-200 dark:border-blue-800">
+                <div>
+                  <Label>Show when this field...</Label>
+                  <Select
+                    value={edited.visibleIf.dependsOn}
+                    onValueChange={(val) => {
+                      setEdited({
+                        ...edited,
+                        visibleIf: { ...edited.visibleIf, dependsOn: val },
+                      });
+                    }}
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Select parent field" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {allFields
+                        .filter((f) => f.uid !== edited.uid && f.name)
+                        .map((f) => (
+                          <SelectItem key={f.uid} value={f.name}>
+                            {f.label} ({f.name})
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label>Has value</Label>
+                  {(() => {
+                    const parent = allFields.find((f) => f.name === edited.visibleIf?.dependsOn);
+                    if (parent?.type === "select" && parent.options) {
+                      return (
+                        <Select
+                          value={edited.visibleIf.value}
+                          onValueChange={(val) => {
+                            setEdited({
+                              ...edited,
+                              visibleIf: { ...edited.visibleIf, value: val },
+                            });
+                          }}
+                        >
+                          <SelectTrigger className="mt-1">
+                            <SelectValue placeholder="Select value" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {parent.options.map((opt) => (
+                              <SelectItem key={opt.value} value={opt.value}>
+                                {opt.label} ({opt.value})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      );
+                    }
+                    return (
+                      <Input
+                        value={edited.visibleIf.value}
+                        onChange={(e) => {
+                          setEdited({
+                            ...edited,
+                            visibleIf: { ...edited.visibleIf, value: e.target.value },
+                          });
+                        }}
+                        placeholder="e.g. india"
+                        className="mt-1"
+                      />
+                    );
+                  })()}
+                </div>
+              </div>
+            )}
+          </div>
+
           {edited.type === "file" && (
             <div>
               <Label className="text-gray-900 dark:text-gray-200">Accept (MIME types)</Label>
@@ -483,6 +739,7 @@ function FieldEditor({
               />
             </div>
           )}
+
           <div className="flex items-center gap-3">
             <Switch
               checked={edited.required || false}
@@ -491,6 +748,7 @@ function FieldEditor({
             />
             <Label className="text-gray-900 dark:text-gray-200">Required field</Label>
           </div>
+
           <div>
             <Label className="text-gray-900 dark:text-gray-200">Column Width</Label>
             <div className="grid grid-cols-4 gap-3 mt-3">
@@ -513,6 +771,7 @@ function FieldEditor({
             </div>
           </div>
         </div>
+
         <div className="flex justify-end gap-3 mt-8">
           <Button variant="outline" onClick={onClose}>
             Cancel
@@ -522,6 +781,14 @@ function FieldEditor({
             onClick={() => {
               if (!edited.label || !edited.name) {
                 toast.error("Label and Name are required");
+                return;
+              }
+              if (edited.dependsOn && !allFields.some((f) => f.name === edited.dependsOn)) {
+                toast.error("Parent field for dependency no longer exists");
+                return;
+              }
+              if (edited.visibleIf && !allFields.some((f) => f.name === edited.visibleIf?.dependsOn)) {
+                toast.error("Parent field for visibility no longer exists");
                 return;
               }
               onSave(edited);
@@ -870,14 +1137,34 @@ export function ExhibitionForm({
             className={baseClass}
           />
         );
-      case "select":
+
+      case "select": {
+        let currentOptions: FieldOption[] = field.options || [];
+
+        if (field.dependsOn && field.dependentOptions) {
+          const parentValue = formData[field.dependsOn];
+          if (parentValue && field.dependentOptions[parentValue]) {
+            currentOptions = field.dependentOptions[parentValue];
+          } else {
+            currentOptions = [];
+          }
+        }
+
+        const isDisabled = !!field.dependsOn && !formData[field.dependsOn];
+
         return (
-          <Select value={value} onValueChange={onChange}>
+          <Select
+            value={value}
+            onValueChange={onChange}
+            disabled={isDisabled}
+          >
             <SelectTrigger className={baseClass}>
-              <SelectValue placeholder="Select an option" />
+              <SelectValue placeholder={
+                isDisabled ? "Select parent first" : "Select an option"
+              } />
             </SelectTrigger>
             <SelectContent>
-              {(field.options || []).map((opt) => (
+              {currentOptions.map((opt) => (
                 <SelectItem key={opt.value} value={opt.value}>
                   {opt.label}
                 </SelectItem>
@@ -885,6 +1172,8 @@ export function ExhibitionForm({
             </SelectContent>
           </Select>
         );
+      }
+
       case "checkbox":
         return (
           <div className="flex items-center mt-3">
@@ -892,6 +1181,7 @@ export function ExhibitionForm({
             <span className="ml-2">Yes</span>
           </div>
         );
+
       case "date":
         return (
           <Input
@@ -901,6 +1191,7 @@ export function ExhibitionForm({
             className={baseClass}
           />
         );
+
       case "file":
         return (
           <Input
@@ -913,6 +1204,7 @@ export function ExhibitionForm({
             className={baseClass}
           />
         );
+
       default:
         return (
           <Input
@@ -1003,6 +1295,16 @@ export function ExhibitionForm({
 
     return true;
   }, [formData, formFields]);
+
+  const getVisibleFields = () => {
+    return formFields.filter((field) => {
+      if (!field.visibleIf) return true;
+      const parentValue = formData[field.visibleIf.dependsOn];
+      return parentValue === field.visibleIf.value;
+    });
+  };
+
+  const visibleFields = useMemo(() => getVisibleFields(), [formData, formFields]);
 
   if (isLoading) {
     return (
@@ -1304,7 +1606,7 @@ export function ExhibitionForm({
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                     <SortableContext items={formFields.map((f) => f.uid)} strategy={rectSortingStrategy}>
                       <AnimatePresence>
-                        {formFields.length === 0 ? (
+                        {visibleFields.length === 0 ? (
                           <div className="col-span-full text-center py-20 text-gray-500 bg-gray-50/50 dark:bg-gray-800/50 rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-700">
                             {isAdmin ? (
                               <div className="space-y-4">
@@ -1326,9 +1628,13 @@ export function ExhibitionForm({
                             )}
                           </div>
                         ) : (
-                          formFields.map((field) => (
-                            <div
+                          visibleFields.map((field) => (
+                            <motion.div
                               key={field.uid}
+                              initial={{ opacity: 0, scale: 0.95 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              exit={{ opacity: 0, scale: 0.95 }}
+                              transition={{ duration: 0.3 }}
                               className={`${
                                 field.colSpan === 1
                                   ? "sm:col-span-1"
@@ -1359,7 +1665,7 @@ export function ExhibitionForm({
                                   {renderFieldInput(field)}
                                 </div>
                               </SortableFormField>
-                            </div>
+                            </motion.div>
                           ))
                         )}
                       </AnimatePresence>
@@ -1399,6 +1705,7 @@ export function ExhibitionForm({
             setEditingField(null);
           }}
           onClose={() => setEditingField(null)}
+          allFields={formFields}
         />
       )}
     </>
