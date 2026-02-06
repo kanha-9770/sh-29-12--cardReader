@@ -1,3 +1,163 @@
+// import { NextRequest, NextResponse } from 'next/server';
+// import { prisma } from '@/lib/prisma';
+// import { verifyToken } from '@/lib/auth';
+// import { cookies } from 'next/headers';
+
+// async function getOrganizationIdOrError(req: NextRequest): Promise<number | NextResponse> {
+//   const token = cookies().get('token')?.value;
+
+//   if (!token) {
+//     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+//   }
+
+//   try {
+//     const payload = await verifyToken(token);
+
+//     if (!payload?.id) {
+//       return NextResponse.json({ error: 'Invalid token – missing user ID' }, { status: 401 });
+//     }
+
+//     const user = await prisma.user.findUnique({
+//       where: { id: payload.id as string },
+//       select: { organizationId: true },
+//     });
+
+//     if (!user) {
+//       return NextResponse.json({ error: 'User not found' }, { status: 404 });
+//     }
+
+//     if (!user.organizationId) {
+//       return NextResponse.json({ error: 'User is not part of any organization' }, { status: 403 });
+//     }
+
+//     return user.organizationId;
+//   } catch (err) {
+//     console.error('Token verification failed:', err);
+//     return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
+//   }
+// }
+
+// // POST /api/zoho — Save the Zoho Function Endpoint
+// export async function POST(req: NextRequest) {
+//   const orgIdResult = await getOrganizationIdOrError(req);
+
+//   if (orgIdResult instanceof NextResponse) {
+//     return orgIdResult;
+//   }
+
+//   const organizationId = orgIdResult;
+
+//   try {
+//     const body = await req.json();
+//     const { apiEndpoint } = body;
+
+//     if (!apiEndpoint) {
+//       return NextResponse.json(
+//         { success: false, message: 'Zoho Function API Endpoint is required' },
+//         { status: 400 }
+//       );
+//     }
+
+//     // Validate it looks like a Zoho Functions execute URL
+//     if (
+//       !apiEndpoint.startsWith('https://www.zohoapis.') ||
+//       !apiEndpoint.includes('/functions/') ||
+//       !apiEndpoint.includes('actions/execute') ||
+//       !apiEndpoint.includes('zapikey=')
+//     ) {
+//       return NextResponse.json(
+//         { success: false, message: 'Invalid Zoho Function URL – must include /functions/.../execute?auth_type=apikey&zapikey=...' },
+//         { status: 400 }
+//       );
+//     }
+
+//     console.log('Saving Zoho Function Endpoint:', { organizationId, apiEndpoint });
+
+//     const integration = await prisma.zohoIntegration.upsert({
+//       where: { organizationId },
+//       update: {
+//         apiEndpoint,
+//         status: 'CONNECTED',
+//         connectedAt: new Date(),
+//         errorMessage: null,
+//       },
+//       create: {
+//         organizationId,
+//         apiEndpoint,
+//         status: 'CONNECTED',
+//         connectedAt: new Date(),
+//       },
+//     });
+
+//     return NextResponse.json({
+//       success: true,
+//       message: 'Zoho Function Endpoint saved successfully',
+//       status: integration.status,
+//     });
+//   } catch (error: any) {
+//     console.error('Zoho endpoint save error:', error);
+//     return NextResponse.json(
+//       { success: false, message: error.message || 'Failed to save endpoint' },
+//       { status: 500 }
+//     );
+//   }
+// }
+
+// // POST /api/zoho/test — Test if the endpoint accepts POST
+// export async function POST_test(req: NextRequest) {
+//   const orgIdResult = await getOrganizationIdOrError(req);
+
+//   if (orgIdResult instanceof NextResponse) {
+//     return orgIdResult;
+//   }
+
+//   const organizationId = orgIdResult;
+
+//   try {
+//     const integration = await prisma.zohoIntegration.findUnique({
+//       where: { organizationId },
+//     });
+
+//     if (!integration || !integration.apiEndpoint) {
+//       return NextResponse.json(
+//         { success: false, message: 'No Zoho Function endpoint saved' },
+//         { status: 404 }
+//       );
+//     }
+
+//     // Test POST with dummy data (Zoho Functions usually accept POST)
+//     const dummyPayload = { test: "ping" };
+
+//     const testRes = await fetch(integration.apiEndpoint, {
+//       method: 'POST',
+//       headers: { 'Content-Type': 'application/json' },
+//       body: JSON.stringify(dummyPayload),
+//     });
+
+//     if (!testRes.ok) {
+//       const text = await testRes.text();
+//       throw new Error(`Endpoint test failed: ${testRes.status} - ${text}`);
+//     }
+
+//     await prisma.zohoIntegration.update({
+//       where: { organizationId },
+//       data: { status: 'CONNECTED', errorMessage: null },
+//     });
+
+//     return NextResponse.json({
+//       success: true,
+//       message: 'Endpoint accepts POST requests – integration ready',
+//     });
+//   } catch (error: any) {
+//     console.error('Endpoint test error:', error);
+//     return NextResponse.json(
+//       { success: false, message: error.message || 'Failed to test endpoint' },
+//       { status: 400 }
+//     );
+//   }
+// }
+
+
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyToken } from '@/lib/auth';
@@ -37,7 +197,7 @@ async function getOrganizationIdOrError(req: NextRequest): Promise<number | Next
   }
 }
 
-// POST /api/zoho — Save the Zoho Function Endpoint
+// POST /api/zoho — Save the Zoho Function Endpoint (unchanged)
 export async function POST(req: NextRequest) {
   const orgIdResult = await getOrganizationIdOrError(req);
 
@@ -103,7 +263,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// POST /api/zoho/test — Test if the endpoint accepts POST
+// POST /api/zoho/test — Test if the endpoint accepts POST (unchanged)
 export async function POST_test(req: NextRequest) {
   const orgIdResult = await getOrganizationIdOrError(req);
 
@@ -125,7 +285,7 @@ export async function POST_test(req: NextRequest) {
       );
     }
 
-    // Test POST with dummy data (Zoho Functions usually accept POST)
+    // Test POST with dummy data
     const dummyPayload = { test: "ping" };
 
     const testRes = await fetch(integration.apiEndpoint, {
@@ -153,6 +313,174 @@ export async function POST_test(req: NextRequest) {
     return NextResponse.json(
       { success: false, message: error.message || 'Failed to test endpoint' },
       { status: 400 }
+    );
+  }
+}
+
+// ── NEW: POST /api/zoho/sync — Send ALL form data + additionalData to Zoho ──
+export async function POST_sync(req: NextRequest) {
+  const orgIdResult = await getOrganizationIdOrError(req);
+
+  if (orgIdResult instanceof NextResponse) {
+    return orgIdResult;
+  }
+
+  const organizationId = orgIdResult;
+
+  try {
+    const body = await req.json();
+    const { formId } = body;
+
+    if (!formId) {
+      return NextResponse.json(
+        { success: false, message: 'formId is required' },
+        { status: 400 }
+      );
+    }
+
+    // Fetch the complete Form record with related data
+    const form = await prisma.form.findUnique({
+      where: { id: formId },
+      include: {
+        user: {
+          select: {
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    if (!form) {
+      return NextResponse.json({ success: false, message: 'Form not found' }, { status: 404 });
+    }
+
+    if (form.organizationId !== organizationId) {
+      return NextResponse.json({ success: false, message: 'Unauthorized: form does not belong to this organization' }, { status: 403 });
+    }
+
+    // Fetch the Zoho integration for this organization
+    const integration = await prisma.zohoIntegration.findUnique({
+      where: { organizationId },
+    });
+
+    if (!integration?.apiEndpoint) {
+      return NextResponse.json(
+        { success: false, message: 'Zoho Function endpoint not configured for this organization' },
+        { status: 400 }
+      );
+    }
+
+    // Build the complete payload — send EVERYTHING you want to Zoho
+    const payload = {
+      // Core form fields (as before)
+      cardNo: form.cardNo,
+      salesPerson: form.salesPerson,
+      date: form.date.toISOString(),
+      country: form.country,
+      cardFrontPhoto: form.cardFrontPhoto,
+      cardBackPhoto: form.cardBackPhoto || null,
+      leadStatus: form.leadStatus,
+      dealStatus: form.dealStatus,
+      meetingAfterExhibition: form.meetingAfterExhibition,
+      industryCategories: form.industryCategories || '',
+      description: form.description || '',
+
+      // ── NEW: Send the full additionalData JSON field ──
+      additionalData: form.additionalData || {},
+
+      // Optional: also include the submitted snapshot if you want
+      submittedFieldSnapshot: form.submittedFieldSnapshot || {},
+
+      // Other useful context
+      formId: form.id,
+      userId: form.userId,
+      userName: form.user?.name || null,
+      userEmail: form.user?.email || null,
+      submittedAt: form.createdAt.toISOString(),
+      updatedAt: form.updatedAt.toISOString(),
+      status: form.status,
+      extractionStatus: form.extractionStatus,
+      source: 'Web Form',
+    };
+
+    console.log(`[Zoho Sync] Sending form ${formId} to Zoho`, {
+      endpoint: integration.apiEndpoint,
+      payloadKeys: Object.keys(payload),
+      additionalDataKeys: Object.keys(payload.additionalData),
+    });
+
+    // Send to Zoho Function
+    const zohoResponse = await fetch(integration.apiEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!zohoResponse.ok) {
+      const errorText = await zohoResponse.text();
+      console.error(`Zoho Function failed for form ${formId}:`, errorText);
+
+      // Update status in DB
+      await prisma.form.update({
+        where: { id: formId },
+        data: { zohoStatus: 'FAILED' },
+      });
+
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Failed to send data to Zoho',
+          error: errorText,
+        },
+        { status: zohoResponse.status }
+      );
+    }
+
+    const zohoResult = await zohoResponse.json();
+
+    if (!zohoResult.success) {
+      await prisma.form.update({
+        where: { id: formId },
+        data: { zohoStatus: 'FAILED' },
+      });
+
+      return NextResponse.json(
+        {
+          success: false,
+          message: zohoResult.message || 'Zoho returned failure',
+        },
+        { status: 400 }
+      );
+    }
+
+    // Success — save Zoho record ID and sync info back to database
+    await prisma.form.update({
+      where: { id: formId },
+      data: {
+        zohoRecordId: zohoResult.recordId || null,
+        zohoModule: zohoResult.module || 'Leads', // fallback if not returned
+        zohoSyncAt: new Date(),
+        zohoStatus: 'SUCCESS',
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: 'Form data (including additionalData) sent to Zoho successfully',
+      zohoRecordId: zohoResult.recordId || null,
+    });
+  } catch (error: any) {
+    console.error('Zoho sync error:', error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        message: error.message || 'Internal server error during Zoho sync',
+      },
+      { status: 500 }
     );
   }
 }

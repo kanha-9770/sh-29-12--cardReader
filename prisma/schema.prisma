@@ -55,6 +55,9 @@ model Form {
   additionalData          Json?          @db.Json
   emailSent               Boolean        @default(false)
   submittedFieldSnapshot  Json?          @db.Json
+  zohoRecordId      String?   
+  zohoModule        String?   
+  zohoSyncAt        DateTime?
 }
 
 model ExtractedData {
@@ -165,6 +168,10 @@ model ZohoIntegration {
 
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
+
+  refreshToken   String?
+  accessToken    String?
+  tokenExpiry    DateTime?
 
   @@index([organizationId])
 }
